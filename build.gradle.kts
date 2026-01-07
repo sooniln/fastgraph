@@ -31,7 +31,7 @@ dependencies {
 
     jmhImplementation(libs.guava)
     jmhImplementation(libs.jgrapht)
-    jmhImplementation("org.openjdk.jol:jol-core:0.17")
+    jmhImplementation(libs.jol)
 }
 
 tasks.named("compileJava", JavaCompile::class.java) {
