@@ -1,6 +1,7 @@
 plugins {
     kotlin("jvm") version "2.2.21"
     id("me.champeau.jmh") version "0.7.3"
+    id("com.vanniktech.maven.publish") version "0.35.0"
 }
 
 group = "io.github.sooniln"
@@ -50,4 +51,40 @@ jmh {
     verbosity = "EXTRA"
 
     //jvmArgs.add("-Djdk.attach.allowAttachSelf")
+}
+
+mavenPublishing {
+    publishToMavenCentral()
+
+    signAllPublications()
+
+    coordinates(group.toString(), "fastgraph", version.toString())
+
+    pom {
+        name = "fastgraph"
+        description = "A highly efficient mathematical graph-theory library for JVM."
+        inceptionYear = "2026"
+        url = "https://github.com/sooniln/fastgraph"
+        licenses {
+            license {
+                name = "MIT License"
+                url = "https://github.com/sooniln/fastgraph/blob/main/LICENSE"
+                distribution = "repo"
+            }
+        }
+        developers {
+            developer {
+                id = "sooniln"
+                name = "Soonil Nagarkar"
+                email = "sooniln@gmail.com"
+                organization = "Soonil Nagarkar"
+                organizationUrl = "https://github.com/sooniln"
+            }
+        }
+        scm {
+            url = "https://github.com/sooniln/fastgraph/"
+            connection = "scm:git:git://github.com/sooniln/fastgraph.git"
+            developerConnection = "scm:git:ssh://git@github.com/sooniln/fastgraph.git"
+        }
+    }
 }
