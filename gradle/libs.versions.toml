@@ -1,0 +1,22 @@
+# Version catalog is a central place for you to declare and version dependencies
+# https://docs.gradle.org/current/userguide/platforms.html#sub:version-catalog
+# https://docs.gradle.org/current/userguide/platforms.html#sub::toml-dependencies-format
+
+[versions]
+assertJ = "3.27.6"
+fastutil = "8.5.18"
+guava = "33.5.0-jre"
+jgrapht = "1.5.2"
+junit = "6.0.1"
+
+[libraries]
+assertJ = { module = "org.assertj:assertj-core", version.ref = "assertJ" }
+fastutil = { module = "it.unimi.dsi:fastutil-core", version.ref = "fastutil" }
+guava = { module = "com.google.guava:guava", version.ref = "guava" }
+jgrapht = { module = "org.jgrapht:jgrapht-core", version.ref = "jgrapht" }
+junitCore = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+junitParams = { module = "org.junit.jupiter:junit-jupiter-params", version.ref = "junit" }
+
+# Libraries can be bundled together for easier import
+[bundles]
+testing = ["assertJ", "junitCore", "junitParams"]
