@@ -102,7 +102,7 @@ for (vertex in graph.successors(vertex)) {
 ```
 
 This is a very brief introduction to some of the capabilities of FastGraph - for a more detailed look at FastGraph APIs
-and capabilities see the [Getting Started](GETTING_STARTED.md) docs.
+and capabilities see the [Getting Started](docs/GETTING_STARTED.md) docs.
 
 ## Competitors
 
@@ -135,12 +135,13 @@ Benchmarking was performed with [JMH](https://github.com/openjdk/jmh), and bench
 repository. Memory measurements were made with [JOL](https://github.com/openjdk/jol). All benchmarks were performed on
 the same machine and on the same data sets. Benchmark results are intended to be comparative, not absolute.
 
-For further benchmarks and details on how to interpret the data see the [Detailed Benchmarks](DETAILED_BENCHMARKS.md)
+For further benchmarks and details on how to interpret the data see
+the [Detailed Benchmarks](docs/DETAILED_BENCHMARKS.md)
 docs.
 
-![BFS Benchmark](assets/bfs_plot.png)
-![Dijkstra Benchmark](assets/dijkstra_plot.png)
-![Memory Usage](assets/memory_plot.png)
+![BFS Benchmark](docs/bfs_plot.png)
+![Dijkstra Benchmark](docs/dijkstra_plot.png)
+![Memory Usage](docs/memory_plot.png)
 
 ## Dependencies
 
