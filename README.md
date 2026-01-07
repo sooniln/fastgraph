@@ -140,7 +140,7 @@ For further benchmarks and details see the [Detailed Benchmarks](DETAILED_BENCHM
 ## Dependencies
 
 * JDK 17+
-* [fastutil](https://github.com/vigna/fastutil/) is used internally to support memory and CPU efficient collections.
+* [fastutil-core](https://github.com/vigna/fastutil/) is used to support memory and CPU efficient primitive collections.
 
 ## Attributions
 
