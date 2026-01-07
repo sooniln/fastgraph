@@ -135,7 +135,12 @@ Benchmarking was performed with [JMH](https://github.com/openjdk/jmh), and bench
 repository. Memory measurements were made with [JOL](https://github.com/openjdk/jol). All benchmarks were performed on
 the same machine and on the same data sets. Benchmark results are intended to be comparative, not absolute.
 
-For further benchmarks and details see the [Detailed Benchmarks](DETAILED_BENCHMARKS.md) docs.
+For further benchmarks and details on how to interpret the data see the [Detailed Benchmarks](DETAILED_BENCHMARKS.md)
+docs.
+
+![BFS Benchmark](assets/bfs_plot.png)
+![Dijkstra Benchmark](assets/dijkstra_plot.png)
+![Memory Usage](assets/memory_plot.png)
 
 ## Dependencies
 

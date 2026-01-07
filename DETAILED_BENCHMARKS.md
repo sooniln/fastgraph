@@ -110,11 +110,13 @@ GuavaNetworkBenchmark.bfsGuava                avgt    4  1472.074 ±  378.759  m
 GuavaGraphBenchmark.bfsGuava                  avgt    4   903.669 ±  242.390  ms/op
 JGraphSimpleGraphBenchmark.bfsJGraph          avgt    4   751.516 ±   92.338  ms/op
 JGraphNetworkBenchmark.bfsJGraph              avgt    4   748.076 ±   74.406  ms/op
+GuavaSimpleGraphBenchmark.bfsGuava            avgt    4   745.596 ±   94.911  ms/op
 JGraphBenchmark.bfsJGraph                     avgt    6   667.561 ±   53.290  ms/op
 GuavaNetworkBenchmark.bfs                     avgt    4   623.127 ±   41.933  ms/op
 JGraphSimpleGraphBenchmark.bfs                avgt    4   581.057 ±   51.654  ms/op
 JGraphNetworkBenchmark.bfs                    avgt    4   477.687 ±   36.511  ms/op
 JGraphBenchmark.bfs                           avgt    4   464.802 ±   45.972  ms/op
+GuavaSimpleGraphBenchmark.bfs                 avgt    4   442.799 ±   64.068  ms/op
 GuavaGraphBenchmark.bfs                       avgt    4   412.511 ±   19.472  ms/op
 MutableSimpleGraphBenchmark.bfs               avgt    4   137.702 ±    1.948  ms/op
 MutableNetworkBenchmark.bfs                   avgt    4   131.842 ±    2.697  ms/op
@@ -137,12 +139,12 @@ Dijkstra's focuses heavily on edges and weights, and thus this provides a test c
 Benchmark                                     Mode  Cnt     Score      Error  Units
 GuavaGraphBenchmark.dijkstras                 avgt    4  5545.439 ±  550.693  ms/op
 GuavaNetworkBenchmark.dijkstras               avgt    4  2976.803 ±  376.683  ms/op
+JGraphNetworkBenchmark.dijkstras              avgt    4   993.315 ±  126.623  ms/op
 JGraphGraphBenchmark.dijkstras                avgt    4   896.574 ±   66.561  ms/op
 MutableGraphBenchmark.dijkstras               avgt    4   891.122 ±   30.033  ms/op
-JGraphNetworkBenchmark.dijkstras              avgt    4   993.315 ±  126.623  ms/op
 MutableNetworkBenchmark.dijkstras             avgt    4   654.752 ±   14.063  ms/op
-JGraphGraphBenchmark.dijkstrasJGraph          avgt    4   451.695 ±  111.547  ms/op
 JGraphNetworkBenchmark.dijkstrasJGraph        avgt    4   471.196 ±   36.788  ms/op
+JGraphGraphBenchmark.dijkstrasJGraph          avgt    4   451.695 ±  111.547  ms/op
 ImmutableGraphBenchmark.dijkstras             avgt    4   429.757 ±   26.303  ms/op
 ImmutableNetworkBenchmark.djikstras           avgt    4   352.646 ±   13.857  ms/op
 ```

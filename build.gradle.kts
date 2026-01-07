@@ -50,4 +50,6 @@ jmh {
     verbosity = "EXTRA"
 
     //jvmArgs.add("-Djdk.attach.allowAttachSelf")
+
+    includes.add("GuavaSimpleGraphBenchmark.bfs")
 }
