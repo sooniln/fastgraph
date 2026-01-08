@@ -1,4 +1,4 @@
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.sooniln/fastgraph.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.sooniln/fastgraph)
+[![Maven Central Version](https://img.shields.io/maven-central/v/io.github.sooniln/fastgraph)](https://central.sonatype.com/artifact/io.github.sooniln/fastgraph)
 [![javadoc](https://javadoc.io/badge2/io.github.sooniln/fastgraph/javadoc.svg)](https://javadoc.io/doc/io.github.sooniln/fastgraph)
 
 # FastGraph
