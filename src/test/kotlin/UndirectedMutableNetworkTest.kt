@@ -4,9 +4,9 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
-class DirectedMutableNetworkTest {
+class UndirectedMutableNetworkTest {
 
-    private val graph = mutableGraph(true, allowMultiEdge = true)
+    private val graph = mutableGraph(false, allowMultiEdge = true)
     private val vertexProperty = graph.createVertexProperty<String>()
     private val edgeProperty = graph.createEdgeProperty<String>()
 

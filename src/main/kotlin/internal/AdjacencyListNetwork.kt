@@ -45,6 +45,7 @@ internal class AdjacencyListNetwork(override val directed: Boolean) : MutableGra
         return@lazy pds
     }
 
+    private var multiEdgeCount = 0
     private val successors: ArrayList<AdjacencySet> = ArrayList()
     private val predecessors: ArrayList<AdjacencySet> by _predecessors
     private val edgeValues = EdgeValueArrayList()
@@ -134,7 +135,8 @@ internal class AdjacencyListNetwork(override val directed: Boolean) : MutableGra
                     val adjacency = outboundAdjacencyIt.next()
                     val edgeId = adjacency.edgeId
                     // successors has already been updated, so no translation necessary
-                    edgeValues[edgeId] = EdgeValue(true, vertex, adjacency.vertex)
+                    val vertexOther = if (adjacency.vertex == lastVertex) vertex else adjacency.vertex
+                    edgeValues[edgeId] = EdgeValue(true, vertex, vertexOther)
                 }
 
                 val targetIt = successors[lastIndex].vertexIterator()
@@ -170,7 +172,9 @@ internal class AdjacencyListNetwork(override val directed: Boolean) : MutableGra
         val edgeValue = EdgeValue(directed, validateVertex(source), validateVertex(target))
         edgeValues.add(edgeValue)
 
-        successors[source.intValue].add(target, edgeId)
+        if (successors[source.intValue].add(target, edgeId)) {
+            multiEdgeCount++
+        }
         if (!directed) {
             if (source != target) {
                 successors[target.intValue].add(source, edgeId)
@@ -190,13 +194,15 @@ internal class AdjacencyListNetwork(override val directed: Boolean) : MutableGra
         val source = edgeValue.source
         val target = edgeValue.target
 
-        check(successors[source.intValue].remove(target, edgeId))
+        if (successors[source.intValue].remove(target, edgeId)) {
+            check(--multiEdgeCount >= 0)
+        }
         if (!directed) {
             if (source != target) {
-                check(successors[target.intValue].remove(source, edgeId))
+                successors[target.intValue].remove(source, edgeId)
             }
         } else if (_predecessors.isInitialized()) {
-            check(predecessors[target.intValue].remove(source, edgeId))
+            predecessors[target.intValue].remove(source, edgeId)
         }
 
         cleanupEdge(edgeId)
@@ -231,6 +237,9 @@ internal class AdjacencyListNetwork(override val directed: Boolean) : MutableGra
         edgeValues[index] = lastEdgeValue
         edgeValues.removeAt(lastIndex)
     }
+
+    override val multiEdge: Boolean
+        get() = multiEdgeCount > 0
 
     private fun validateVertex(vertex: Vertex): Vertex {
         if (vertex.intValue !in 0..<successors.size) {
@@ -587,9 +596,12 @@ private class AdjacencySet : EdgeAdjacencySet {
         override fun toString(): String = joinToString(", ", "[", "]") { it.toString() }
     }
 
-    fun add(vertex: Vertex, edgeId: Int) {
+    // returns true if there already exists another edge to the given vertex, false otherwise
+    fun add(vertex: Vertex, edgeId: Int): Boolean {
+        val r: Boolean
         if (!map.containsKey(vertex.intValue)) {
             map.put(vertex.intValue, edgeId)
+            r = false
         } else {
             val v = map.get(vertex.intValue)
             val edgeIds: IntArrayList
@@ -604,36 +616,34 @@ private class AdjacencySet : EdgeAdjacencySet {
             }
 
             edgeIds.add(edgeId)
+            r = true
         }
 
         size++
+        return r
     }
 
+    // returns true if the removed edge was not the last edge to vertex, false otherwise
     fun remove(vertex: Vertex, edgeId: Int): Boolean {
-        if (!map.containsKey(vertex.intValue)) {
-            return false
-        }
+        check(map.containsKey(vertex.intValue))
 
         val v = map.get(vertex.intValue)
         if (v < 0) {
             val edgeIds = edgeIdMap[v]
-            if (edgeIds.rem(edgeId)) {
-                --size
-                if (edgeIds.size == 1) {
-                    edgeIdMap.remove(v)
-                    map.put(vertex.intValue, edgeIds.getInt(0))
-                }
-                return true
-            } else {
-                return false
+            check(edgeIds.rem(edgeId))
+            --size
+            if (edgeIds.size == 1) {
+                edgeIdMap.remove(v)
+                map.put(vertex.intValue, edgeIds.getInt(0))
             }
+            return true
         } else if (v == edgeId) {
             map.remove(vertex.intValue)
             --size
-            return true
+            return false
+        } else {
+            throw IllegalStateException()
         }
-
-        return false
     }
 
     fun vertexIterator(): VertexIterator = VertexIteratorWrapper(map.keys.iterator())

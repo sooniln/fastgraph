@@ -48,13 +48,8 @@ private class EmptyGraph(override val directed: Boolean) : ImmutableGraph {
         val UNDIRECTED = EmptyGraph(false)
     }
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("createVertexReference")
-    override fun createVertexReference(vertex: Vertex): VertexReference = throw IllegalArgumentException()
-
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("createEdgeReference")
-    override fun createEdgeReference(edge: Edge): EdgeReference = throw IllegalArgumentException()
+    override val multiEdge: Boolean
+        get() = false
 
     override val vertices: VertexSetList
         get() = emptyVertexSet()
@@ -111,13 +106,21 @@ private class EmptyGraph(override val directed: Boolean) : ImmutableGraph {
 
     override fun <T : S?, S> createEdgeProperty(clazz: Class<S>, initializer: (Edge) -> T): EdgeProperty<T> =
         emptyEdgeProperty()
+
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("createVertexReference")
+    override fun createVertexReference(vertex: Vertex): VertexReference = throw IllegalArgumentException()
+
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("createEdgeReference")
+    override fun createEdgeReference(edge: Edge): EdgeReference = throw IllegalArgumentException()
 }
 
 /**
  * Creates an [ImmutableGraphBuilder] with the given directedness.
  *
  * There are several parameters that help control the specific graph implementation chosen:
- *   * `multiEdge`: Controls whether the returned mutable graph supports adding multi-edges (multiple
+ *   * `allowMultiEdge`: Controls whether the returned mutable graph supports adding multi-edges (multiple
  *   edges that connect the same pair of vertices in the same direction). If a client attempts to add a multi-edge to a
  *   [Graph] implementation that does not support multi-edges, [IllegalArgumentException] will be thrown.
  *   * `optimizeEdges`: If set to true, uses additional memory to speed up edge and edge property access and iteration.
@@ -131,10 +134,10 @@ private class EmptyGraph(override val directed: Boolean) : ImmutableGraph {
 @JvmName("immutableGraphTyped")
 fun <V, E> immutableGraph(
     directed: Boolean,
-    multiEdge: Boolean = false,
+    allowMultiEdge: Boolean = false,
     optimizeEdges: Boolean = false
 ): ImmutableGraphBuilder<V, E> {
-    return if (multiEdge || optimizeEdges) {
+    return if (allowMultiEdge || optimizeEdges) {
         ImmutableAdjacencyListNetworkBuilder(directed)
     } else {
         ImmutableAdjacencyListGraphBuilder(directed)
@@ -148,10 +151,10 @@ fun <V, E> immutableGraph(
  */
 fun immutableGraph(
     directed: Boolean,
-    multiEdge: Boolean = false,
+    allowMultiEdge: Boolean = false,
     optimizeEdges: Boolean = false
 ): ImmutableGraphBuilder<Nothing, Nothing> {
-    return immutableGraph<Nothing, Nothing>(directed, multiEdge, optimizeEdges)
+    return immutableGraph<Nothing, Nothing>(directed, allowMultiEdge, optimizeEdges)
 }
 
 /**

@@ -23,7 +23,8 @@ class DirectedNetworkTest {
     private fun constructGraph(immutable: Boolean) {
         if (immutable) {
             val immutable =
-                immutableGraph<String, Float>(true, multiEdge = true).withVertexProperty().withEdgeProperty().build {
+                immutableGraph<String, Float>(true, allowMultiEdge = true).withVertexProperty().withEdgeProperty()
+                    .build {
                     v0 = addVertex("v0")
                     v1 = addVertex("v1")
                     v2 = addVertex("v2")
@@ -38,7 +39,7 @@ class DirectedNetworkTest {
             vertexName = immutable.vertexProperty
             edgeWeight = immutable.edgeProperty
         } else {
-            val g = mutableGraph(true, multiEdge = true)
+            val g = mutableGraph(true, allowMultiEdge = true)
             graph = g
             vertexName = graph.createVertexProperty { "" }
             edgeWeight = graph.createEdgeProperty { 0f }

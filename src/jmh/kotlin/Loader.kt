@@ -145,7 +145,7 @@ object Loader {
     }
 
     fun loadImmutableNetwork(): ImmutableGraphAndProperties<Int, Float> = load { numVertices, numEdges, lineSequence ->
-        val g = immutableGraph<Int, Float>(false, multiEdge = true).withVertexProperty().withEdgeProperty().build {
+        val g = immutableGraph<Int, Float>(false, allowMultiEdge = true).withVertexProperty().withEdgeProperty().build {
             ensureVertexCapacity(numVertices)
             ensureEdgeCapacity(numEdges)
             lineSequence.forEach { (v1, v2, e) -> addEdge(v1, v2, e) }
@@ -189,7 +189,7 @@ object Loader {
     }
 
     fun loadMutableNetwork(): GraphAndProperties = load { numVertices, numEdges, lineSequence ->
-        val graph = mutableGraph(false, multiEdge = true)
+        val graph = mutableGraph(false, allowMultiEdge = true)
         val vertexProperty = graph.createVertexProperty<Int> { 0 }
         val edgeProperty = graph.createEdgeProperty<Float> { 0f }
         buildGraph(graph, vertexProperty, edgeProperty) {

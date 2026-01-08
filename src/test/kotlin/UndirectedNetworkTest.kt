@@ -23,7 +23,8 @@ class UndirectedNetworkTest {
     private fun constructGraph(immutable: Boolean) {
         if (immutable) {
             val immutable =
-                immutableGraph<String, Float>(false, multiEdge = true).withVertexProperty().withEdgeProperty().build {
+                immutableGraph<String, Float>(false, allowMultiEdge = true).withVertexProperty().withEdgeProperty()
+                    .build {
                     v0 = addVertex("v0")
                     v1 = addVertex("v1")
                     v2 = addVertex("v2")
@@ -38,7 +39,7 @@ class UndirectedNetworkTest {
             vertexName = immutable.vertexProperty
             edgeWeight = immutable.edgeProperty
         } else {
-            val n = mutableGraph(false, multiEdge = true)
+            val n = mutableGraph(false, allowMultiEdge = true)
             graph = n
             vertexName = graph.createVertexProperty { "" }
             edgeWeight = graph.createEdgeProperty { 0f }
@@ -266,6 +267,14 @@ class UndirectedNetworkTest {
 
             assertThrows<IllegalArgumentException> { Vertex(99).incomingEdges() }
         }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = [true, false])
+    fun multiEdge(immutable: Boolean) {
+        constructGraph(immutable)
+
+        assertThat(graph.multiEdge).isTrue
     }
 
     @ParameterizedTest

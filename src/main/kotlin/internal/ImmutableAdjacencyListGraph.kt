@@ -64,6 +64,9 @@ internal class ImmutableAdjacencyListGraph(
         }
     }
 
+    override val multiEdge: Boolean
+        get() = false
+
     private fun validateVertex(vertex: Vertex): Vertex {
         if (vertex.intValue !in 0..<successors.size) {
             throw IllegalArgumentException("$vertex not found in graph")

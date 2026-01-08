@@ -51,6 +51,15 @@ interface Graph {
     val directed: Boolean
 
     /**
+     * Returns true if this graph may currently contain multi-edges (multiple edges connecting the same vertices in the
+     * same direction). This value is not intended to reflect whether a graph is capable of supporting multi-edges, only
+     * whether it currently may contain multi-edges. Implementations may incorrectly return that they do contain
+     * multi-edges when in fact they don't, but may not incorrectly return that they don't contain multi-edges when in
+     * fact they do.
+     */
+    val multiEdge: Boolean
+
+    /**
      * Returns the set of vertices in this graph. The returned value is a live view that reflects changes to the
      * underlying topology.
      */
@@ -537,7 +546,7 @@ fun emptyGraph(directed: Boolean): Graph = emptyImmutableGraph(directed)
  * Constructs and returns a new empty mutable graph with the given directedness.
  *
  * There are several parameters that help control the specific graph implementation chosen:
- *   * `multiEdge`: Controls whether the returned mutable graph supports adding multi-edges (multiple
+ *   * `allowMultiEdge`: Controls whether the returned mutable graph supports adding multi-edges (multiple
  *   edges that connect the same pair of vertices in the same direction). If a client attempts to add a multi-edge to a
  *   [Graph] implementation that does not support multi-edges, [IllegalArgumentException] will be thrown.
  *   * `optimizeEdges`: If set to true, uses additional memory to speed up edge and edge property access and iteration.
@@ -553,14 +562,13 @@ fun emptyGraph(directed: Boolean): Graph = emptyImmutableGraph(directed)
  * through subtractive mutations to the topology, [Graph.createVertexReference] and [Graph.createEdgeReference] may be
  * used to obtain a stable reference.
  */
-fun mutableGraph(directed: Boolean, multiEdge: Boolean = false, optimizeEdges: Boolean = false): MutableGraph {
-    return if (multiEdge || optimizeEdges) {
+fun mutableGraph(directed: Boolean, allowMultiEdge: Boolean = false, optimizeEdges: Boolean = false): MutableGraph {
+    return if (allowMultiEdge || optimizeEdges) {
         AdjacencyListNetwork(directed)
     } else {
         AdjacencyListGraph(directed)
     }
 }
-
 
 /**
  * An interface to aid in mutating graphs. This interface may be associated with a [VertexProperty] and/or an

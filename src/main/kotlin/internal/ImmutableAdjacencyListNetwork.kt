@@ -39,7 +39,8 @@ internal class ImmutableAdjacencyListNetwork(
     override val directed: Boolean,
     private val successors: Successors,
     _predecessors: Successors?,
-    private val edgeValues: EdgeValueArray
+    override val multiEdge: Boolean,
+    private val edgeValues: EdgeValueArray,
 ) : AbstractImmutableGraph(), IndexedVertexGraph, IndexedEdgeGraph {
 
     private val predecessors: Successors by lazy {
@@ -516,6 +517,7 @@ internal class ImmutableAdjacencyListNetworkBuilder<V, E> internal constructor(
     private val directed: Boolean,
 ) : ImmutableGraphBuilder<V, E>(), GraphMutator<V, E> {
 
+    private var multiEdge = false
     private val successors = ArrayList<Int2ObjectOpenHashMap<IntArrayList>>()
     private var edgeValues = LongArrayList()
 
@@ -585,7 +587,11 @@ internal class ImmutableAdjacencyListNetworkBuilder<V, E> internal constructor(
         val edgeId = edgeValues.size
         val edgeValue = EdgeValue(directed, validateVertex(source), validateVertex(target))
         edgeValues.add(edgeValue.longValue)
-        successors[source.intValue].computeIfAbsent(target.intValue) { IntArrayList() }.add(edgeId)
+        val edgesToTarget = successors[source.intValue].computeIfAbsent(target.intValue) { IntArrayList() }
+        if (!edgesToTarget.isEmpty) {
+            multiEdge = true
+        }
+        edgesToTarget.add(edgeId)
         if (!directed && source != target) {
             successors[target.intValue].computeIfAbsent(source.intValue) { IntArrayList() }.add(edgeId)
         }
@@ -646,6 +652,7 @@ internal class ImmutableAdjacencyListNetworkBuilder<V, E> internal constructor(
             directed,
             Successors(successors),
             null,
+            multiEdge,
             EdgeValueArray(edgeValues.toLongArray())
         )
         val vertexProperty = if (vertexProperty != null) {

@@ -54,6 +54,14 @@ class UndirectedGraphTest {
 
     @ParameterizedTest
     @ValueSource(booleans = [true, false])
+    fun multiEdge(immutable: Boolean) {
+        constructGraph(immutable)
+
+        assertThat(graph.multiEdge).isFalse
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = [true, false])
     fun vertices(immutable: Boolean) {
         constructGraph(immutable)
 
