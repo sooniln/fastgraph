@@ -1,3 +1,6 @@
+/**
+ * Utilities for [Edge].
+ */
 @file:JvmMultifileClass @file:JvmName("Edges")
 
 package io.github.sooniln.fastgraph

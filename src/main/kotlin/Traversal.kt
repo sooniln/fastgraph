@@ -4,11 +4,20 @@ import it.unimi.dsi.fastutil.ints.IntArrayFIFOQueue
 import it.unimi.dsi.fastutil.ints.IntArrayList
 
 object Traversal {
+    /**
+     * Returns an iterable that will return vertices from the given graph in breadth-first iteration order, beginning
+     * from the given vertex.
+     */
     @JvmStatic
+    @JvmName("breadthFirst")
     fun breadthFirst(graph: Graph, initialVertex: Vertex): VertexIterable {
         return breadthFirst(graph, vertexSetOf(initialVertex))
     }
 
+    /**
+     * Returns an iterable that will return vertices from the given graph in breadth-first iteration order, beginning
+     * from the given vertices.
+     */
     @JvmStatic
     fun breadthFirst(graph: Graph, initialVertices: VertexSet): VertexIterable {
         return object : VertexIterable {
@@ -16,11 +25,21 @@ object Traversal {
         }
     }
 
+    /**
+     * Returns an iterable that will return vertices from the given graph in depth-first pre-order iteration order,
+     * beginning from the given vertex.
+     */
     @JvmStatic
+    @JvmName("depthFirstPreOrder")
     fun depthFirstPreOrder(graph: Graph, initialVertex: Vertex): VertexIterable {
         return depthFirstPreOrder(graph, vertexSetOf(initialVertex))
     }
 
+
+    /**
+     * Returns an iterable that will return vertices from the given graph in depth-first pre-order iteration order,
+     * beginning from the given vertices.
+     */
     @JvmStatic
     fun depthFirstPreOrder(graph: Graph, initialVertices: VertexSet): VertexIterable {
         return object : VertexIterable {

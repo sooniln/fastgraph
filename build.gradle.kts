@@ -2,6 +2,7 @@ plugins {
     kotlin("jvm") version "2.2.21"
     id("me.champeau.jmh") version "0.7.3"
     id("com.vanniktech.maven.publish") version "0.35.0"
+    id("org.jetbrains.dokka-javadoc") version "2.1.0"
 }
 
 group = "io.github.sooniln"
@@ -42,6 +43,22 @@ tasks.named("compileJava", JavaCompile::class.java) {
     })
 }
 
+dokka {
+    dokkaPublications.javadoc {
+        moduleName.set("FastGraph")
+        outputDirectory.set(layout.buildDirectory.dir("documentation/javadoc"))
+        includes.from("README.md")
+    }
+
+    dokkaSourceSets.main {
+        sourceLink {
+            localDirectory.set(file("src/main/kotlin"))
+            remoteUrl.set(uri("https://github.com/sooniln/fastgraph/blob/main/"))
+            remoteLineSuffix.set("#L")
+        }
+    }
+}
+
 tasks.test {
     useJUnitPlatform()
 }
@@ -55,7 +72,6 @@ jmh {
 
 mavenPublishing {
     publishToMavenCentral()
-
     signAllPublications()
 
     coordinates(group.toString(), "fastgraph", version.toString())

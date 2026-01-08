@@ -1,3 +1,6 @@
+/**
+ * Utilities for [Vertex].
+ */
 @file:JvmMultifileClass @file:JvmName("Vertices")
 
 package io.github.sooniln.fastgraph

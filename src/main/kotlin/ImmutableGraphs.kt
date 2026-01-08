@@ -1,3 +1,6 @@
+/**
+ * Builders and utilities for [ImmutableGraph].
+ */
 @file:JvmMultifileClass @file:JvmName("ImmutableGraphs")
 
 package io.github.sooniln.fastgraph
@@ -111,7 +114,7 @@ private class EmptyGraph(override val directed: Boolean) : ImmutableGraph {
 }
 
 /**
- * Returns an [ImmutableGraphBuilder] with the given directedness.
+ * Creates an [ImmutableGraphBuilder] with the given directedness.
  *
  * There are several parameters that help control the specific graph implementation chosen:
  *   * `multiEdge`: Controls whether the returned mutable graph supports adding multi-edges (multiple
@@ -138,6 +141,11 @@ fun <V, E> immutableGraph(
     }
 }
 
+/**
+ * Creates an [ImmutableGraphBuilder] with the given directedness.
+ *
+ * See overload for further documentation.
+ */
 fun immutableGraph(
     directed: Boolean,
     multiEdge: Boolean = false,
@@ -203,10 +211,16 @@ abstract class ImmutableGraphBuilder<V, E> {
     abstract fun build(): ImmutableGraphAndProperties<V, E>
 }
 
+/**
+ * A container for holding a newly constructed immutable graph and related vertex and edge properties.
+ */
 @ConsistentCopyVisibility
 data class ImmutableGraphAndProperties<V, E> internal constructor(
+    /** The constructed [ImmutableGraph]. */
     val graph: ImmutableGraph,
+    /** The constructed [VertexProperty]. */
     val vertexProperty: VertexProperty<V>,
+    /** The constructed [EdgeProperty]. */
     val edgeProperty: EdgeProperty<E>,
 )
 

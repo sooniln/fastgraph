@@ -1,3 +1,6 @@
+/**
+ * Builders and utilities for [Graph].
+ */
 @file:JvmMultifileClass @file:JvmName("Graphs")
 
 package io.github.sooniln.fastgraph
@@ -256,6 +259,7 @@ interface Graph {
      */
     // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
     //   overrides of this method
+    //   overrides of this method
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("createEdgeReference")
     fun createEdgeReference(edge: Edge): EdgeReference
@@ -302,7 +306,7 @@ fun Graph.edgeSource(edgeReference: EdgeReference): Vertex = edgeSource(edgeRefe
 fun Graph.edgeTarget(edgeReference: EdgeReference): Vertex = edgeTarget(edgeReference.unstable)
 
 /**
- * Returns the vertex of the given edge that is opposite the given vertex. Ie, the source vertex is returned if the
+ * Returns the vertex of the given edge that is opposite the given vertex. I.e., the source vertex is returned if the
  * target vertex is provided, and vice versa. Throws [IllegalArgumentException] if the given vertex is neither the
  * source nor target of the given edge. This method is often useful when working with undirected edges where the
  * source/target distinction does not exist.
@@ -319,6 +323,12 @@ fun Graph.edgeOpposite(edge: Edge, other: Vertex): Vertex {
     }
 }
 
+/**
+ * Returns the vertex of the given edge that is opposite the given vertex reference. I.e., the source vertex is returned
+ * if the target vertex is provided, and vice versa. Throws [IllegalArgumentException] if the given vertex reference is
+ * neither the source nor target of the given edge. This method is often useful when working with undirected edges where
+ * the source/target distinction does not exist.
+ */
 @JvmName("edgeOpposite")
 fun Graph.edgeOpposite(edge: Edge, other: VertexReference): Vertex = edgeOpposite(edge, other.unstable)
 
@@ -733,7 +743,7 @@ inline fun buildGraph(graph: MutableGraph, builderAction: GraphMutator<Nothing, 
 }
 
 /**
- * A helper for build a new along with vertex and edge properties.
+ * A helper for building a graph along with vertex and edge properties.
  *
  * Example usage:
  * ```
