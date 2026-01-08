@@ -1,3 +1,6 @@
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.sooniln/fastgraph.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.sooniln/fastgraph)
+[![javadoc](https://javadoc.io/badge2/io.github.sooniln/fastgraph/javadoc.svg)](https://javadoc.io/doc/io.github.sooniln/fastgraph)
+
 # FastGraph
 
 A highly efficient mathematical graph-theory library for JVM.
@@ -12,6 +15,25 @@ Unlike most other graph libraries, FastGraph stores and models graph topologies 
 associated with vertices and edges. Data is stored separately in `VertexProperty` and `EdgeProperty` instances, which
 are associated with a particular graph. While this may seem non-obvious at first, it comes with many usability and
 performance benefits which will be discussed later.
+
+You can add FastGraph as a dependency in your project with:
+
+#### Gradle
+
+```groovy
+implementation 'io.github.sooniln:fastgraph:0.1.0'
+```
+
+#### Maven
+
+```xml
+
+<dependency>
+    <groupId>io.github.sooniln</groupId>
+    <artifactId>fastgraph</artifactId>
+    <version>0.1.0</version>
+</dependency>
+```
 
 ### Hello FastGraph
 
@@ -52,7 +74,7 @@ edgeWeight[edge1] = 1.0f
 val edge2: Edge = graph.addEdge(vertex2, vertex3)
 edgeWeight[edge2] = 1.5f
 val edge3: Edge = graph.addEdge(vertex3, vertex1)
-edgeWeight[edge2] = 1.9f
+edgeWeight[edge3] = 1.9f
 ```
 
 Now we've created a `String` property for vertices (with a default value of `""`) and `float` property for edges (with a
