@@ -282,16 +282,16 @@ context APIs `Vertex.createReference()` and `Edge.createReference()`). For examp
 ```kotlin
 val mutableGraph = mutableGraph(directed = false)
 
-context(graph) {}
-val vertex1Ref = mutableGraph.addVertex().createReference()
-val vertex2Ref = mutableGraph.addVertex().createReference()
+context(graph) {
+    val vertex1Ref = mutableGraph.addVertex().createReference()
+    val vertex2Ref = mutableGraph.addVertex().createReference()
 
-// this will not invalidate vertex2Ref since it is a stable reference
-// this will invalidate vertex1Ref since it's being removed from the graph
-mutableGraph.removeVertex(vertex1Ref)
+    // this will not invalidate vertex2Ref since it is a stable reference
+    // this will invalidate vertex1Ref since it's being removed from the graph
+    mutableGraph.removeVertex(vertex1Ref)
 
-// this is now safe and will always function as intended
-mutableGraph.removeVertex(vertex2Ref)
+    // this is now safe and will always function as intended
+    mutableGraph.removeVertex(vertex2Ref)
 }
 ```
 
