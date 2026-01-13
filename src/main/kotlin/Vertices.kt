@@ -41,6 +41,94 @@ private val VERTEX_HEX_FORMAT = HexFormat {
  */
 @JvmInline
 value class Vertex(val intValue: Int) {
+    /**
+     * See [Graph.createVertexReference].
+     */
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmSynthetic
+    @JvmName("#createReference")
+    context(graph: Graph)
+    fun createReference(): VertexReference = graph.createVertexReference(this)
+
+    /**
+     * See [Graph.outDegree].
+     */
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @get:JvmSynthetic
+    @get:JvmName("#outDegree")
+    context(graph: Graph)
+    val outDegree: Int inline get() = graph.outDegree(this)
+
+    /**
+     * See [Graph.inDegree].
+     */
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @get:JvmSynthetic
+    @get:JvmName("#inDegree")
+    context(graph: Graph)
+    val inDegree: Int inline get() = graph.inDegree(this)
+
+    /**
+     * See [Graph.successors].
+     */
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmSynthetic
+    @JvmName("#successors")
+    context(graph: Graph)
+    fun successors(): VertexSet = graph.successors(this)
+
+    /**
+     * See [Graph.predecessors].
+     */
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmSynthetic
+    @JvmName("#predecessors")
+    context(graph: Graph)
+    fun predecessors(): VertexSet = graph.predecessors(this)
+
+    /**
+     * See [Graph.outgoingEdges].
+     */
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmSynthetic
+    @JvmName("#outgoingEdges")
+    context(graph: Graph)
+    fun outgoingEdges(): EdgeSet = graph.outgoingEdges(this)
+
+    /**
+     * See [Graph.incomingEdges].
+     */
+    @JvmSynthetic
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("#incomingEdges")
+    context(graph: Graph)
+    fun incomingEdges(): EdgeSet = graph.incomingEdges(this)
+
+    /**
+     * Accesses the property value of a vertex. Equivalent to accessing the property value through the [VertexProperty]
+     * itself.
+     */
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @get:JvmSynthetic
+    @set:JvmSynthetic
+    @get:JvmName("#getProperty")
+    @set:JvmName("#setProperty")
+    context(property: VertexProperty<T>)
+    var <T> property: T
+        inline get() = property[this]
+        inline set(value) {
+            property[this] = value
+        }
+
+    /**
+     * Returns the index of this vertex in [IndexedVertexGraph.vertices].
+     */
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @get:JvmSynthetic
+    @get:JvmName("#index")
+    context(graph: IndexedEdgeGraph)
+    val Vertex.index: Int inline get() = graph.vertices.indexOf(this)
+
     override fun toString(): String = "Vertex(${intValue.toHexString(VERTEX_HEX_FORMAT)})"
 }
 
@@ -58,29 +146,9 @@ interface VertexReference {
     // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
     //   overrides of this method
     @Suppress("INAPPLICABLE_JVM_NAME")
-    @get:JvmName("getUnstable")
+    @get:JvmName("unstable")
     val unstable: Vertex
 }
-
-/**
- * See [Graph.createVertexReference].
- */
-@JvmSynthetic
-@Suppress("INAPPLICABLE_JVM_NAME")
-@JvmName("#Vertex_reference")
-context(graph: Graph)
-fun Vertex.createReference(): VertexReference = graph.createVertexReference(this)
-
-/**
- * Accesses the property value of a vertex. Equivalent to accessing the property value through the [VertexProperty]
- * itself.
- */
-context(property: VertexProperty<T>)
-var <T> Vertex.property: T
-    @JvmSynthetic @Suppress("INAPPLICABLE_JVM_NAME") @JvmName("#Vertex_property_get") inline get() = property[this]
-    @JvmSynthetic @Suppress("INAPPLICABLE_JVM_NAME") @JvmName("#Vertex_property_set") inline set(value) {
-        property[this] = value
-    }
 
 /**
  * Accesses the property value of a vertex. Equivalent to accessing the property value through the [VertexProperty]
@@ -88,8 +156,8 @@ var <T> Vertex.property: T
  */
 context(property: VertexProperty<T>)
 var <T> VertexReference.property: T
-    @JvmSynthetic @Suppress("INAPPLICABLE_JVM_NAME") @JvmName("#VertexReference_property_get") inline get() = property[unstable]
-    @JvmSynthetic @Suppress("INAPPLICABLE_JVM_NAME") @JvmName("#VertexReference_property_set") inline set(value) {
+    @JvmSynthetic @JvmName("#VertexReference_property_get") inline get() = property[unstable]
+    @JvmSynthetic @JvmName("#VertexReference_property_set") inline set(value) {
         property[unstable] = value
     }
 
@@ -97,48 +165,20 @@ var <T> VertexReference.property: T
  * See [Graph.outDegree].
  */
 context(graph: Graph)
-val Vertex.outDegree: Int
-    @JvmSynthetic @Suppress("INAPPLICABLE_JVM_NAME") @JvmName("#Vertex_outDegree") inline get() = graph.outDegree(this)
-
-/**
- * See [Graph.outDegree].
- */
-context(graph: Graph)
 val VertexReference.outDegree: Int
-    @JvmSynthetic @Suppress("INAPPLICABLE_JVM_NAME") @JvmName("#VertexReference_outDegree") inline get() = graph.outDegree(
-        unstable
-    )
-
-/**
- * See [Graph.inDegree].
- */
-context(graph: Graph)
-val Vertex.inDegree
-    @JvmSynthetic @Suppress("INAPPLICABLE_JVM_NAME") @JvmName("#Vertex_inDegree") inline get() = graph.inDegree(this)
+    @JvmSynthetic @JvmName("#VertexReference_outDegree") inline get() = graph.outDegree(unstable)
 
 /**
  * See [Graph.inDegree].
  */
 context(graph: Graph)
 val VertexReference.inDegree
-    @JvmSynthetic @Suppress("INAPPLICABLE_JVM_NAME") @JvmName("#VertexReference_inDegree") inline get() = graph.inDegree(
-        unstable
-    )
+    @JvmSynthetic @JvmName("#VertexReference_inDegree") inline get() = graph.inDegree(unstable)
 
 /**
  * See [Graph.successors].
  */
 @JvmSynthetic
-@Suppress("INAPPLICABLE_JVM_NAME")
-@JvmName("#Vertex_successors")
-context(graph: Graph)
-fun Vertex.successors() = graph.successors(this)
-
-/**
- * See [Graph.successors].
- */
-@JvmSynthetic
-@Suppress("INAPPLICABLE_JVM_NAME")
 @JvmName("#VertexReference_successors")
 context(graph: Graph)
 fun VertexReference.successors() = graph.successors(unstable)
@@ -147,16 +187,6 @@ fun VertexReference.successors() = graph.successors(unstable)
  * See [Graph.predecessors].
  */
 @JvmSynthetic
-@Suppress("INAPPLICABLE_JVM_NAME")
-@JvmName("#Vertex_predecessors")
-context(graph: Graph)
-fun Vertex.predecessors() = graph.predecessors(this)
-
-/**
- * See [Graph.predecessors].
- */
-@JvmSynthetic
-@Suppress("INAPPLICABLE_JVM_NAME")
 @JvmName("#VertexReference_predecessors")
 context(graph: Graph)
 fun VertexReference.predecessors() = graph.predecessors(unstable)
@@ -165,16 +195,6 @@ fun VertexReference.predecessors() = graph.predecessors(unstable)
  * See [Graph.outgoingEdges].
  */
 @JvmSynthetic
-@Suppress("INAPPLICABLE_JVM_NAME")
-@JvmName("#Vertex_outgoingEdges")
-context(graph: Graph)
-fun Vertex.outgoingEdges() = graph.outgoingEdges(this)
-
-/**
- * See [Graph.outgoingEdges].
- */
-@JvmSynthetic
-@Suppress("INAPPLICABLE_JVM_NAME")
 @JvmName("#VertexReference_outgoingEdges")
 context(graph: Graph)
 fun VertexReference.outgoingEdges() = graph.outgoingEdges(unstable)
@@ -183,16 +203,6 @@ fun VertexReference.outgoingEdges() = graph.outgoingEdges(unstable)
  * See [Graph.incomingEdges].
  */
 @JvmSynthetic
-@Suppress("INAPPLICABLE_JVM_NAME")
-@JvmName("#Vertex_incomingEdges")
-context(graph: Graph)
-fun Vertex.incomingEdges() = graph.incomingEdges(this)
-
-/**
- * See [Graph.incomingEdges].
- */
-@JvmSynthetic
-@Suppress("INAPPLICABLE_JVM_NAME")
 @JvmName("#VertexReference_incomingEdges")
 context(graph: Graph)
 fun VertexReference.incomingEdges() = graph.incomingEdges(unstable)
@@ -201,17 +211,8 @@ fun VertexReference.incomingEdges() = graph.incomingEdges(unstable)
  * Returns the index of this vertex in [IndexedVertexGraph.vertices].
  */
 context(graph: IndexedEdgeGraph)
-val Vertex.index: Int
-    @JvmSynthetic @Suppress("INAPPLICABLE_JVM_NAME") @JvmName("#Vertex_index")
-    inline get() = graph.vertices.indexOf(this)
-
-/**
- * Returns the index of this vertex in [IndexedVertexGraph.vertices].
- */
-context(graph: IndexedEdgeGraph)
 val VertexReference.index: Int
-    @JvmSynthetic @Suppress("INAPPLICABLE_JVM_NAME") @JvmName("#VertexReference_index")
-    inline get() = graph.vertices.indexOf(unstable)
+    @JvmSynthetic @JvmName("#VertexReference_index") inline get() = graph.vertices.indexOf(unstable)
 
 /**
  * An iterator over vertices. Note that this interface is distinct from [Iterator<Vertex>][Iterator] in order to avoid

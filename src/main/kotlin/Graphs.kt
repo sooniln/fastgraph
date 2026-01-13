@@ -649,6 +649,8 @@ interface PropertyGraph<G : Graph, V, E> {
     val graph: G
     val vertexProperty: VertexProperty<V>
     val edgeProperty: EdgeProperty<E>
+
+    operator fun component1(): G = graph
 }
 
 /**

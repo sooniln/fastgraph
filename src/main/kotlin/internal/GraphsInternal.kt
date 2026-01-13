@@ -213,7 +213,7 @@ internal class VertexReferenceImpl(vertex: Vertex) : VertexReference {
     private var valid: Boolean = true
 
     @Suppress("INAPPLICABLE_JVM_NAME")
-    @get:JvmName("getUnstable")
+    @get:JvmName("unstable")
     override var unstable: Vertex = vertex
         get() {
             require(valid) { "the vertex referenced has been removed and is no longer valid" }
@@ -243,7 +243,7 @@ internal class EdgeReferenceImpl(edge: Edge) : EdgeReference {
     private var valid: Boolean = true
 
     @Suppress("INAPPLICABLE_JVM_NAME")
-    @get:JvmName("getUnstable")
+    @get:JvmName("unstable")
     override var unstable: Edge = edge
         get() {
             require(valid) { "the edge referenced has been removed and is no longer valid" }

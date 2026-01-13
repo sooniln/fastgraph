@@ -91,8 +91,7 @@ context(graph) {
 
     val otherVertex = ...
     val edge = graph.getEdge(myVertex, otherVertex)
-    val sourceVertex = edge.source
-    val targetVertex = edge.target
+    val (sourceVertex, targetVertex) = edge
 }
 ```
 

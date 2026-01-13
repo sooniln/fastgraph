@@ -52,6 +52,78 @@ value class Edge(val longValue: Long) {
     internal val lowBits: Int
         inline get() = longValue.toInt()
 
+    /**
+     * See [Graph.createEdgeReference].
+     */
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmSynthetic
+    @JvmName("#createReference")
+    context(graph: Graph)
+    fun createReference(): EdgeReference = graph.createEdgeReference(this)
+
+    /**
+     * See [Graph.edgeSource].
+     */
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @get:JvmSynthetic
+    @get:JvmName("#source")
+    context(graph: Graph)
+    val source inline get() = graph.edgeSource(this)
+
+    /**
+     * See [Graph.edgeTarget].
+     */
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @get:JvmSynthetic
+    @get:JvmName("#target")
+    context(graph: Graph)
+    val target inline get() = graph.edgeTarget(this)
+
+    /**
+     * See [Graph.edgeOpposite].
+     */
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmSynthetic
+    @JvmName("#opposite")
+    context(graph: Graph)
+    fun opposite(other: Vertex) = graph.edgeOpposite(this, other)
+
+    /**
+     * See [EdgeProperty.get] and [EdgeProperty.set].
+     */
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @get:JvmSynthetic
+    @set:JvmSynthetic
+    @get:JvmName("#getProperty")
+    @set:JvmName("#setProperty")
+    context(property: EdgeProperty<T>)
+    var <T> property: T
+        inline get() = property[this]
+        inline set(value) {
+            property[this] = value
+        }
+
+    /**
+     * Returns the index of this edge in [IndexedEdgeGraph.edges].
+     */
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @get:JvmSynthetic
+    @get:JvmName("#index")
+    context(graph: IndexedEdgeGraph)
+    val index: Int inline get() = graph.edges.indexOf(this)
+
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmSynthetic
+    @JvmName("#component1")
+    context(graph: Graph)
+    operator fun component1(): Vertex = source
+
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmSynthetic
+    @JvmName("#component2")
+    context(graph: Graph)
+    operator fun component2(): Vertex = target
+
     override fun toString(): String =
         "Edge(${highBits.toHexString(EDGE_HEX_FORMAT)}, ${lowBits.toHexString(EDGE_HEX_FORMAT)})"
 }
@@ -70,36 +142,17 @@ interface EdgeReference {
     // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
     //   overrides of this method
     @Suppress("INAPPLICABLE_JVM_NAME")
-    @get:JvmName("getUnstable")
+    @get:JvmName("unstable")
     val unstable: Edge
 }
-
-/**
- * See [Graph.createEdgeReference].
- */
-@JvmSynthetic
-@Suppress("INAPPLICABLE_JVM_NAME")
-@JvmName("#Edge_reference")
-context(graph: Graph)
-fun Edge.createReference(): EdgeReference = graph.createEdgeReference(this)
-
-/**
- * Accesses the property value of a edge. Equivalent to accessing the property value through the [EdgeProperty] itself.
- */
-context(property: EdgeProperty<T>)
-var <T> Edge.property: T
-    @JvmSynthetic @Suppress("INAPPLICABLE_JVM_NAME") @JvmName("#Edge_property_get") inline get() = property[this]
-    @JvmSynthetic @Suppress("INAPPLICABLE_JVM_NAME") @JvmName("#Edge_property_set") inline set(value) {
-        property[this] = value
-    }
 
 /**
  * Accesses the property value of a edge. Equivalent to accessing the property value through the [EdgeProperty] itself.
  */
 context(property: EdgeProperty<T>)
 var <T> EdgeReference.property: T
-    @JvmSynthetic @Suppress("INAPPLICABLE_JVM_NAME") @JvmName("#EdgeReference_property_get") inline get() = property[unstable]
-    @JvmSynthetic @Suppress("INAPPLICABLE_JVM_NAME") @JvmName("#EdgeReference_property_set") inline set(value) {
+    @JvmSynthetic @JvmName("#EdgeReference_property_get") inline get() = property[unstable]
+    @JvmSynthetic @JvmName("#EdgeReference_property_set") inline set(value) {
         property[unstable] = value
     }
 
@@ -107,31 +160,17 @@ var <T> EdgeReference.property: T
  * See [Graph.edgeSource].
  */
 context(graph: Graph)
-val Edge.source
-    @JvmSynthetic @Suppress("INAPPLICABLE_JVM_NAME") @JvmName("#Edge_source") inline get() = graph.edgeSource(this)
-
-/**
- * See [Graph.edgeSource].
- */
-context(graph: Graph)
 val EdgeReference.source
-    @JvmSynthetic @Suppress("INAPPLICABLE_JVM_NAME") @JvmName("#EdgeReference_source") inline get() = graph.edgeSource(
+    @JvmSynthetic @JvmName("#EdgeReference_source") inline get() = graph.edgeSource(
         unstable
     )
-
-/**
- * See [Graph.edgeTarget].
- */
-context(graph: Graph)
-val Edge.target
-    @JvmSynthetic @Suppress("INAPPLICABLE_JVM_NAME") @JvmName("#Edge_target") inline get() = graph.edgeTarget(this)
 
 /**
  * See [Graph.edgeTarget].
  */
 context(graph: Graph)
 val EdgeReference.target
-    @JvmSynthetic @Suppress("INAPPLICABLE_JVM_NAME") @JvmName("#EdgeReference_target") inline get() = graph.edgeTarget(
+    @JvmSynthetic @JvmName("#EdgeReference_target") inline get() = graph.edgeTarget(
         unstable
     )
 
@@ -139,16 +178,6 @@ val EdgeReference.target
  * See [Graph.edgeOpposite].
  */
 @JvmSynthetic
-@Suppress("INAPPLICABLE_JVM_NAME")
-@JvmName("#Edge_opposite")
-context(graph: Graph)
-fun Edge.opposite(other: Vertex) = graph.edgeOpposite(this, other)
-
-/**
- * See [Graph.edgeOpposite].
- */
-@JvmSynthetic
-@Suppress("INAPPLICABLE_JVM_NAME")
 @JvmName("#EdgeReference_opposite")
 context(graph: Graph)
 fun EdgeReference.opposite(other: Vertex) = graph.edgeOpposite(unstable, other)
@@ -157,17 +186,19 @@ fun EdgeReference.opposite(other: Vertex) = graph.edgeOpposite(unstable, other)
  * Returns the index of this edge in [IndexedEdgeGraph.edges].
  */
 context(graph: IndexedEdgeGraph)
-val Edge.index: Int
-    @JvmSynthetic @Suppress("INAPPLICABLE_JVM_NAME") @JvmName("#Edge_index")
-    inline get() = graph.edges.indexOf(this)
-
-/**
- * Returns the index of this edge in [IndexedEdgeGraph.edges].
- */
-context(graph: IndexedEdgeGraph)
 val EdgeReference.index: Int
-    @JvmSynthetic @Suppress("INAPPLICABLE_JVM_NAME") @JvmName("#EdgeReference_index")
+    @JvmSynthetic @JvmName("#EdgeReference_index")
     inline get() = graph.edges.indexOf(unstable)
+
+@JvmSynthetic
+@JvmName("#EdgeReference_component1")
+context(graph: Graph)
+operator fun EdgeReference.component1(): Vertex = source
+
+@JvmSynthetic
+@JvmName("#EdgeReference_component2")
+context(graph: Graph)
+operator fun EdgeReference.component2(): Vertex = source
 
 /**
  * An iterator over edges. Note that this interface is distinct from [Iterator<Edge>][Iterator] in order to avoid Edge
