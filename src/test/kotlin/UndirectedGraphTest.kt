@@ -21,16 +21,19 @@ class UndirectedGraphTest {
 
     private fun constructGraph(immutable: Boolean) {
         if (immutable) {
-            val immutable = immutableGraph<String, Float>(false).withVertexProperty().withEdgeProperty().build {
-                v0 = addVertex("v0")
-                v1 = addVertex("v1")
-                v2 = addVertex("v2")
-                v3 = addVertex("v3")
-                e0 = addEdge("v0", "v1", 1.5f)
-                e1 = addEdge("v1", "v2", 2.0f)
-                e2 = addEdge("v2", "v0", 2.1f)
-                e3 = addEdge("v0", "v0", 1.0f)
-            }
+            val immutable = immutableGraphBuilder<String, Float>(false)
+                .withVertexProperty()
+                .withEdgeProperty()
+                .buildPropertyGraph {
+                    v0 = addVertex("v0")
+                    v1 = addVertex("v1")
+                    v2 = addVertex("v2")
+                    v3 = addVertex("v3")
+                    e0 = addEdge("v0", "v1", 1.5f)
+                    e1 = addEdge("v1", "v2", 2.0f)
+                    e2 = addEdge("v2", "v0", 2.1f)
+                    e3 = addEdge("v0", "v0", 1.0f)
+                }
             graph = immutable.graph
             vertexName = immutable.vertexProperty
             edgeWeight = immutable.edgeProperty

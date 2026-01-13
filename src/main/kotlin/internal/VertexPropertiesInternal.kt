@@ -1,5 +1,6 @@
 package io.github.sooniln.fastgraph.internal
 
+import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.IndexedVertexGraph
 import io.github.sooniln.fastgraph.Vertex
@@ -10,9 +11,9 @@ import it.unimi.dsi.fastutil.longs.LongArrays
 import kotlin.math.max
 
 @Suppress("UNCHECKED_CAST")
-internal fun <T> emptyVertexProperty(): VertexProperty<T> = EmptyVertexProperty as VertexProperty<T>
+internal fun <T> emptyVertexProperty(graph: Graph): VertexProperty<T> = EmptyVertexProperty(graph) as VertexProperty<T>
 
-private object EmptyVertexProperty : VertexProperty<Nothing> {
+private class EmptyVertexProperty(override val graph: Graph) : VertexProperty<Nothing> {
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("get")
     override fun get(vertex: Vertex): Nothing = throw IllegalArgumentException()
@@ -63,7 +64,7 @@ internal fun <T : S?, S, G> immutableArrayVertexProperty(
 }
 
 private class ImmutableArrayBooleanVertexProperty(
-    graph: ImmutableGraph,
+    override val graph: ImmutableGraph,
     initializer: (Vertex) -> Boolean
 ) : VertexProperty<Boolean> {
     private val property: BooleanArray = BooleanArray(graph.vertices.size) { initializer(Vertex(it)) }
@@ -90,6 +91,7 @@ private inline fun <T, G> ImmutableArray4ByteVertexProperty(
     crossinline read: (Int) -> T
 ): VertexProperty<T> where G : ImmutableGraph, G : IndexedVertexGraph = object : VertexProperty<T> {
 
+    override val graph: Graph get() = graph
     private val property: IntArray = IntArray(graph.vertices.size) { write(initializer(Vertex(it))) }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
@@ -114,6 +116,7 @@ private inline fun <T, G> ImmutableArray8ByteVertexProperty(
     crossinline read: (Long) -> T
 ): VertexProperty<T> where G : ImmutableGraph, G : IndexedVertexGraph = object : VertexProperty<T> {
 
+    override val graph: Graph get() = graph
     private val property: LongArray = LongArray(graph.vertices.size) { write(initializer(Vertex(it))) }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
@@ -132,7 +135,7 @@ private inline fun <T, G> ImmutableArray8ByteVertexProperty(
 }
 
 private class ImmutableArrayVertexProperty<T, G>(
-    graph: G,
+    override val graph: G,
     initializer: (Vertex) -> T
 ) : VertexProperty<T> where G : ImmutableGraph, G : IndexedVertexGraph {
 
@@ -205,48 +208,47 @@ internal fun <T : S?, S> mutableArrayListVertexProperty(
 }
 
 private class MutableArrayListBooleanVertexProperty(
-    graph: IndexedVertexGraph,
+    override val graph: IndexedVertexGraph,
     private val initializer: (Vertex) -> Boolean
 ) : MutableVertexProperty<Boolean> {
 
-    private val vertices = graph.vertices
     // we don't use BooleanArrayList because it doesn't properly implement ensureCapacity as we'd expect (it expands to
     // the exact size given, rather than allowing for larger expansions to save future effort)
     private var property = BooleanArray(0)
     private var propertySize = 0
 
     private fun expand(size: Int) {
-        assert(size <= vertices.size)
+        assert(size <= graph.vertices.size)
         if (size > property.size) {
             property = BooleanArrays.grow(property, max(10, size))
             for (i in propertySize..<size) {
-                property[i] = initializer(vertices[i])
+                property[i] = initializer(graph.vertices[i])
             }
             propertySize = size
         }
     }
 
     override fun get(vertex: Vertex): Boolean {
-        val index = vertices.indexOf(vertex)
+        val index = graph.vertices.indexOf(vertex)
         require(index >= 0) { "$vertex not found in graph" }
         expand(index + 1)
         return property[index]
     }
 
     override fun set(vertex: Vertex, value: Boolean) {
-        val index = vertices.indexOf(vertex)
+        val index = graph.vertices.indexOf(vertex)
         require(index >= 0) { "$vertex not found in graph" }
         expand(index + 1)
         property[index] = value
     }
 
     override fun swapAndRemove(removeVertex: Vertex, swapVertex: Vertex) {
-        val oldIndex = vertices.indexOf(removeVertex)
+        val oldIndex = graph.vertices.indexOf(removeVertex)
         require(oldIndex >= 0) { "$removeVertex not found in graph" }
-        val newIndex = vertices.indexOf(swapVertex)
+        val newIndex = graph.vertices.indexOf(swapVertex)
         require(newIndex >= 0) { "$swapVertex not found in graph" }
 
-        assert(oldIndex == vertices.lastIndex)
+        assert(oldIndex == graph.vertices.lastIndex)
         if (oldIndex != newIndex && newIndex < propertySize) {
             if (oldIndex >= propertySize) {
                 property[newIndex] = initializer(removeVertex)
@@ -273,42 +275,42 @@ private inline fun <T> MutableArrayList4ByteVertexProperty(
 
     // we don't use LongArrayList because it doesn't properly implement ensureCapacity as we'd expect (it expands to the
     // exact size given, rather than allowing for larger expansions to save future effort)
-    private val vertices = graph.vertices
+    override val graph: Graph get() = graph
     private var property = IntArray(0)
     private var propertySize = 0
 
     private fun expand(size: Int) {
-        assert(size <= vertices.size)
+        assert(size <= graph.vertices.size)
         if (size > property.size) {
             property = IntArrays.grow(property, max(10, size))
             for (i in propertySize..<size) {
-                property[i] = write(initializer(vertices[i]))
+                property[i] = write(initializer(graph.vertices[i]))
             }
             propertySize = size
         }
     }
 
     override fun get(vertex: Vertex): T {
-        val index = vertices.indexOf(vertex)
+        val index = graph.vertices.indexOf(vertex)
         require(index >= 0) { "$vertex not found in graph" }
         expand(index + 1)
         return read(property[index])
     }
 
     override fun set(vertex: Vertex, value: T) {
-        val index = vertices.indexOf(vertex)
+        val index = graph.vertices.indexOf(vertex)
         require(index >= 0) { "$vertex not found in graph" }
         expand(index + 1)
         property[index] = write(value)
     }
 
     override fun swapAndRemove(removeVertex: Vertex, swapVertex: Vertex) {
-        val oldIndex = vertices.indexOf(removeVertex)
+        val oldIndex = graph.vertices.indexOf(removeVertex)
         require(oldIndex >= 0) { "$removeVertex not found in graph" }
-        val newIndex = vertices.indexOf(swapVertex)
+        val newIndex = graph.vertices.indexOf(swapVertex)
         require(newIndex >= 0) { "$swapVertex not found in graph" }
 
-        assert(oldIndex == vertices.lastIndex)
+        assert(oldIndex == graph.vertices.lastIndex)
         if (oldIndex != newIndex && newIndex < propertySize) {
             if (oldIndex >= propertySize) {
                 property[newIndex] = write(initializer(removeVertex))
@@ -335,42 +337,42 @@ private inline fun <T> MutableArrayList8ByteVertexProperty(
 
     // we don't use LongArrayList because it doesn't properly implement ensureCapacity as we'd expect (it expands to the
     // exact size given, rather than allowing for larger expansions to save future effort)
-    private val vertices = graph.vertices
+    override val graph: Graph get() = graph
     private var property = LongArray(0)
     private var propertySize = 0
 
     private fun expand(size: Int) {
-        assert(size <= vertices.size)
+        assert(size <= graph.vertices.size)
         if (size > property.size) {
             property = LongArrays.grow(property, max(10, size))
             for (i in propertySize..<size) {
-                property[i] = write(initializer(vertices[i]))
+                property[i] = write(initializer(graph.vertices[i]))
             }
             propertySize = size
         }
     }
 
     override fun get(vertex: Vertex): T {
-        val index = vertices.indexOf(vertex)
+        val index = graph.vertices.indexOf(vertex)
         require(index >= 0) { "$vertex not found in graph" }
         expand(index + 1)
         return read(property[index])
     }
 
     override fun set(vertex: Vertex, value: T) {
-        val index = vertices.indexOf(vertex)
+        val index = graph.vertices.indexOf(vertex)
         require(index >= 0) { "$vertex not found in graph" }
         expand(index + 1)
         property[index] = write(value)
     }
 
     override fun swapAndRemove(removeVertex: Vertex, swapVertex: Vertex) {
-        val oldIndex = vertices.indexOf(removeVertex)
+        val oldIndex = graph.vertices.indexOf(removeVertex)
         require(oldIndex >= 0) { "$removeVertex not found in graph" }
-        val newIndex = vertices.indexOf(swapVertex)
+        val newIndex = graph.vertices.indexOf(swapVertex)
         require(newIndex >= 0) { "$swapVertex not found in graph" }
 
-        assert(oldIndex == vertices.lastIndex)
+        assert(oldIndex == graph.vertices.lastIndex)
         if (oldIndex != newIndex && newIndex < propertySize) {
             if (oldIndex >= propertySize) {
                 property[newIndex] = write(initializer(removeVertex))
@@ -389,42 +391,41 @@ private inline fun <T> MutableArrayList8ByteVertexProperty(
 }
 
 private class MutableArrayListVertexProperty<T>(
-    graph: IndexedVertexGraph,
+    override val graph: IndexedVertexGraph,
     private val initializer: (Vertex) -> T
 ) : MutableVertexProperty<T> {
 
-    private val vertices = graph.vertices
-    private val property = ArrayList<T>(vertices.size)
+    private val property = ArrayList<T>(graph.vertices.size)
 
     private fun expand(size: Int) {
-        assert(size <= vertices.size)
+        assert(size <= graph.vertices.size)
         property.ensureCapacity(size)
         for (i in property.size..<size) {
-            property.add(initializer(vertices[i]))
+            property.add(initializer(graph.vertices[i]))
         }
     }
 
     override fun get(vertex: Vertex): T {
-        val index = vertices.indexOf(vertex)
+        val index = graph.vertices.indexOf(vertex)
         require(vertex.intValue >= 0) { "$vertex not found in graph" }
         expand(index + 1)
         return property[index]
     }
 
     override fun set(vertex: Vertex, value: T) {
-        val index = vertices.indexOf(vertex)
+        val index = graph.vertices.indexOf(vertex)
         require(vertex.intValue >= 0) { "$vertex not found in graph" }
         expand(index + 1)
         property[index] = value
     }
 
     override fun swapAndRemove(removeVertex: Vertex, swapVertex: Vertex) {
-        val oldIndex = vertices.indexOf(removeVertex)
+        val oldIndex = graph.vertices.indexOf(removeVertex)
         require(oldIndex >= 0) { "$removeVertex not found in graph" }
-        val newIndex = vertices.indexOf(swapVertex)
+        val newIndex = graph.vertices.indexOf(swapVertex)
         require(newIndex >= 0) { "$swapVertex not found in graph" }
 
-        assert(oldIndex == vertices.lastIndex)
+        assert(oldIndex == graph.vertices.lastIndex)
         if (removeVertex != swapVertex && swapVertex.intValue < property.size) {
             if (removeVertex.intValue > property.lastIndex) {
                 property[swapVertex.intValue] = initializer(removeVertex)

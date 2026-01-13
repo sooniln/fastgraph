@@ -518,6 +518,7 @@ private fun toSuccessorArray(map: Int2ObjectMap<out IntList>): IntArray {
 
 internal class ImmutableAdjacencyListNetworkBuilder<V, E> internal constructor(
     private val directed: Boolean,
+    private val supportMultiEdge: Boolean,
 ) : ImmutableGraphBuilder<V, E>(), GraphMutator<V, E> {
 
     private var multiEdge = false
@@ -589,15 +590,23 @@ internal class ImmutableAdjacencyListNetworkBuilder<V, E> internal constructor(
     private inline fun addEdgeInternal(source: Vertex, target: Vertex, valueRetriever: (Edge) -> E): Edge {
         val edgeId = edgeValues.size
         val edgeValue = EdgeValue(directed, validateVertex(source), validateVertex(target))
+
+        val adjacencySet = successors[source.intValue]
+        val containsTarget = adjacencySet.containsKey(target.intValue)
+        if (!supportMultiEdge) {
+            require(!containsTarget) { "$source -> $target already exists in graph" }
+        }
+
         edgeValues.add(edgeValue.longValue)
-        val edgesToTarget = successors[source.intValue].computeIfAbsent(target.intValue) { IntArrayList() }
-        if (!edgesToTarget.isEmpty) {
+        adjacencySet.computeIfAbsent(target.intValue) { IntArrayList() }.add(edgeId)
+        if (containsTarget) {
             multiEdge = true
         }
-        edgesToTarget.add(edgeId)
+
         if (!directed && source != target) {
             successors[target.intValue].computeIfAbsent(source.intValue) { IntArrayList() }.add(edgeId)
         }
+
         val edge = canonicalEdge(directed, edgeValue, edgeId)
         edgeProperty?.set(edge.longValue, valueRetriever(edge))
         return edge
@@ -650,27 +659,31 @@ internal class ImmutableAdjacencyListNetworkBuilder<V, E> internal constructor(
 
     override fun mutate(): GraphMutator<V, E> = this
 
-    override fun build(): PropertyGraph<ImmutableGraph, V, E> {
-        val graph = ImmutableAdjacencyListNetwork(
+    override fun build(): ImmutableGraph {
+        return ImmutableAdjacencyListNetwork(
             directed,
             Successors(successors),
             null,
             multiEdge,
             EdgeValueArray(edgeValues.toLongArray())
         )
+    }
+
+    override fun buildPropertyGraph(): PropertyGraph<ImmutableGraph, V, E> {
+        val graph = build()
         val vertexProperty = if (vertexProperty != null) {
             // we know the vertex property will not retain a reference to the initializer, so we can use it to
             // initialize the property
             graph.createVertexProperty(vertexPropertyClass!!) { vertexProperty!![it.intValue] }
         } else {
-            nothingVertexProperty()
+            nothingVertexProperty(graph)
         }
         val edgeProperty = if (edgeProperty != null) {
             // we know the edge property will not retain a reference to the initializer, so we can use it to
             // initialize the property
             graph.createEdgeProperty(edgePropertyClass!!) { edgeProperty!![it.longValue] }
         } else {
-            nothingEdgeProperty()
+            nothingEdgeProperty(graph)
         }
         return PropertyGraph(graph, vertexProperty, edgeProperty)
     }

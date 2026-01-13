@@ -16,11 +16,7 @@ class CopyGraphTest {
             addEdge("v2", "v2")
         }
 
-        val map = if (immutable) {
-            immutableGraph(graph, mapVertices = graph.vertices, mapEdges = graph.edges)
-        } else {
-            mutableGraph(graph, mapVertices = graph.vertices, mapEdges = graph.edges)
-        }
+        val map = if (immutable) immutableGraph(graph) else mutableGraph(graph)
         val copy = map.graph
 
         assertThat(copy.vertices.size).isEqualTo(3)
@@ -69,21 +65,9 @@ class CopyGraphTest {
             }
 
         val map = if (immutable) {
-            immutablePropertyGraph(
-                propertyGraph,
-                vertexInitializer = { "" },
-                edgeInitializer = { "" },
-                mapVertices = propertyGraph.graph.vertices,
-                mapEdges = propertyGraph.graph.edges
-            )
+            immutablePropertyGraph(propertyGraph)
         } else {
-            mutablePropertyGraph(
-                propertyGraph,
-                vertexInitializer = { "" },
-                edgeInitializer = { "" },
-                mapVertices = propertyGraph.graph.vertices,
-                mapEdges = propertyGraph.graph.edges
-            )
+            mutablePropertyGraph(propertyGraph, { "" }, { "" })
         }
         val copy = map.graph
 

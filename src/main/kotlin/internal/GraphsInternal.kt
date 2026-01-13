@@ -24,30 +24,42 @@ import java.lang.ref.WeakReference
 import kotlin.math.max
 import kotlin.math.min
 
-internal fun <G : Graph> GraphCopy(graph: G, vertexMap: Int2IntMap?, edgeMap: Long2LongMap?): GraphCopy<G> {
+internal fun <G : Graph> GraphCopy(
+    originalGraph: Graph,
+    graph: G,
+    vertexMap: Int2IntMap?,
+    edgeMap: Long2LongMap?
+): GraphCopy<G> {
     return object : GraphCopy<G>, GraphIsomorphism(vertexMap, edgeMap) {
+        override val originalGraph: Graph get() = originalGraph
         override val graph: G get() = graph
     }
 }
 
 internal fun <G : Graph, V, E> PropertyGraphCopy(
+    originalPropertyGraph: PropertyGraph<*, V, E>,
     graph: GraphCopy<G>,
     vertexProperty: VertexProperty<V>,
     edgeProperty: EdgeProperty<E>,
 ): PropertyGraphCopy<G, V, E> {
     return object : PropertyGraphCopy<G, V, E>, GraphCopy<G> by graph {
+        override val originalPropertyGraph: PropertyGraph<*, V, E> get() = originalPropertyGraph
         override val vertexProperty: VertexProperty<V> get() = vertexProperty
         override val edgeProperty: EdgeProperty<E> get() = edgeProperty
     }
 }
 
 internal fun <G : Graph, V, E> PropertyGraphCopy(
+    originalPropertyGraph: PropertyGraph<*, V, E>,
     propertyGraph: PropertyGraph<G, V, E>,
     vertexMap: Int2IntMap?,
     edgeMap: Long2LongMap?,
 ): PropertyGraphCopy<G, V, E> {
     return object : PropertyGraphCopy<G, V, E>, PropertyGraph<G, V, E> by propertyGraph,
-        GraphIsomorphism(vertexMap, edgeMap) {}
+        GraphIsomorphism(vertexMap, edgeMap) {
+        override val originalPropertyGraph: PropertyGraph<*, V, E> get() = originalPropertyGraph
+        override val originalGraph: Graph get() = originalPropertyGraph.graph
+    }
 }
 
 private open class GraphIsomorphism(private val vertexMap: Int2IntMap?, private val edgeMap: Long2LongMap?) :

@@ -32,8 +32,10 @@ import it.unimi.dsi.fastutil.ints.IntIterator
 import it.unimi.dsi.fastutil.ints.IntList
 import it.unimi.dsi.fastutil.ints.IntLists
 
-internal class AdjacencyListNetwork(override val directed: Boolean) : MutableGraph, MutableIndexedVertexGraph,
-    MutableIndexedEdgeGraph {
+internal class AdjacencyListNetwork(
+    override val directed: Boolean,
+    private val supportMultiEdge: Boolean
+) : MutableGraph, MutableIndexedVertexGraph, MutableIndexedEdgeGraph {
 
     private val _predecessors = lazy {
         check(directed)
@@ -177,11 +179,19 @@ internal class AdjacencyListNetwork(override val directed: Boolean) : MutableGra
     override fun addEdge(source: Vertex, target: Vertex): Edge {
         val edgeId = edgeValues.size
         val edgeValue = EdgeValue(directed, validateVertex(source), validateVertex(target))
-        edgeValues.add(edgeValue)
 
-        if (successors[source.intValue].add(target, edgeId)) {
-            multiEdgeCount++
+        val adjacencySet = successors[source.intValue]
+        val containsTarget = adjacencySet.contains(target)
+        if (!supportMultiEdge) {
+            require(!containsTarget) { "$source -> $target already exists in graph" }
         }
+
+        edgeValues.add(edgeValue)
+        adjacencySet.add(target, edgeId)
+        if (containsTarget) {
+            ++multiEdgeCount
+        }
+
         if (!directed) {
             if (source != target) {
                 successors[target.intValue].add(source, edgeId)
@@ -202,9 +212,12 @@ internal class AdjacencyListNetwork(override val directed: Boolean) : MutableGra
         val source = edgeValue.source
         val target = edgeValue.target
 
-        if (successors[source.intValue].remove(target, edgeId)) {
+        val adjacencySet = successors[source.intValue]
+        adjacencySet.remove(target, edgeId)
+        if (adjacencySet.contains(target)) {
             check(--multiEdgeCount >= 0)
         }
+
         if (!directed) {
             if (source != target) {
                 successors[target.intValue].remove(source, edgeId)
@@ -622,12 +635,9 @@ private class AdjacencySet : EdgeAdjacencySet {
         override fun toString(): String = joinToString(", ", "[", "]") { it.toString() }
     }
 
-    // returns true if there already exists another edge to the given vertex, false otherwise
-    fun add(vertex: Vertex, edgeId: Int): Boolean {
-        val r: Boolean
+    fun add(vertex: Vertex, edgeId: Int) {
         if (!map.containsKey(vertex.intValue)) {
             map.put(vertex.intValue, edgeId)
-            r = false
         } else {
             val v = map.get(vertex.intValue)
             val edgeIds: IntArrayList
@@ -642,34 +652,28 @@ private class AdjacencySet : EdgeAdjacencySet {
             }
 
             edgeIds.add(edgeId)
-            r = true
         }
 
-        size++
-        return r
+        ++size
     }
 
-    // returns true if the removed edge was not the last edge to vertex, false otherwise
-    fun remove(vertex: Vertex, edgeId: Int): Boolean {
+    fun remove(vertex: Vertex, edgeId: Int) {
         check(map.containsKey(vertex.intValue))
 
         val v = map.get(vertex.intValue)
         if (v < 0) {
             val edgeIds = edgeIdMap[v]
             check(edgeIds.rem(edgeId))
-            --size
             if (edgeIds.size == 1) {
                 edgeIdMap.remove(v)
                 map.put(vertex.intValue, edgeIds.getInt(0))
             }
-            return true
-        } else if (v == edgeId) {
-            map.remove(vertex.intValue)
-            --size
-            return false
         } else {
-            throw IllegalStateException()
+            check(v == edgeId)
+            map.remove(vertex.intValue)
         }
+
+        --size
     }
 
     fun vertexIterator(): VertexIterator = VertexIteratorWrapper(map.keys.iterator())

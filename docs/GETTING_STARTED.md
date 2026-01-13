@@ -34,7 +34,7 @@ value class iteration.
 
 Graphs can be either directed or undirected (as specified at construction time). In addition, `Graph` supports
 self-loops (edges connecting the same vertex to itself) and multi-edges (multiple edges that connect the same pair of
-vertices in the same direction). Note that multi-edge support must generally be specified at construction time however.
+vertices in the same direction). Note that multi-edge support must be specified at construction time.
 
 Some examples of the variety of operations you can perform to get topological information out of a graph:
 
@@ -166,7 +166,7 @@ fun bfs(graph: Graph, start: Vertex) {
 
 Ignoring the obvious inefficiencies of using LinkedList for the queue here (this is modeled from Google results after
 all), note that we use a HashSet to track the visited vertices. For most graph libraries (including JGraph and Guava
-Graphs) this is the obvious and perhaps only solution, since so further assumptions can be made about graph internals.
+Graphs) this is the obvious and perhaps only solution, since no further assumptions can be made about graph internals.
 
 Consider how one might write the same algorithm with a `VertexProperty` however:
 
@@ -308,25 +308,25 @@ Immutable graphs can be constructed via the `immutableGraph()` factory method an
 
 ```kotlin
 // to construct an immutable graph with no vertex or edge properties
-val graph = immutableGraph<String, Nothing>(directed = false).build {
+val graph = immutableGraph<String, Nothing>(directed = false) {
     ensureVertexCapacity(3)
     ensureEdgeCapacity(3)
     addEdge("vertex1", "vertex2")
     addEdge("vertex2", "vertex3")
     addEdge("vertex3", "vertex1")
-}.graph
+}
 
 // to construct an immutable graph with vertex or edge properties
-val graphAndProperties = immutableGraph<String, Float>(directed = false).withVertexProperty().withEdgeProperty().build {
-    ensureVertexCapacity(3)
-    ensureEdgeCapacity(3)
-    addEdge("vertex1", "vertex2", 1f)
-    addEdge("vertex2", "vertex3", 2f)
-    addEdge("vertex3", "vertex1", 1f)
-}
-val graph = graphAndProperties.graph
-val vertexName = graphAndProperties.vertexProperty
-val edgeWeight = graphAndProperties.edgeProperty
+val (graph, vertexName, edgeWeight) = immutableGraphBuilder<String, Float>(directed = false)
+    .withVertexProperty()
+    .withEdgeProperty()
+    .buildPropertyGraph {
+        ensureVertexCapacity(3)
+        ensureEdgeCapacity(3)
+        addEdge("vertex1", "vertex2", 1f)
+        addEdge("vertex2", "vertex3", 2f)
+        addEdge("vertex3", "vertex1", 1f)
+    }
 ```
 
 `ImmutableGraph` is the most CPU and memory efficient of all graph representations for the most part, and should be

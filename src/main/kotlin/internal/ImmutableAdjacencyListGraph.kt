@@ -456,26 +456,30 @@ internal class ImmutableAdjacencyListGraphBuilder<V, E>(
 
     override fun mutate(): GraphMutator<V, E> = this
 
-    override fun build(): PropertyGraph<ImmutableGraph, V, E> {
-        val graph = ImmutableAdjacencyListGraph(
+    override fun build(): ImmutableGraph {
+        return ImmutableAdjacencyListGraph(
             directed,
             Array(successors.size) { successors[it].toIntArray().apply { sort() } },
             null,
             numEdges
         )
+    }
+
+    override fun buildPropertyGraph(): PropertyGraph<ImmutableGraph, V, E> {
+        val graph = build()
         val vertexProperty = if (vertexProperty != null) {
             // we know the vertex property will not retain a reference to the initializer, so we can use it to
             // initialize the property
             graph.createVertexProperty(vertexPropertyClass!!) { vertexProperty!![it.intValue] }
         } else {
-            nothingVertexProperty()
+            nothingVertexProperty(graph)
         }
         val edgeProperty = if (edgeProperty != null) {
             // we know the edge property will not retain a reference to the initializer, so we can use it to
             // initialize the property
             graph.createEdgeProperty(edgePropertyClass!!) { edgeProperty!![it.longValue] }
         } else {
-            nothingEdgeProperty()
+            nothingEdgeProperty(graph)
         }
 
         return PropertyGraph(graph, vertexProperty, edgeProperty)

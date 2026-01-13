@@ -118,7 +118,7 @@ object Loader {
 
     fun loadImmutableSimpleGraph(): PropertyGraph<ImmutableGraph, Int, Nothing> =
         load { numVertices, numEdges, lineSequence ->
-            val g = immutableGraph<Int, Nothing>(false).withVertexProperty().build {
+            val g = immutableGraphBuilder<Int, Nothing>(false).withVertexProperty().buildPropertyGraph {
                 ensureVertexCapacity(numVertices)
                 ensureEdgeCapacity(numEdges)
                 lineSequence.forEach { (v1, v2, _) -> addEdge(v1, v2) }
@@ -131,7 +131,7 @@ object Loader {
         }
 
     fun loadImmutableGraph(): PropertyGraph<ImmutableGraph, Int, Float> = load { numVertices, numEdges, lineSequence ->
-        val g = immutableGraph<Int, Float>(false).withVertexProperty().withEdgeProperty().build {
+        val g = immutableGraphBuilder<Int, Float>(false).withVertexProperty().withEdgeProperty().buildPropertyGraph {
             ensureVertexCapacity(numVertices)
             ensureEdgeCapacity(numEdges)
             lineSequence.forEach { (v1, v2, e) -> addEdge(v1, v2, e) }
@@ -145,7 +145,8 @@ object Loader {
 
     fun loadImmutableNetwork(): PropertyGraph<ImmutableGraph, Int, Float> =
         load { numVertices, numEdges, lineSequence ->
-        val g = immutableGraph<Int, Float>(false, allowMultiEdge = true).withVertexProperty().withEdgeProperty().build {
+            val g = immutableGraphBuilder<Int, Float>(false, supportMultiEdge = true).withVertexProperty()
+                .withEdgeProperty().buildPropertyGraph {
             ensureVertexCapacity(numVertices)
             ensureEdgeCapacity(numEdges)
             lineSequence.forEach { (v1, v2, e) -> addEdge(v1, v2, e) }
@@ -170,7 +171,7 @@ object Loader {
         check(graph.vertices.size == NUM_VERTICES)
         check(graph.edges.size == NUM_EDGES)
 
-            return PropertyGraph(graph, vertexProperty, nothingEdgeProperty())
+            return PropertyGraph(graph, vertexProperty, nothingEdgeProperty(graph))
     }
 
     fun loadMutableGraph(): PropertyGraph<MutableGraph, Int, Float> = load { numVertices, numEdges, lineSequence ->
