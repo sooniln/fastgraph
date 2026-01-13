@@ -686,7 +686,7 @@ fun <G : Graph, V, E> PropertyGraph(
 }
 
 /**
- * A copy of a [Graph], which includes a graph isomorphism via [GraphMapping] so that each vertex/edge of the copied
+ * A copy of a [Graph], which includes a graph isomorphism via [GraphMapping] so that each vertex/edge of the original
  * graph is mapped to the equivalent vertex/edge of the new graph.
  */
 interface GraphCopy<G : Graph> : GraphMapping {
@@ -808,7 +808,7 @@ fun mutableGraph(directed: Boolean, supportMultiEdge: Boolean = false, indexEdge
 }
 
 /**
- * Convenience method for creating a new mutable [PropertyGraph]. See [mutableGraph] for more details.
+ * Convenience method for creating a new mutable [PropertyGraph]. See [mutableGraph] overloads for more details.
  */
 inline fun <reified V, reified E> mutablePropertyGraph(
     directed: Boolean,

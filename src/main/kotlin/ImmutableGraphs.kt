@@ -147,6 +147,9 @@ fun <V, E> immutableGraphBuilder(
     }
 }
 
+/**
+ * Convenience method for creating a new mutable [ImmutableGraph]. See [immutableGraph] overloads for more details.
+ */
 @JvmName("immutableGraphTyped")
 @OptIn(ExperimentalContracts::class)
 inline fun <V, E> immutableGraph(
@@ -164,6 +167,9 @@ inline fun <V, E> immutableGraph(
     return builder.build()
 }
 
+/**
+ * Convenience method for creating a new mutable [ImmutableGraph]. See [immutableGraph] overloads for more details.
+ */
 @OptIn(ExperimentalContracts::class)
 inline fun immutableGraph(
     directed: Boolean,
@@ -180,6 +186,20 @@ inline fun immutableGraph(
     return builder.build()
 }
 
+/**
+ * Creates a new immutable graph that is a copy of the given graph. See other [immutableGraph] overload for additional
+ * documentation on parameters and returned results.
+ *
+ * If the input graph implements [IndexedVertexGraph], the returned graph guarantees to use the same indices for the
+ * same vertex in the topology, and if the input graph implements [IndexedEdgeGraph] and `indexEdges` is true, the
+ * returned graph guarantees to use the same indices for the same edges in the topology.
+ *
+ * If the above holds true AND the input graph was also created via [mutableGraph] or [immutableGraph] then it is also
+ * guaranteed that a [Vertex] reference from the input graph also works as a reference to the topologically equivalent
+ * vertex in the returned graph (as long as vertex references remain stable in the input graph), and it is guaranteed
+ * that an [Edge] reference from the input graph also works as a reference to the topologically equivalent edge in the
+ * returned graph (as long as edge references remain stable in the input graph).
+ */
 @OptIn(ExperimentalContracts::class)
 fun immutableGraph(
     graph: Graph,
@@ -238,6 +258,11 @@ fun immutableGraph(
     return GraphCopy(graph, newGraph, vertexMap, edgeMap)
 }
 
+/**
+ * Convenience method for creating a new immutable [PropertyGraph] that is a copy of the given [PropertyGraph]. See
+ * [immutableGraph] for more details. The returned [PropertyGraphCopy] contains new vertex and edge properties with the
+ * same values as the originals.
+ */
 @OptIn(ExperimentalContracts::class)
 fun <V : VS?, VS, E : ES?, ES> immutablePropertyGraph(
     propertyGraph: PropertyGraph<*, V, E>,
@@ -315,6 +340,11 @@ fun <V : VS?, VS, E : ES?, ES> immutablePropertyGraph(
     return PropertyGraphCopy(propertyGraph, newPropertyGraph, vertexMap, edgeMap)
 }
 
+/**
+ * Convenience method for creating a new immutable [PropertyGraph] that is a copy of the given [PropertyGraph]. See
+ * [immutableGraph] for more details. The returned [PropertyGraphCopy] contains new vertex and edge properties with the
+ * same values as the originals.
+ */
 @OptIn(ExperimentalContracts::class)
 inline fun <reified V, reified E> immutablePropertyGraph(
     propertyGraph: PropertyGraph<*, V, E>,
@@ -340,6 +370,11 @@ inline fun <reified V, reified E> immutablePropertyGraph(
     )
 }
 
+/**
+ * Convenience method for creating a new immutable [PropertyGraph] that is a copy of the given [PropertyGraph]. See
+ * [immutableGraph] for more details. The returned [PropertyGraphCopy] contains new vertex and edge properties with the
+ * same values as the originals.
+ */
 inline fun <reified V, reified E> immutablePropertyGraph(
     propertyGraph: PropertyGraph<*, V, E>,
     supportMultiEdge: Boolean = false,
