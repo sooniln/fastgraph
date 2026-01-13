@@ -31,9 +31,6 @@ open class JGraphSimpleGraphBenchmark {
     @Setup
     fun setup() {
         graph = Loader.loadJGraphTSimpleGraph()
-
-        /*val totalMem = GraphLayout.parseInstance(graph).totalSize()
-        println("total: $totalMem")*/
     }
 
     @OutputTimeUnit(TimeUnit.MICROSECONDS)

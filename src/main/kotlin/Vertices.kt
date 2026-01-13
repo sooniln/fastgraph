@@ -198,6 +198,22 @@ context(graph: Graph)
 fun VertexReference.incomingEdges() = graph.incomingEdges(unstable)
 
 /**
+ * Returns the index of this vertex in [IndexedVertexGraph.vertices].
+ */
+context(graph: IndexedEdgeGraph)
+val Vertex.index: Int
+    @JvmSynthetic @Suppress("INAPPLICABLE_JVM_NAME") @JvmName("#Vertex_index")
+    inline get() = graph.vertices.indexOf(this)
+
+/**
+ * Returns the index of this vertex in [IndexedVertexGraph.vertices].
+ */
+context(graph: IndexedEdgeGraph)
+val VertexReference.index: Int
+    @JvmSynthetic @Suppress("INAPPLICABLE_JVM_NAME") @JvmName("#VertexReference_index")
+    inline get() = graph.vertices.indexOf(unstable)
+
+/**
  * An iterator over vertices. Note that this interface is distinct from [Iterator<Vertex>][Iterator] in order to avoid
  * Vertex boxing/unboxing, and associated performance penalties. Prefer to use this interface whenever possible for
  * those reasons.
@@ -210,6 +226,11 @@ interface VertexIterator : Iterator<Vertex> {
 }
 
 /**
+ * An iterator over vertices that allows for removal.
+ */
+interface MutableVertexIterator : VertexIterator, MutableIterator<Vertex>
+
+/**
  * A list iterator over vertices. Note that this interface is distinct from [ListIterator<Vertex>][ListIterator] in
  * order to avoid Vertex boxing/unboxing, and associated performance penalties. Prefer to use this interface whenever
  * possible for those reasons.
@@ -220,6 +241,11 @@ interface VertexListIterator : VertexIterator, ListIterator<Vertex> {
     @Deprecated("For JVM usage only", level = DeprecationLevel.ERROR)
     fun previousVertex(): Int = previous().intValue
 }
+
+/**
+ * A list iterator over vertices that allows for removal.
+ */
+interface MutableVertexListIterator : VertexListIterator, MutableVertexIterator, MutableListIterator<Vertex>
 
 /**
  * An iterable of vertices. Note that this interface is distinct from [Iterable<Vertex>][Iterable] in order to avoid
@@ -244,11 +270,23 @@ interface VertexCollection : Collection<Vertex>, VertexIterable {
 }
 
 /**
+ * A collection of vertices with an iterator that allows for removal.
+ */
+interface MutableVertexCollection : VertexCollection {
+    override fun iterator(): MutableVertexIterator
+}
+
+/**
  * A read-only set of vertices. Note that this interface is distinct from [Set<Vertex>][Set] in order to avoid Vertex
  * boxing/unboxing, and associated performance penalties. Prefer to use this interface whenever possible for those
  * reasons.
  */
 interface VertexSet : VertexCollection, Set<Vertex>
+
+/**
+ * A set of vertices with an iterator that allows for removal.
+ */
+interface MutableVertexSet : VertexSet, MutableVertexCollection
 
 /**
  * A read-only list of vertices. Note that this interface is distinct from [List<Vertex>][List] in order to avoid Vertex
@@ -279,11 +317,24 @@ interface VertexList : VertexCollection, List<Vertex> {
 }
 
 /**
+ * A list of vertices with an iterator that allows for removal.
+ */
+interface MutableVertexList : VertexList, MutableVertexCollection {
+    override fun listIterator(): MutableVertexListIterator
+    override fun listIterator(index: Int): MutableVertexListIterator
+}
+
+/**
  * A read-only set of vertices that can also be accessed by index like a list.
  */
 interface VertexSetList : VertexSet, VertexList {
     override fun spliterator(): Spliterator<Vertex> = super<VertexList>.spliterator()
 }
+
+/**
+ * A set of vertices that can also be accessed by index like a list, with an iterator that allows for removal.
+ */
+interface MutableVertexSetList : VertexSetList, MutableVertexSet, MutableVertexList
 
 /**
  * Returns a new read-only set of the given vertices.
@@ -367,10 +418,10 @@ abstract class AbstractVertexCollection : VertexCollection {
  * Provides a skeletal implementation of the read-only [VertexSetList] interface.
  */
 abstract class AbstractVertexSetList : VertexSetList, AbstractList<Vertex>() {
-    override fun iterator(): VertexIterator = VertexListIteratorImpl(0)
+    override fun iterator(): VertexIterator = AbstractVertexListIterator(0)
 
-    override fun listIterator(): VertexListIterator = VertexListIteratorImpl(0)
-    override fun listIterator(index: Int): VertexListIterator = VertexListIteratorImpl(index)
+    override fun listIterator(): VertexListIterator = AbstractVertexListIterator(0)
+    override fun listIterator(index: Int): VertexListIterator = AbstractVertexListIterator(index)
     override fun subList(fromIndex: Int, toIndex: Int): VertexSetList = SubList(this, fromIndex, toIndex)
 
     private class SubList(private val list: VertexSetList, private val fromIndex: Int, toIndex: Int) :
@@ -429,25 +480,41 @@ abstract class AbstractVertexSetList : VertexSetList, AbstractList<Vertex>() {
         return hashCode
     }
 
-    private inner class VertexListIteratorImpl(private var index: Int) : VertexListIterator {
+    protected open inner class AbstractVertexListIterator(protected var index: Int) : MutableVertexListIterator {
+        protected var lastIndex = -1
+
         init {
             checkPositionIndex(index, size)
         }
 
-        override fun hasNext(): Boolean = index < size
-        override fun hasPrevious(): Boolean = index > 0
-        override fun nextIndex(): Int = index
-        override fun previousIndex(): Int = index - 1
+        final override fun hasNext(): Boolean = index < size
+        final override fun hasPrevious(): Boolean = index > 0
+        final override fun nextIndex(): Int = index
+        final override fun previousIndex(): Int = index - 1
 
-        override fun next(): Vertex {
+        final override fun next(): Vertex {
             if (index >= size) throw NoSuchElementException()
-            return get(index++)
+            lastIndex = index++
+            return get(lastIndex)
         }
 
-        override fun previous(): Vertex {
+        final override fun previous(): Vertex {
             if (index <= 0) throw NoSuchElementException()
-            return get(--index)
+            lastIndex = --index
+            return get(lastIndex)
         }
+
+        final override fun set(element: Vertex): Unit = throw UnsupportedOperationException()
+        final override fun add(element: Vertex): Unit = throw UnsupportedOperationException()
+
+        final override fun remove() {
+            check(lastIndex != -1)
+            remove(lastIndex)
+            index = lastIndex
+            lastIndex = -1
+        }
+
+        protected open fun remove(index: Int): Unit = throw UnsupportedOperationException()
     }
 }
 

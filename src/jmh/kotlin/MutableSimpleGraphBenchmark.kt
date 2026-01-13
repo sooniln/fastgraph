@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 open class MutableSimpleGraphBenchmark {
 
-    lateinit var graph: Graph
+    lateinit var graph: MutableGraph
     lateinit var vertexId: VertexProperty<Int>
 
     @Setup
@@ -29,12 +29,6 @@ open class MutableSimpleGraphBenchmark {
         val g = Loader.loadMutableSimpleGraph()
         graph = g.graph
         vertexId = g.vertexProperty
-
-        /*val graphMem = GraphLayout.parseInstance(graph).totalSize()
-        val totalMem = GraphLayout.parseInstance(graph, vertexId, edgeId).totalSize()
-        println("total: $totalMem")
-        println("topology: $graphMem")
-        println("data: " + (totalMem - graphMem))*/
     }
 
     @OutputTimeUnit(TimeUnit.MICROSECONDS)

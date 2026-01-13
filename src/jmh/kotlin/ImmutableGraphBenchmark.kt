@@ -31,12 +31,6 @@ open class ImmutableGraphBenchmark {
         graph = g.graph
         vertexId = g.vertexProperty
         edgeWeight = g.edgeProperty
-
-        /*val graphMem = GraphLayout.parseInstance(graph).totalSize()
-        val totalMem = GraphLayout.parseInstance(graph, vertexId, edgeId).totalSize()
-        println("total: $totalMem")
-        println("topology: $graphMem")
-        println("data: " + (totalMem - graphMem))*/
     }
 
     @OutputTimeUnit(TimeUnit.MICROSECONDS)

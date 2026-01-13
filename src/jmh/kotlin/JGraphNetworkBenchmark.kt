@@ -31,9 +31,6 @@ open class JGraphNetworkBenchmark {
     @Setup
     fun setup() {
         graph = Loader.loadJGraphTNetwork()
-
-        /*val totalMem = GraphLayout.parseInstance(graph).totalSize()
-        println("total: $totalMem")*/
     }
 
     @OutputTimeUnit(TimeUnit.MICROSECONDS)

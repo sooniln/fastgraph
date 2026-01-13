@@ -154,6 +154,22 @@ context(graph: Graph)
 fun EdgeReference.opposite(other: Vertex) = graph.edgeOpposite(unstable, other)
 
 /**
+ * Returns the index of this edge in [IndexedEdgeGraph.edges].
+ */
+context(graph: IndexedEdgeGraph)
+val Edge.index: Int
+    @JvmSynthetic @Suppress("INAPPLICABLE_JVM_NAME") @JvmName("#Edge_index")
+    inline get() = graph.edges.indexOf(this)
+
+/**
+ * Returns the index of this edge in [IndexedEdgeGraph.edges].
+ */
+context(graph: IndexedEdgeGraph)
+val EdgeReference.index: Int
+    @JvmSynthetic @Suppress("INAPPLICABLE_JVM_NAME") @JvmName("#EdgeReference_index")
+    inline get() = graph.edges.indexOf(unstable)
+
+/**
  * An iterator over edges. Note that this interface is distinct from [Iterator<Edge>][Iterator] in order to avoid Edge
  * boxing/unboxing, and associated performance penalties. Prefer to use this interface whenever possible for those
  * reasons.
@@ -166,6 +182,11 @@ interface EdgeIterator : Iterator<Edge> {
 }
 
 /**
+ * An iterator over edges that allows for edge removal.
+ */
+interface MutableEdgeIterator : EdgeIterator, MutableIterator<Edge>
+
+/**
  * A list iterator over edges. Note that this interface is distinct from [ListIterator<Edge>][ListIterator] in order to
  * avoid Edge boxing/unboxing, and associated performance penalties. Prefer to use this interface whenever possible for
  * those reasons.
@@ -176,6 +197,11 @@ interface EdgeListIterator : EdgeIterator, ListIterator<Edge> {
     @Deprecated("For JVM usage only", level = DeprecationLevel.ERROR)
     fun previousEdge(): Long = previous().longValue
 }
+
+/**
+ * A list iterator over edges that allows for edge removal.
+ */
+interface MutableEdgeListIterator : EdgeListIterator, MutableEdgeIterator, MutableListIterator<Edge>
 
 /**
  * An iterable of edges. Note that this interface is distinct from [Iterable<Edge>][Iterable] in order to avoid Edge
@@ -203,11 +229,23 @@ interface EdgeCollection : Collection<Edge>, EdgeIterable {
 }
 
 /**
+ * A collection of edges with an iterator that allows for removal.
+ */
+interface MutableEdgeCollection : EdgeCollection {
+    override fun iterator(): MutableEdgeIterator
+}
+
+/**
  * A read-only set of edges. Note that this interface is distinct from [Set<Edge>][Set] in order to avoid Edge
  * boxing/unboxing, and associated performance penalties. Prefer to use this interface whenever possible for those
  * reasons.
  */
 interface EdgeSet : EdgeCollection, Set<Edge>
+
+/**
+ * A set of edges with an iterator that allows for removal.
+ */
+interface MutableEdgeSet : EdgeSet, MutableEdgeCollection
 
 /**
  * A read-only list of edges. Note that this interface is distinct from [List<Edge>][List] in order to avoid Edge
@@ -238,11 +276,24 @@ interface EdgeList : EdgeCollection, List<Edge> {
 }
 
 /**
+ * A list of edges with an iterator that allows for removal.
+ */
+interface MutableEdgeList : EdgeList, MutableEdgeCollection {
+    override fun listIterator(): MutableEdgeListIterator
+    override fun listIterator(index: Int): MutableEdgeListIterator
+}
+
+/**
  * A read-only set of edges that can also be accessed by index like a list.
  */
 interface EdgeSetList : EdgeSet, EdgeList {
     override fun spliterator(): Spliterator<Edge> = super<EdgeList>.spliterator()
 }
+
+/**
+ * A set of edges that can also be accessed by index like a list, with an iterator that allows for removal.
+ */
+interface MutableEdgeSetList : EdgeSetList, MutableEdgeSet, MutableEdgeList
 
 /**
  * Returns a new read-only set of the given edges.
@@ -343,10 +394,10 @@ abstract class AbstractEdgeCollection : EdgeCollection {
  * Provides a skeletal implementation of the read-only [EdgeSetList] interface.
  */
 abstract class AbstractEdgeSetList : EdgeSetList, AbstractList<Edge>() {
-    override fun iterator(): EdgeIterator = EdgeListIteratorImpl(0)
+    override fun iterator(): EdgeIterator = AbstractEdgeListIterator(0)
 
-    override fun listIterator(): EdgeListIterator = EdgeListIteratorImpl(0)
-    override fun listIterator(index: Int): EdgeListIterator = EdgeListIteratorImpl(index)
+    override fun listIterator(): EdgeListIterator = AbstractEdgeListIterator(0)
+    override fun listIterator(index: Int): EdgeListIterator = AbstractEdgeListIterator(index)
     override fun subList(fromIndex: Int, toIndex: Int): EdgeSetList = SubList(this, fromIndex, toIndex)
 
     override fun toLongArray(): LongArray = LongArray(size) { get(it).longValue }
@@ -417,7 +468,9 @@ abstract class AbstractEdgeSetList : EdgeSetList, AbstractList<Edge>() {
         return hashCode
     }
 
-    private inner class EdgeListIteratorImpl(private var index: Int) : EdgeListIterator {
+    protected open inner class AbstractEdgeListIterator(protected var index: Int) : MutableEdgeListIterator {
+        protected var lastIndex = -1
+
         init {
             checkPositionIndex(index, size)
         }
@@ -429,13 +482,27 @@ abstract class AbstractEdgeSetList : EdgeSetList, AbstractList<Edge>() {
 
         override fun next(): Edge {
             if (index >= size) throw NoSuchElementException()
-            return get(index++)
+            lastIndex = index++
+            return get(lastIndex)
         }
 
         override fun previous(): Edge {
             if (index <= 0) throw NoSuchElementException()
-            return get(--index)
+            lastIndex = --index
+            return get(lastIndex)
         }
+
+        final override fun set(element: Edge): Unit = throw UnsupportedOperationException()
+        final override fun add(element: Edge): Unit = throw UnsupportedOperationException()
+
+        final override fun remove() {
+            check(lastIndex != -1)
+            remove(lastIndex)
+            index = lastIndex
+            lastIndex = -1
+        }
+
+        protected open fun remove(index: Int): Unit = throw UnsupportedOperationException()
     }
 }
 

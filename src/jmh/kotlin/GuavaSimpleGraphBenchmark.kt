@@ -29,9 +29,6 @@ open class GuavaSimpleGraphBenchmark {
     @Setup
     fun setup() {
         graph = Loader.loadGuavaSimpleGraph()
-
-        /*val totalMem = GraphLayout.parseInstance(graph).totalSize()
-        println("total: $totalMem")*/
     }
 
     @OutputTimeUnit(TimeUnit.MICROSECONDS)

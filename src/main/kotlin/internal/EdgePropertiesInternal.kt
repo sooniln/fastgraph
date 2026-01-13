@@ -2,9 +2,8 @@ package io.github.sooniln.fastgraph.internal
 
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeProperty
-import io.github.sooniln.fastgraph.EdgeSet
-import io.github.sooniln.fastgraph.EdgeSetList
 import io.github.sooniln.fastgraph.Graph
+import io.github.sooniln.fastgraph.IndexedEdgeGraph
 import it.unimi.dsi.fastutil.booleans.BooleanArrays
 import it.unimi.dsi.fastutil.ints.IntArrays
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap
@@ -26,65 +25,53 @@ private object EmptyEdgeProperty : EdgeProperty<Nothing> {
     override fun set(edge: Edge, value: Nothing) = throw IllegalArgumentException()
 }
 
-@Suppress("UNCHECKED_CAST")
-internal fun <T> nothingEdgeProperty(): EdgeProperty<T> = NothingEdgeProperty as EdgeProperty<T>
-
-private object NothingEdgeProperty : EdgeProperty<Nothing> {
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("get")
-    override fun get(edge: Edge): Nothing = throw IllegalStateException()
-
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("set")
-    override fun set(edge: Edge, value: Nothing) = throw IllegalStateException()
-}
-
 @Suppress("UNCHECKED_CAST", "PLATFORM_CLASS_MAPPED_TO_KOTLIN")
 internal fun <T : S?, S> immutableArrayMapEdgeProperty(
-    edges: EdgeSet,
+    graph: Graph,
     clazz: Class<S>,
     initializer: (Edge) -> T
 ): EdgeProperty<T> {
     return when (clazz) {
         java.lang.Boolean::class.java -> ImmutableArrayMapBooleanEdgeProperty(
-            edges,
+            graph,
             initializer as (Edge) -> Boolean
         ) as EdgeProperty<T>
 
         Integer::class.java -> ImmutableArrayMap4ByteEdgeProperty(
-            edges,
+            graph,
             initializer as (Edge) -> Int,
             { it },
             { it }) as EdgeProperty<T>
 
         java.lang.Float::class.java -> ImmutableArrayMap4ByteEdgeProperty(
-            edges,
+            graph,
             initializer as (Edge) -> Float,
             { java.lang.Float.floatToRawIntBits(it) },
             { java.lang.Float.intBitsToFloat(it) }) as EdgeProperty<T>
 
         java.lang.Long::class.java -> ImmutableArrayMap8ByteEdgeProperty(
-            edges,
+            graph,
             initializer as (Edge) -> Long,
             { it },
             { it }) as EdgeProperty<T>
 
         java.lang.Double::class.java -> ImmutableArrayMap8ByteEdgeProperty(
-            edges,
+            graph,
             initializer as (Edge) -> Double,
             { java.lang.Double.doubleToRawLongBits(it) },
             { java.lang.Double.longBitsToDouble(it) }) as EdgeProperty<T>
 
-        else -> ArrayMapEdgeProperty(edges, initializer)
+        else -> ArrayMapEdgeProperty(graph, initializer)
     }
 }
 
 private class ImmutableArrayMapBooleanEdgeProperty(
-    edges: EdgeSet,
+    graph: Graph,
     initializer: (Edge) -> Boolean
 ) : EdgeProperty<Boolean> {
 
-    private val edgeKeys: LongArray = edges.toLongArray().apply { sort() }
+    private val edges = graph.edges
+    private val edgeKeys = edges.toLongArray().apply { sort() }
 
     @Suppress("UNCHECKED_CAST")
     private val values: BooleanArray = BooleanArray(edges.size) { initializer(Edge(edgeKeys[it])) }
@@ -107,13 +94,14 @@ private class ImmutableArrayMapBooleanEdgeProperty(
 }
 
 private inline fun <T> ImmutableArrayMap4ByteEdgeProperty(
-    edges: EdgeSet,
+    graph: Graph,
     crossinline initializer: (Edge) -> T,
     crossinline write: (T) -> Int,
     crossinline read: (Int) -> T
 ): EdgeProperty<T> = object : EdgeProperty<T> {
 
-    private val edgeKeys: LongArray = edges.toLongArray().apply { sort() }
+    private val edges = graph.edges
+    private val edgeKeys = edges.toLongArray().apply { sort() }
 
     @Suppress("UNCHECKED_CAST")
     private val values: IntArray = IntArray(edges.size) { write(initializer(Edge(edgeKeys[it]))) }
@@ -136,13 +124,14 @@ private inline fun <T> ImmutableArrayMap4ByteEdgeProperty(
 }
 
 private inline fun <T> ImmutableArrayMap8ByteEdgeProperty(
-    edges: EdgeSet,
+    graph: Graph,
     crossinline initializer: (Edge) -> T,
     crossinline write: (T) -> Long,
     crossinline read: (Long) -> T
 ): EdgeProperty<T> = object : EdgeProperty<T> {
 
-    private val edgeKeys: LongArray = edges.toLongArray().apply { sort() }
+    private val edges = graph.edges
+    private val edgeKeys = edges.toLongArray().apply { sort() }
 
     @Suppress("UNCHECKED_CAST")
     private val values: LongArray = LongArray(edges.size) { write(initializer(Edge(edgeKeys[it]))) }
@@ -164,9 +153,10 @@ private inline fun <T> ImmutableArrayMap8ByteEdgeProperty(
     }
 }
 
-private class ArrayMapEdgeProperty<T>(edges: EdgeSet, initializer: (Edge) -> T) : EdgeProperty<T> {
+private class ArrayMapEdgeProperty<T>(graph: Graph, initializer: (Edge) -> T) : EdgeProperty<T> {
 
-    private val edgeKeys: LongArray = edges.toLongArray().apply { sort() }
+    private val edges = graph.edges
+    private val edgeKeys = edges.toLongArray().apply { sort() }
 
     @Suppress("UNCHECKED_CAST")
     private val values: Array<T> = Array<Any?>(edges.size) { initializer(Edge(edgeKeys[it])) } as Array<T>
@@ -190,52 +180,53 @@ private class ArrayMapEdgeProperty<T>(edges: EdgeSet, initializer: (Edge) -> T) 
 
 @Suppress("UNCHECKED_CAST", "PLATFORM_CLASS_MAPPED_TO_KOTLIN")
 internal fun <T : S?, S> immutableMapEdgeProperty(
-    edges: EdgeSet,
+    graph: Graph,
     clazz: Class<S>,
     initializer: (Edge) -> T
 ): EdgeProperty<T> {
     return when (clazz) {
         java.lang.Boolean::class.java -> ImmutableMap4ByteEdgeProperty(
-            edges,
+            graph,
             initializer as (Edge) -> Boolean,
             { if (it) 1 else 0 },
             { it != 0 }) as EdgeProperty<T>
 
         Integer::class.java -> ImmutableMap4ByteEdgeProperty(
-            edges,
+            graph,
             initializer as (Edge) -> Int,
             { it },
             { it }) as EdgeProperty<T>
 
         java.lang.Float::class.java -> ImmutableMap4ByteEdgeProperty(
-            edges,
+            graph,
             initializer as (Edge) -> Float,
             { java.lang.Float.floatToRawIntBits(it) },
             { java.lang.Float.intBitsToFloat(it) }) as EdgeProperty<T>
 
         java.lang.Long::class.java -> ImmutableMap8ByteEdgeProperty(
-            edges,
+            graph,
             initializer as (Edge) -> Long,
             { it },
             { it }) as EdgeProperty<T>
 
         java.lang.Double::class.java -> ImmutableMap8ByteEdgeProperty(
-            edges,
+            graph,
             initializer as (Edge) -> Double,
             { java.lang.Double.doubleToRawLongBits(it) },
             { java.lang.Double.longBitsToDouble(it) }) as EdgeProperty<T>
 
-        else -> ImmutableMapEdgeProperty(edges, initializer)
+        else -> ImmutableMapEdgeProperty(graph, initializer)
     }
 }
 
 private inline fun <T> ImmutableMap4ByteEdgeProperty(
-    edges: EdgeSet,
+    graph: Graph,
     crossinline initializer: (Edge) -> T,
     crossinline write: (T) -> Int,
     crossinline read: (Int) -> T
 ): EdgeProperty<T> = object : EdgeProperty<T> {
 
+    private val edges = graph.edges
     private val property = Long2IntOpenHashMap(edges.size)
 
     init {
@@ -260,12 +251,13 @@ private inline fun <T> ImmutableMap4ByteEdgeProperty(
 }
 
 private inline fun <T> ImmutableMap8ByteEdgeProperty(
-    edges: EdgeSet,
+    graph: Graph,
     crossinline initializer: (Edge) -> T,
     crossinline write: (T) -> Long,
     crossinline read: (Long) -> T
 ): EdgeProperty<T> = object : EdgeProperty<T> {
 
+    private val edges = graph.edges
     private val property = Long2LongOpenHashMap(edges.size)
 
     init {
@@ -289,8 +281,9 @@ private inline fun <T> ImmutableMap8ByteEdgeProperty(
     }
 }
 
-private class ImmutableMapEdgeProperty<T>(edges: EdgeSet, initializer: (Edge) -> T) : EdgeProperty<T> {
+private class ImmutableMapEdgeProperty<T>(graph: Graph, initializer: (Edge) -> T) : EdgeProperty<T> {
 
+    private val edges = graph.edges
     private val property = Long2ObjectOpenHashMap<T>(edges.size)
 
     init {
@@ -316,46 +309,50 @@ private class ImmutableMapEdgeProperty<T>(edges: EdgeSet, initializer: (Edge) ->
 
 @Suppress("UNCHECKED_CAST", "PLATFORM_CLASS_MAPPED_TO_KOTLIN")
 internal fun <T : S?, S> immutableArrayEdgeProperty(
-    edges: EdgeSetList,
+    graph: IndexedEdgeGraph,
     clazz: Class<S>,
     initializer: (Int) -> T
 ): EdgeProperty<T> {
     return when (clazz) {
         java.lang.Boolean::class.java -> ImmutableArrayBooleanEdgeProperty(
-            edges,
+            graph,
             initializer as (Int) -> Boolean
         ) as EdgeProperty<T>
 
         Integer::class.java -> ImmutableArray4ByteEdgeProperty(
-            edges,
+            graph,
             initializer as (Int) -> Int,
             { it },
             { it }) as EdgeProperty<T>
 
         java.lang.Float::class.java -> ImmutableArray4ByteEdgeProperty(
-            edges,
+            graph,
             initializer as (Int) -> Float,
             { java.lang.Float.floatToRawIntBits(it) },
             { java.lang.Float.intBitsToFloat(it) }) as EdgeProperty<T>
 
         java.lang.Long::class.java -> ImmutableArray8ByteEdgeProperty(
-            edges,
+            graph,
             initializer as (Int) -> Long,
             { it },
             { it }) as EdgeProperty<T>
 
         java.lang.Double::class.java -> ImmutableArray8ByteEdgeProperty(
-            edges,
+            graph,
             initializer as (Int) -> Double,
             { java.lang.Double.doubleToRawLongBits(it) },
             { java.lang.Double.longBitsToDouble(it) }) as EdgeProperty<T>
 
-        else -> ImmutableArrayEdgeProperty(edges, initializer)
+        else -> ImmutableArrayEdgeProperty(graph, initializer)
     }
 }
 
-private class ImmutableArrayBooleanEdgeProperty(private val edges: EdgeSetList, initializer: (Int) -> Boolean) :
-    EdgeProperty<Boolean> {
+private class ImmutableArrayBooleanEdgeProperty(
+    graph: IndexedEdgeGraph,
+    initializer: (Int) -> Boolean
+) : EdgeProperty<Boolean> {
+
+    private val edges = graph.edges
     private val property: BooleanArray = BooleanArray(edges.size) { initializer(it) }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
@@ -376,13 +373,13 @@ private class ImmutableArrayBooleanEdgeProperty(private val edges: EdgeSetList, 
 }
 
 private inline fun <T> ImmutableArray4ByteEdgeProperty(
-    e: EdgeSetList,
+    graph: IndexedEdgeGraph,
     crossinline initializer: (Int) -> T,
     crossinline write: (T) -> Int,
     crossinline read: (Int) -> T
 ): EdgeProperty<T> = object : EdgeProperty<T> {
 
-    private val edges = e
+    private val edges = graph.edges
     private val property: IntArray = IntArray(edges.size) { write(initializer(it)) }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
@@ -403,13 +400,13 @@ private inline fun <T> ImmutableArray4ByteEdgeProperty(
 }
 
 private inline fun <T> ImmutableArray8ByteEdgeProperty(
-    e: EdgeSetList,
+    graph: IndexedEdgeGraph,
     crossinline initializer: (Int) -> T,
     crossinline write: (T) -> Long,
     crossinline read: (Long) -> T
 ): EdgeProperty<T> = object : EdgeProperty<T> {
 
-    private val edges = e
+    private val edges = graph.edges
     private val property: LongArray = LongArray(edges.size) { write(initializer(it)) }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
@@ -429,8 +426,12 @@ private inline fun <T> ImmutableArray8ByteEdgeProperty(
     }
 }
 
-private class ImmutableArrayEdgeProperty<T>(private val edges: EdgeSetList, initializer: (Int) -> T) : EdgeProperty<T> {
+private class ImmutableArrayEdgeProperty<T>(
+    graph: IndexedEdgeGraph,
+    initializer: (Int) -> T
+) : EdgeProperty<T> {
 
+    private val edges = graph.edges
     @Suppress("UNCHECKED_CAST")
     private val property: Array<T> = Array<Any?>(edges.size) { initializer(it) } as Array<T>
 
@@ -621,57 +622,54 @@ private class MutableMapEdgeProperty<T>(private val graph: Graph, private val in
 
 @Suppress("UNCHECKED_CAST", "PLATFORM_CLASS_MAPPED_TO_KOTLIN")
 internal fun <T : S?, S> mutableArrayListEdgeProperty(
-    edges: EdgeSetList,
+    graph: IndexedEdgeGraph,
     clazz: Class<S>,
     initializer: (Edge) -> T
 ): MutableEdgeProperty<T> {
     return when (clazz) {
         java.lang.Boolean::class.java -> MutableArrayListBooleanEdgeProperty(
-            edges,
+            graph,
             initializer as (Edge) -> Boolean,
         ) as MutableEdgeProperty<T>
 
         Integer::class.java -> MutableArrayList4ByteEdgeProperty(
-            edges,
+            graph,
             initializer as (Edge) -> Int,
             { it },
             { it }) as MutableEdgeProperty<T>
 
         java.lang.Float::class.java -> MutableArrayList4ByteEdgeProperty(
-            edges,
+            graph,
             initializer as (Edge) -> Float,
             { java.lang.Float.floatToRawIntBits(it) },
             { java.lang.Float.intBitsToFloat(it) }) as MutableEdgeProperty<T>
 
         java.lang.Long::class.java -> MutableArrayList8ByteEdgeProperty(
-            edges,
+            graph,
             initializer as (Edge) -> Long,
             { it },
             { it }) as MutableEdgeProperty<T>
 
         java.lang.Double::class.java -> MutableArrayList8ByteEdgeProperty(
-            edges,
+            graph,
             initializer as (Edge) -> Double,
             { java.lang.Double.doubleToRawLongBits(it) },
             { java.lang.Double.longBitsToDouble(it) }) as MutableEdgeProperty<T>
 
-        else -> MutableArrayListEdgeProperty(edges, initializer)
+        else -> MutableArrayListEdgeProperty(graph, initializer)
     }
 }
 
 private class MutableArrayListBooleanEdgeProperty(
-    private val edges: EdgeSetList,
+    graph: IndexedEdgeGraph,
     private val initializer: (Edge) -> Boolean
 ) : MutableEdgeProperty<Boolean> {
 
+    private val edges = graph.edges
     // we don't use BooleanArrayList because it doesn't properly implement ensureCapacity as we'd expect (it expands to
     // the exact size given, rather than allowing for larger expansions to save future effort)
     private var property = BooleanArray(0)
     private var propertySize = 0
-
-    init {
-        expand(edges.size)
-    }
 
     private fun expand(size: Int) {
         assert(size <= edges.size)
@@ -723,7 +721,7 @@ private class MutableArrayListBooleanEdgeProperty(
 }
 
 private inline fun <T> MutableArrayList4ByteEdgeProperty(
-    e: EdgeSetList,
+    graph: IndexedEdgeGraph,
     crossinline initializer: (Edge) -> T,
     crossinline write: (T) -> Int,
     crossinline read: (Int) -> T
@@ -731,13 +729,9 @@ private inline fun <T> MutableArrayList4ByteEdgeProperty(
 
     // we don't use IntArrayList because it doesn't properly implement ensureCapacity as we'd expect (it expands to the
     // exact size given, rather than allowing for larger expansions to save future effort)
-    private val edges = e
+    private val edges = graph.edges
     private var property = IntArray(0)
     private var propertySize = 0
-
-    init {
-        expand(edges.size)
-    }
 
     private fun expand(size: Int) {
         assert(size <= edges.size)
@@ -789,7 +783,7 @@ private inline fun <T> MutableArrayList4ByteEdgeProperty(
 }
 
 private inline fun <T> MutableArrayList8ByteEdgeProperty(
-    e: EdgeSetList,
+    graph: IndexedEdgeGraph,
     crossinline initializer: (Edge) -> T,
     crossinline write: (T) -> Long,
     crossinline read: (Long) -> T
@@ -797,13 +791,9 @@ private inline fun <T> MutableArrayList8ByteEdgeProperty(
 
     // we don't use LongArrayList because it doesn't properly implement ensureCapacity as we'd expect (it expands to the
     // exact size given, rather than allowing for larger expansions to save future effort)
-    private val edges = e
+    private val edges = graph.edges
     private var property = LongArray(0)
     private var propertySize = 0
-
-    init {
-        expand(edges.size)
-    }
 
     private fun expand(size: Int) {
         assert(size <= edges.size)
@@ -855,15 +845,12 @@ private inline fun <T> MutableArrayList8ByteEdgeProperty(
 }
 
 private class MutableArrayListEdgeProperty<T>(
-    private val edges: EdgeSetList,
+    graph: IndexedEdgeGraph,
     private val initializer: (Edge) -> T
 ) : MutableEdgeProperty<T> {
 
+    private val edges = graph.edges
     private val property = ArrayList<T>(edges.size)
-
-    init {
-        expand(edges.size)
-    }
 
     private fun expand(size: Int) {
         assert(size <= edges.size)

@@ -11,9 +11,10 @@ import io.github.sooniln.fastgraph.EdgeProperty
 import io.github.sooniln.fastgraph.EdgeReference
 import io.github.sooniln.fastgraph.EdgeSet
 import io.github.sooniln.fastgraph.GraphMutator
-import io.github.sooniln.fastgraph.ImmutableGraphAndProperties
+import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.ImmutableGraphBuilder
 import io.github.sooniln.fastgraph.IndexedVertexGraph
+import io.github.sooniln.fastgraph.PropertyGraph
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexIterator
 import io.github.sooniln.fastgraph.VertexProperty
@@ -21,6 +22,8 @@ import io.github.sooniln.fastgraph.VertexReference
 import io.github.sooniln.fastgraph.VertexSetList
 import io.github.sooniln.fastgraph.edgeSetOf
 import io.github.sooniln.fastgraph.emptyEdgeSet
+import io.github.sooniln.fastgraph.nothingEdgeProperty
+import io.github.sooniln.fastgraph.nothingVertexProperty
 import it.unimi.dsi.fastutil.ints.IntArrayList
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet
 import it.unimi.dsi.fastutil.ints.IntSet
@@ -223,16 +226,16 @@ internal class ImmutableAdjacencyListGraph(
 
     @Suppress("UNCHECKED_CAST", "PLATFORM_CLASS_MAPPED_TO_KOTLIN")
     override fun <T : S?, S> createVertexProperty(clazz: Class<S>, initializer: (Vertex) -> T): VertexProperty<T> {
-        return immutableArrayVertexProperty(vertices, clazz, initializer)
+        return immutableArrayVertexProperty(this, clazz, initializer)
     }
 
     override fun <T : S?, S> createEdgeProperty(clazz: Class<S>, initializer: (Edge) -> T): EdgeProperty<T> {
         // 1000 is somewhat arbitrarily chosen, but should create a difference < ~5s in accessing every
         // edge over a million edge property
         return if (edges.size < 1000) {
-            immutableArrayMapEdgeProperty(edges, clazz, initializer)
+            immutableArrayMapEdgeProperty(this, clazz, initializer)
         } else {
-            immutableMapEdgeProperty(edges, clazz, initializer)
+            immutableMapEdgeProperty(this, clazz, initializer)
         }
     }
 
@@ -453,7 +456,7 @@ internal class ImmutableAdjacencyListGraphBuilder<V, E>(
 
     override fun mutate(): GraphMutator<V, E> = this
 
-    override fun build(): ImmutableGraphAndProperties<V, E> {
+    override fun build(): PropertyGraph<ImmutableGraph, V, E> {
         val graph = ImmutableAdjacencyListGraph(
             directed,
             Array(successors.size) { successors[it].toIntArray().apply { sort() } },
@@ -475,6 +478,6 @@ internal class ImmutableAdjacencyListGraphBuilder<V, E>(
             nothingEdgeProperty()
         }
 
-        return ImmutableGraphAndProperties(graph, vertexProperty, edgeProperty)
+        return PropertyGraph(graph, vertexProperty, edgeProperty)
     }
 }

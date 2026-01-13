@@ -5,10 +5,14 @@
 
 package io.github.sooniln.fastgraph
 
+import io.github.sooniln.fastgraph.internal.GraphCopy
 import io.github.sooniln.fastgraph.internal.ImmutableAdjacencyListGraphBuilder
 import io.github.sooniln.fastgraph.internal.ImmutableAdjacencyListNetworkBuilder
+import io.github.sooniln.fastgraph.internal.PropertyGraphCopy
 import io.github.sooniln.fastgraph.internal.emptyEdgeProperty
 import io.github.sooniln.fastgraph.internal.emptyVertexProperty
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap
+import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -29,9 +33,7 @@ import kotlin.contracts.contract
  *
  * To create immutable graphs, see the [immutableGraph] factory method.
  */
-sealed interface ImmutableGraph : Graph {
-    override val vertices: VertexSetList
-}
+sealed interface ImmutableGraph : Graph, IndexedVertexGraph
 
 // exists purely to allow implementations in different packages
 internal abstract class AbstractImmutableGraph : ImmutableGraph
@@ -42,7 +44,7 @@ internal abstract class AbstractImmutableGraph : ImmutableGraph
 fun emptyImmutableGraph(directed: Boolean): ImmutableGraph =
     if (directed) EmptyGraph.DIRECTED else EmptyGraph.UNDIRECTED
 
-private class EmptyGraph(override val directed: Boolean) : ImmutableGraph {
+private class EmptyGraph(override val directed: Boolean) : ImmutableGraph, IndexedVertexGraph, IndexedEdgeGraph {
     companion object {
         val DIRECTED = EmptyGraph(true)
         val UNDIRECTED = EmptyGraph(false)
@@ -117,16 +119,18 @@ private class EmptyGraph(override val directed: Boolean) : ImmutableGraph {
 }
 
 /**
- * Creates an [ImmutableGraphBuilder] with the given directedness.
+ * Creates an [ImmutableGraphBuilder] with the given directedness. The returned graph is guaranteed to implement
+ * [IndexedVertexGraph].
  *
  * There are several parameters that help control the specific graph implementation chosen:
  *   * `allowMultiEdge`: Controls whether the returned mutable graph supports adding multi-edges (multiple
  *   edges that connect the same pair of vertices in the same direction). If a client attempts to add a multi-edge to a
  *   [Graph] implementation that does not support multi-edges, [IllegalArgumentException] will be thrown.
- *   * `optimizeEdges`: If set to true, uses additional memory to speed up edge and edge property access and iteration.
- *   While this increases the amount of memory required to store edge topology, it can reduce the amount of memory
- *   needed to store edge properties, and thus in some circumstances may result in less overall memory usage for the
- *   graph topology + data.
+ *   * `indexEdges`: If set to true, uses additional memory to assign an index to every edge in order to speed up edge
+ *   and edge property access and iteration. While this increases the amount of memory required to store edge topology,
+ *   it can reduce the amount of memory needed to store edge properties, and thus in some circumstances may result in
+ *   less overall memory usage for the graph topology + data. If set to true, the returned immutable graph is guaranteed
+ *   to also be an [IndexedEdgeGraph].
  *
  * Note that the returned builder, while it has vertex and edge types, will not produce vertex or edge properties unless
  * [ImmutableGraphBuilder.withVertexProperty] and [ImmutableGraphBuilder.withEdgeProperty] respectively are invoked.
@@ -135,9 +139,9 @@ private class EmptyGraph(override val directed: Boolean) : ImmutableGraph {
 fun <V, E> immutableGraph(
     directed: Boolean,
     allowMultiEdge: Boolean = false,
-    optimizeEdges: Boolean = false
+    indexEdges: Boolean = false
 ): ImmutableGraphBuilder<V, E> {
-    return if (allowMultiEdge || optimizeEdges) {
+    return if (allowMultiEdge || indexEdges) {
         ImmutableAdjacencyListNetworkBuilder(directed)
     } else {
         ImmutableAdjacencyListGraphBuilder(directed)
@@ -151,10 +155,171 @@ fun <V, E> immutableGraph(
  */
 fun immutableGraph(
     directed: Boolean,
-    allowMultiEdge: Boolean = false,
-    optimizeEdges: Boolean = false
+    supportMultiEdge: Boolean = false,
+    indexEdges: Boolean = false
 ): ImmutableGraphBuilder<Nothing, Nothing> {
-    return immutableGraph<Nothing, Nothing>(directed, allowMultiEdge, optimizeEdges)
+    return immutableGraph<Nothing, Nothing>(directed, supportMultiEdge, indexEdges)
+}
+
+fun <V, E> immutableGraph(
+    graph: Graph,
+    supportMultiEdge: Boolean = false,
+    indexEdges: Boolean = false,
+    mapVertices: VertexSet = emptyVertexSet(),
+    mapEdges: EdgeSet = emptyEdgeSet(),
+    builderAction: GraphMutator<V, E>.() -> Unit = {}
+): GraphCopy<ImmutableGraph> {
+    val builder = if (graph.multiEdge || supportMultiEdge || indexEdges) {
+        ImmutableAdjacencyListNetworkBuilder<V, E>(graph.directed)
+    } else {
+        ImmutableAdjacencyListGraphBuilder(graph.directed)
+    }
+
+    builder.ensureVertexCapacity(graph.vertices.size)
+    builder.ensureEdgeCapacity(graph.edges.size)
+
+    val allVertexMap = if (graph is IndexedVertexGraph) null else Int2IntOpenHashMap(graph.vertices.size)
+    val vertexMap = if (graph is IndexedVertexGraph) null else Int2IntOpenHashMap(mapVertices.size)
+    val edgeMap = if (graph is IndexedEdgeGraph) null else Long2LongOpenHashMap()
+
+    // if graph is IndexedVertexGraph, we know that adding vertices in the same order will ensure that our
+    // vertex ids will be the exact same as the graphs, and we can use that assumption to add edges directly
+    for (vertex in graph.vertices) {
+        val newVertex = builder.addVertex()
+        allVertexMap?.put(vertex.intValue, newVertex.intValue)
+        if (vertexMap != null && mapVertices.contains(vertex)) {
+            vertexMap.put(vertex.intValue, newVertex.intValue)
+        }
+    }
+
+    for (edge in graph.edges) {
+        var newSource = graph.edgeSource(edge)
+        var newTarget = graph.edgeTarget(edge)
+        if (allVertexMap != null) {
+            newSource = Vertex(allVertexMap.get(newSource.intValue))
+            newTarget = Vertex(allVertexMap.get(newTarget.intValue))
+        }
+        val newEdge = builder.addEdge(newSource, newTarget)
+        if (edgeMap != null && mapEdges.contains(edge)) {
+            edgeMap.put(edge.longValue, newEdge.longValue)
+        }
+    }
+
+    builder.mutate().builderAction()
+    return GraphCopy(builder.build().graph, vertexMap, edgeMap)
+}
+
+@JvmSynthetic
+@JvmName("#immutableGraph")
+fun immutableGraph(
+    graph: Graph,
+    supportMultiEdge: Boolean = false,
+    indexEdges: Boolean = false,
+    mapVertices: VertexSet = emptyVertexSet(),
+    mapEdges: EdgeSet = emptyEdgeSet(),
+    builderAction: GraphMutator<Nothing, Nothing>.() -> Unit = {}
+): GraphCopy<ImmutableGraph> {
+    return immutableGraph<Nothing, Nothing>(graph, supportMultiEdge, indexEdges, mapVertices, mapEdges, builderAction)
+}
+
+fun <V : VS?, VS, E : ES?, ES> immutablePropertyGraph(
+    propertyGraph: PropertyGraph<*, V, E>,
+    supportMultiEdge: Boolean = false,
+    indexEdges: Boolean = false,
+    vertexClass: Class<VS>?,
+    vertexInitializer: ((Vertex) -> V)?,
+    edgeClass: Class<ES>?,
+    edgeInitializer: ((Edge) -> E)?,
+    mapVertices: VertexSet = emptyVertexSet(),
+    mapEdges: EdgeSet = emptyEdgeSet(),
+    builderAction: GraphMutator<V, E>.() -> Unit = {}
+): PropertyGraphCopy<ImmutableGraph, V, E> {
+    val graph = propertyGraph.graph
+
+    val builder = if (graph.multiEdge || supportMultiEdge || indexEdges) {
+        ImmutableAdjacencyListNetworkBuilder<V, E>(graph.directed)
+    } else {
+        ImmutableAdjacencyListGraphBuilder(graph.directed)
+    }
+
+    val vertexProperty = if (!propertyGraph.vertexProperty.isNothingProperty()) {
+        builder.withVertexProperty(vertexClass!!, vertexInitializer!!)
+        propertyGraph.vertexProperty
+    } else {
+        null
+    }
+
+    val edgeProperty = if (!propertyGraph.edgeProperty.isNothingProperty()) {
+        builder.withEdgeProperty(edgeClass!!, edgeInitializer!!)
+        propertyGraph.edgeProperty
+    } else {
+        null
+    }
+
+    builder.ensureVertexCapacity(graph.vertices.size)
+    builder.ensureEdgeCapacity(graph.edges.size)
+
+    val allVertexMap = if (graph is IndexedVertexGraph) null else Int2IntOpenHashMap(graph.vertices.size)
+    val vertexMap = if (graph is IndexedVertexGraph) null else Int2IntOpenHashMap(mapVertices.size)
+    val edgeMap = if (graph is IndexedEdgeGraph) null else Long2LongOpenHashMap()
+
+    // if graph is IndexedVertexGraph, we know that adding vertices in the same order will ensure that our
+    // vertex ids will be the exact same as the graphs, and we can use that assumption to add edges directly
+    for (vertex in graph.vertices) {
+        val newVertex = if (vertexProperty == null) {
+            builder.addVertex()
+        } else {
+            builder.addVertex(vertexProperty[vertex])
+        }
+        allVertexMap?.put(vertex.intValue, newVertex.intValue)
+        if (vertexMap != null && mapVertices.contains(vertex)) {
+            vertexMap.put(vertex.intValue, newVertex.intValue)
+        }
+    }
+
+    for (edge in graph.edges) {
+        var newSource = graph.edgeSource(edge)
+        var newTarget = graph.edgeTarget(edge)
+        if (allVertexMap != null) {
+            newSource = Vertex(allVertexMap.get(newSource.intValue))
+            newTarget = Vertex(allVertexMap.get(newTarget.intValue))
+        }
+        val newEdge = if (edgeProperty == null) {
+            builder.addEdge(newSource, newTarget)
+        } else {
+            builder.addEdge(newSource, newTarget, edgeProperty[edge])
+        }
+        if (edgeMap != null && mapEdges.contains(edge)) {
+            edgeMap.put(edge.longValue, newEdge.longValue)
+        }
+    }
+
+    builder.mutate().builderAction()
+    return PropertyGraphCopy(builder.build(), vertexMap, edgeMap)
+}
+
+inline fun <reified V, reified E> immutablePropertyGraph(
+    propertyGraph: PropertyGraph<*, V, E>,
+    supportMultiEdge: Boolean = false,
+    indexEdges: Boolean = false,
+    noinline vertexInitializer: (Vertex) -> V,
+    noinline edgeInitializer: (Edge) -> E,
+    mapVertices: VertexSet = emptyVertexSet(),
+    mapEdges: EdgeSet = emptyEdgeSet(),
+    noinline builderAction: GraphMutator<V, E>.() -> Unit = {}
+): PropertyGraphCopy<ImmutableGraph, V, E> {
+    return immutablePropertyGraph(
+        propertyGraph,
+        supportMultiEdge,
+        indexEdges,
+        V::class.java,
+        vertexInitializer,
+        E::class.java,
+        edgeInitializer,
+        mapVertices,
+        mapEdges,
+        builderAction
+    )
 }
 
 /**
@@ -189,10 +354,10 @@ abstract class ImmutableGraphBuilder<V, E> {
     ): ImmutableGraphBuilder<V, E>
 
     /**
-     * Builds the [ImmutableGraph] with the given action and returns an [ImmutableGraphAndProperties].
+     * Builds the [ImmutableGraph] with the given action and returns a [PropertyGraph].
      */
     @OptIn(ExperimentalContracts::class)
-    inline fun build(builderAction: GraphMutator<V, E>.() -> Unit): ImmutableGraphAndProperties<V, E> {
+    inline fun build(builderAction: GraphMutator<V, E>.() -> Unit): PropertyGraph<ImmutableGraph, V, E> {
         contract {
             callsInPlace(builderAction, InvocationKind.EXACTLY_ONCE)
         }
@@ -208,24 +373,11 @@ abstract class ImmutableGraphBuilder<V, E> {
     abstract fun mutate(): GraphMutator<V, E>
 
     /**
-     * Builds a new [ImmutableGraph] instance and associated vertex/edge properties, and returns them via an
-     * [ImmutableGraphAndProperties] instance. Clients should generally prefer to use [build] instead.
+     * Builds a new [ImmutableGraph] instance and associated vertex/edge properties, and returns them via a
+     * [PropertyGraph] instance.
      */
-    abstract fun build(): ImmutableGraphAndProperties<V, E>
+    abstract fun build(): PropertyGraph<ImmutableGraph, V, E>
 }
-
-/**
- * A container for holding a newly constructed immutable graph and related vertex and edge properties.
- */
-@ConsistentCopyVisibility
-data class ImmutableGraphAndProperties<V, E> internal constructor(
-    /** The constructed [ImmutableGraph]. */
-    val graph: ImmutableGraph,
-    /** The constructed [VertexProperty]. */
-    val vertexProperty: VertexProperty<V>,
-    /** The constructed [EdgeProperty]. */
-    val edgeProperty: EdgeProperty<E>,
-)
 
 /**
  * See [ImmutableGraphBuilder.withVertexProperty].
@@ -235,82 +387,25 @@ inline fun <reified V, E> ImmutableGraphBuilder<V, E>.withVertexProperty(
 ): ImmutableGraphBuilder<V, E> = withVertexProperty(V::class.java, initializer)
 
 /**
+ * See [ImmutableGraphBuilder.withVertexProperty].
+ */
+inline fun <V : S?, S, E> ImmutableGraphBuilder<V, E>.withVertexProperty(
+    clazz: Class<S>,
+    noinline initializer: (Vertex) -> V = { throw IllegalStateException("No vertex initializer supplied") }
+): ImmutableGraphBuilder<V, E> = withVertexProperty(clazz as Class<V>, initializer)
+
+/**
  * See [ImmutableGraphBuilder.withEdgeProperty].
  */
 inline fun <V, reified E> ImmutableGraphBuilder<V, E>.withEdgeProperty(
     noinline initializer: (Edge) -> E = { throw IllegalStateException("No edge initializer supplied") }
 ): ImmutableGraphBuilder<V, E> = withEdgeProperty(E::class.java, initializer)
 
+
 /**
- * An instance of this class is returned by [ImmutableGraph.copyOf]. This class holds a reference to the original graph
- * that was copied, the new [ImmutableGraph], and provides methods to translate vertices, edges, and properties between
- * the old and new graph.
+ * See [ImmutableGraphBuilder.withEdgeProperty].
  */
-/*class CopiedImmutableGraph internal constructor(
-    val originalGraph: Graph,
-    val graph: ImmutableGraph,
-    private val vertexMap: Int2IntMap?,
-    private val inverseVertexMap: Int2IntMap?,
-    private val edgeMap: Long2LongMap?,
-    private val inverseEdgeMap: Long2LongMap?
-) {
-    /**
-     * Converts the given input vertex belonging to the original copied graph into the same vertex in the new
-     * [ImmutableGraph]. If the input vertex has been removed from the original graph behavior is undefined.
-     */
-    fun mapVertex(originalVertex: Vertex): Vertex {
-        require(originalGraph.vertices.contains(originalVertex))
-        val vertex = if (vertexMap == null) {
-            originalVertex
-        } else {
-            Vertex(vertexMap.get(originalVertex.intValue))
-        }
-        require(graph.vertices.contains(vertex))
-        return vertex
-    }
-
-    /**
-     * Converts the given input vertex belonging to the new [ImmutableGraph] into the same vertex in the original copied
-     * graph. If the equivalent vertex has been removed from the original graph behavior is undefined.
-     */
-    fun mapVertexInverse(vertex: Vertex): Vertex {
-        require(graph.vertices.contains(vertex))
-        val originalVertex = if (inverseVertexMap == null) {
-            vertex
-        } else {
-            Vertex(inverseVertexMap.get(vertex.intValue))
-        }
-        require(originalGraph.vertices.contains(originalVertex))
-        return originalVertex
-    }
-
-    /**
-     * Converts the given input edge belonging to the original copied graph into the same edge in the new
-     * [ImmutableGraph]. If the input edge has been removed from the original graph behavior is undefined.
-     */
-    fun mapEdge(originalEdge: Edge): Edge {
-        require(originalGraph.edges.contains(originalEdge))
-        val edge = if (edgeMap == null) {
-            originalEdge
-        } else {
-            Edge(edgeMap.get(originalEdge.longValue))
-        }
-        require(graph.edges.contains(edge))
-        return edge
-    }
-
-    /**
-     * Converts the given input edge belonging to the new [ImmutableGraph] into the same edge in the original copied
-     * graph. If the equivalent edge has been removed from the original graph behavior is undefined.
-     */
-    fun mapEdgeInverse(edge: Edge): Edge {
-        require(graph.edges.contains(edge))
-        val originalEdge = if (inverseEdgeMap == null) {
-            edge
-        } else {
-            Edge(inverseEdgeMap.get(edge.longValue))
-        }
-        require(originalGraph.edges.contains(originalEdge))
-        return originalEdge
-    }
-}*/
+inline fun <V, E : S?, S> ImmutableGraphBuilder<V, E>.withEdgeProperty(
+    clazz: Class<S>,
+    noinline initializer: (Edge) -> E = { throw IllegalStateException("No vertex initializer supplied") }
+): ImmutableGraphBuilder<V, E> = withEdgeProperty(clazz as Class<E>, initializer)

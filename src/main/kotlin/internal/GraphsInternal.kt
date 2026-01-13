@@ -1,12 +1,21 @@
 package io.github.sooniln.fastgraph.internal
 
 import io.github.sooniln.fastgraph.Edge
+import io.github.sooniln.fastgraph.EdgeProperty
 import io.github.sooniln.fastgraph.EdgeReference
+import io.github.sooniln.fastgraph.Graph
+import io.github.sooniln.fastgraph.GraphCopy
+import io.github.sooniln.fastgraph.GraphMapping
+import io.github.sooniln.fastgraph.PropertyGraph
+import io.github.sooniln.fastgraph.PropertyGraphCopy
 import io.github.sooniln.fastgraph.Vertex
+import io.github.sooniln.fastgraph.VertexProperty
 import io.github.sooniln.fastgraph.VertexReference
 import io.github.sooniln.fastgraph.VertexSet
+import it.unimi.dsi.fastutil.ints.Int2IntMap
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.ints.IntIterator
+import it.unimi.dsi.fastutil.longs.Long2LongMap
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongArrayList
 import it.unimi.dsi.fastutil.longs.LongListIterator
@@ -14,6 +23,53 @@ import java.lang.ref.ReferenceQueue
 import java.lang.ref.WeakReference
 import kotlin.math.max
 import kotlin.math.min
+
+internal fun <G : Graph> GraphCopy(graph: G, vertexMap: Int2IntMap?, edgeMap: Long2LongMap?): GraphCopy<G> {
+    return object : GraphCopy<G>, GraphIsomorphism(vertexMap, edgeMap) {
+        override val graph: G get() = graph
+    }
+}
+
+internal fun <G : Graph, V, E> PropertyGraphCopy(
+    graph: GraphCopy<G>,
+    vertexProperty: VertexProperty<V>,
+    edgeProperty: EdgeProperty<E>,
+): PropertyGraphCopy<G, V, E> {
+    return object : PropertyGraphCopy<G, V, E>, GraphCopy<G> by graph {
+        override val vertexProperty: VertexProperty<V> get() = vertexProperty
+        override val edgeProperty: EdgeProperty<E> get() = edgeProperty
+    }
+}
+
+internal fun <G : Graph, V, E> PropertyGraphCopy(
+    propertyGraph: PropertyGraph<G, V, E>,
+    vertexMap: Int2IntMap?,
+    edgeMap: Long2LongMap?,
+): PropertyGraphCopy<G, V, E> {
+    return object : PropertyGraphCopy<G, V, E>, PropertyGraph<G, V, E> by propertyGraph,
+        GraphIsomorphism(vertexMap, edgeMap) {}
+}
+
+private open class GraphIsomorphism(private val vertexMap: Int2IntMap?, private val edgeMap: Long2LongMap?) :
+    GraphMapping {
+    final override fun getCorrespondingVertex(vertex: Vertex): Vertex {
+        return if (vertexMap == null) {
+            vertex
+        } else {
+            require(vertexMap.containsKey(vertex.intValue))
+            Vertex(vertexMap[vertex.intValue])
+        }
+    }
+
+    final override fun getCorrespondingEdge(edge: Edge): Edge {
+        return if (edgeMap == null) {
+            edge
+        } else {
+            require(edgeMap.containsKey(edge.longValue))
+            Edge(edgeMap[edge.longValue])
+        }
+    }
+}
 
 @JvmInline
 internal value class EdgeValue(val longValue: Long) {

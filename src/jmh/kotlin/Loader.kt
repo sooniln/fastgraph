@@ -3,7 +3,6 @@ package io.github.sooniln.fastgraph
 import com.google.common.graph.GraphBuilder
 import com.google.common.graph.NetworkBuilder
 import com.google.common.graph.ValueGraphBuilder
-import io.github.sooniln.fastgraph.internal.nothingEdgeProperty
 import org.jgrapht.Graphs
 import org.jgrapht.graph.DefaultEdge
 import org.jgrapht.graph.builder.GraphTypeBuilder
@@ -117,7 +116,7 @@ object Loader {
         return@load graph
     }
 
-    fun loadImmutableSimpleGraph(): ImmutableGraphAndProperties<Int, Nothing> =
+    fun loadImmutableSimpleGraph(): PropertyGraph<ImmutableGraph, Int, Nothing> =
         load { numVertices, numEdges, lineSequence ->
             val g = immutableGraph<Int, Nothing>(false).withVertexProperty().build {
                 ensureVertexCapacity(numVertices)
@@ -131,7 +130,7 @@ object Loader {
             return@load g
         }
 
-    fun loadImmutableGraph(): ImmutableGraphAndProperties<Int, Float> = load { numVertices, numEdges, lineSequence ->
+    fun loadImmutableGraph(): PropertyGraph<ImmutableGraph, Int, Float> = load { numVertices, numEdges, lineSequence ->
         val g = immutableGraph<Int, Float>(false).withVertexProperty().withEdgeProperty().build {
             ensureVertexCapacity(numVertices)
             ensureEdgeCapacity(numEdges)
@@ -144,7 +143,8 @@ object Loader {
         return@load g
     }
 
-    fun loadImmutableNetwork(): ImmutableGraphAndProperties<Int, Float> = load { numVertices, numEdges, lineSequence ->
+    fun loadImmutableNetwork(): PropertyGraph<ImmutableGraph, Int, Float> =
+        load { numVertices, numEdges, lineSequence ->
         val g = immutableGraph<Int, Float>(false, allowMultiEdge = true).withVertexProperty().withEdgeProperty().build {
             ensureVertexCapacity(numVertices)
             ensureEdgeCapacity(numEdges)
@@ -157,7 +157,8 @@ object Loader {
         return@load g
     }
 
-    fun loadMutableSimpleGraph(): GraphAndProperties = load { numVertices, numEdges, lineSequence ->
+    fun loadMutableSimpleGraph(): PropertyGraph<MutableGraph, Int, Nothing> =
+        load { numVertices, numEdges, lineSequence ->
         val graph = mutableGraph(false)
         val vertexProperty = graph.createVertexProperty<Int> { 0 }
         buildGraph<Int, Float>(graph, vertexProperty) {
@@ -169,10 +170,10 @@ object Loader {
         check(graph.vertices.size == NUM_VERTICES)
         check(graph.edges.size == NUM_EDGES)
 
-        return GraphAndProperties(graph, vertexProperty, nothingEdgeProperty())
+            return PropertyGraph(graph, vertexProperty, nothingEdgeProperty())
     }
 
-    fun loadMutableGraph(): GraphAndProperties = load { numVertices, numEdges, lineSequence ->
+    fun loadMutableGraph(): PropertyGraph<MutableGraph, Int, Float> = load { numVertices, numEdges, lineSequence ->
         val graph = mutableGraph(false)
         val vertexProperty = graph.createVertexProperty<Int> { 0 }
         val edgeProperty = graph.createEdgeProperty<Float> { 0f }
@@ -185,11 +186,11 @@ object Loader {
         check(graph.vertices.size == NUM_VERTICES)
         check(graph.edges.size == NUM_EDGES)
 
-        return GraphAndProperties(graph, vertexProperty, edgeProperty)
+        return PropertyGraph(graph, vertexProperty, edgeProperty)
     }
 
-    fun loadMutableNetwork(): GraphAndProperties = load { numVertices, numEdges, lineSequence ->
-        val graph = mutableGraph(false, allowMultiEdge = true)
+    fun loadMutableNetwork(): PropertyGraph<MutableGraph, Int, Float> = load { numVertices, numEdges, lineSequence ->
+        val graph = mutableGraph(false, supportMultiEdge = true)
         val vertexProperty = graph.createVertexProperty<Int> { 0 }
         val edgeProperty = graph.createEdgeProperty<Float> { 0f }
         buildGraph(graph, vertexProperty, edgeProperty) {
@@ -201,14 +202,8 @@ object Loader {
         check(graph.vertices.size == NUM_VERTICES)
         check(graph.edges.size == NUM_EDGES)
 
-        return GraphAndProperties(graph, vertexProperty, edgeProperty)
+        return PropertyGraph(graph, vertexProperty, edgeProperty)
     }
-
-    data class GraphAndProperties(
-        val graph: Graph,
-        val vertexProperty: VertexProperty<Int>,
-        val edgeProperty: EdgeProperty<Float>
-    )
 
     private inline fun <T> load(loader: (Int, Int, Sequence<Edge>) -> T): T {
         val random = Random(RANDOM_SEED)

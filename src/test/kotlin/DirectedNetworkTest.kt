@@ -39,7 +39,7 @@ class DirectedNetworkTest {
             vertexName = immutable.vertexProperty
             edgeWeight = immutable.edgeProperty
         } else {
-            val g = mutableGraph(true, allowMultiEdge = true)
+            val g = mutableGraph(true, supportMultiEdge = true)
             graph = g
             vertexName = graph.createVertexProperty { "" }
             edgeWeight = graph.createEdgeProperty { 0f }
@@ -57,7 +57,7 @@ class DirectedNetworkTest {
         }
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "immutable={0}")
     @ValueSource(booleans = [true, false])
     fun vertices(immutable: Boolean) {
         constructGraph(immutable)
@@ -79,7 +79,7 @@ class DirectedNetworkTest {
         }
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "immutable={0}")
     @ValueSource(booleans = [true, false])
     fun outDegree(immutable: Boolean) {
         constructGraph(immutable)
@@ -94,7 +94,7 @@ class DirectedNetworkTest {
         }
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "immutable={0}")
     @ValueSource(booleans = [true, false])
     fun inDegree(immutable: Boolean) {
         constructGraph(immutable)
@@ -109,7 +109,7 @@ class DirectedNetworkTest {
         }
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "immutable={0}")
     @ValueSource(booleans = [true, false])
     fun successors(immutable: Boolean) {
         constructGraph(immutable)
@@ -147,7 +147,7 @@ class DirectedNetworkTest {
         }
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "immutable={0}")
     @ValueSource(booleans = [true, false])
     fun predecessors(immutable: Boolean) {
         constructGraph(immutable)
@@ -185,7 +185,7 @@ class DirectedNetworkTest {
         }
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "immutable={0}")
     @ValueSource(booleans = [true, false])
     fun outgoingEdges(immutable: Boolean) {
         constructGraph(immutable)
@@ -227,7 +227,7 @@ class DirectedNetworkTest {
         }
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "immutable={0}")
     @ValueSource(booleans = [true, false])
     fun incomingEdges(immutable: Boolean) {
         constructGraph(immutable)
@@ -269,7 +269,7 @@ class DirectedNetworkTest {
         }
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "immutable={0}")
     @ValueSource(booleans = [true, false])
     fun edges(immutable: Boolean) {
         constructGraph(immutable)
@@ -293,7 +293,7 @@ class DirectedNetworkTest {
         }
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "immutable={0}")
     @ValueSource(booleans = [true, false])
     fun edgeSourceAndTarget(immutable: Boolean) {
         constructGraph(immutable)
@@ -312,7 +312,7 @@ class DirectedNetworkTest {
         }
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "immutable={0}")
     @ValueSource(booleans = [true, false])
     fun containsEdge(immutable: Boolean) {
         constructGraph(immutable)
@@ -336,7 +336,7 @@ class DirectedNetworkTest {
         assertThrows<IllegalArgumentException> { graph.containsEdge(Vertex(99), v0) }
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "immutable={0}")
     @ValueSource(booleans = [true, false])
     fun getEdge(immutable: Boolean) {
         constructGraph(immutable)
@@ -360,7 +360,7 @@ class DirectedNetworkTest {
         assertThrows<IllegalArgumentException> { graph.getEdge(Vertex(99), v0) }
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "immutable={0}")
     @ValueSource(booleans = [true, false])
     fun getEdges(immutable: Boolean) {
         constructGraph(immutable)

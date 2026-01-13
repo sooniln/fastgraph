@@ -1,8 +1,9 @@
 package io.github.sooniln.fastgraph.internal
 
+import io.github.sooniln.fastgraph.ImmutableGraph
+import io.github.sooniln.fastgraph.IndexedVertexGraph
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexProperty
-import io.github.sooniln.fastgraph.VertexSetList
 import it.unimi.dsi.fastutil.booleans.BooleanArrays
 import it.unimi.dsi.fastutil.ints.IntArrays
 import it.unimi.dsi.fastutil.longs.LongArrays
@@ -21,62 +22,51 @@ private object EmptyVertexProperty : VertexProperty<Nothing> {
     override fun set(vertex: Vertex, value: Nothing) = throw IllegalArgumentException()
 }
 
-@Suppress("UNCHECKED_CAST")
-internal fun <T> nothingVertexProperty(): VertexProperty<T> = NothingVertexProperty as VertexProperty<T>
-
-private object NothingVertexProperty : VertexProperty<Nothing> {
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("get")
-    override fun get(vertex: Vertex): Nothing = throw IllegalStateException()
-
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("set")
-    override fun set(vertex: Vertex, value: Nothing) = throw IllegalStateException()
-}
-
 @Suppress("UNCHECKED_CAST", "PLATFORM_CLASS_MAPPED_TO_KOTLIN")
-internal fun <T : S?, S> immutableArrayVertexProperty(
-    vertices: VertexSetList,
+internal fun <T : S?, S, G> immutableArrayVertexProperty(
+    graph: G,
     clazz: Class<S>,
     initializer: (Vertex) -> T
-): VertexProperty<T> {
+): VertexProperty<T> where G : ImmutableGraph, G : IndexedVertexGraph {
     return when (clazz) {
         java.lang.Boolean::class.java -> ImmutableArrayBooleanVertexProperty(
-            vertices,
+            graph,
             initializer as (Vertex) -> Boolean
         ) as VertexProperty<T>
 
         Integer::class.java -> ImmutableArray4ByteVertexProperty(
-            vertices,
+            graph,
             initializer as (Vertex) -> Int,
             { it },
             { it }) as VertexProperty<T>
 
         java.lang.Float::class.java -> ImmutableArray4ByteVertexProperty(
-            vertices,
+            graph,
             initializer as (Vertex) -> Float,
             { java.lang.Float.floatToRawIntBits(it) },
             { java.lang.Float.intBitsToFloat(it) }) as VertexProperty<T>
 
         java.lang.Long::class.java -> ImmutableArray8ByteVertexProperty(
-            vertices,
+            graph,
             initializer as (Vertex) -> Long,
             { it },
             { it }) as VertexProperty<T>
 
         java.lang.Double::class.java -> ImmutableArray8ByteVertexProperty(
-            vertices,
+            graph,
             initializer as (Vertex) -> Double,
             { java.lang.Double.doubleToRawLongBits(it) },
             { java.lang.Double.longBitsToDouble(it) }) as VertexProperty<T>
 
-        else -> ImmutableArrayVertexProperty(vertices, initializer)
+        else -> ImmutableArrayVertexProperty(graph, initializer)
     }
 }
 
-private class ImmutableArrayBooleanVertexProperty(vertices: VertexSetList, initializer: (Vertex) -> Boolean) :
-    VertexProperty<Boolean> {
-    private val property: BooleanArray = BooleanArray(vertices.size) { initializer(Vertex(it)) }
+private class ImmutableArrayBooleanVertexProperty(
+    graph: ImmutableGraph,
+    initializer: (Vertex) -> Boolean
+) : VertexProperty<Boolean> {
+    private val property: BooleanArray = BooleanArray(graph.vertices.size) { initializer(Vertex(it)) }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("get")
@@ -93,14 +83,14 @@ private class ImmutableArrayBooleanVertexProperty(vertices: VertexSetList, initi
     }
 }
 
-private inline fun <T> ImmutableArray4ByteVertexProperty(
-    vertices: VertexSetList,
+private inline fun <T, G> ImmutableArray4ByteVertexProperty(
+    graph: G,
     crossinline initializer: (Vertex) -> T,
     crossinline write: (T) -> Int,
     crossinline read: (Int) -> T
-): VertexProperty<T> = object : VertexProperty<T> {
+): VertexProperty<T> where G : ImmutableGraph, G : IndexedVertexGraph = object : VertexProperty<T> {
 
-    private val property: IntArray = IntArray(vertices.size) { write(initializer(Vertex(it))) }
+    private val property: IntArray = IntArray(graph.vertices.size) { write(initializer(Vertex(it))) }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("get")
@@ -117,14 +107,14 @@ private inline fun <T> ImmutableArray4ByteVertexProperty(
     }
 }
 
-private inline fun <T> ImmutableArray8ByteVertexProperty(
-    vertices: VertexSetList,
+private inline fun <T, G> ImmutableArray8ByteVertexProperty(
+    graph: G,
     crossinline initializer: (Vertex) -> T,
     crossinline write: (T) -> Long,
     crossinline read: (Long) -> T
-): VertexProperty<T> = object : VertexProperty<T> {
+): VertexProperty<T> where G : ImmutableGraph, G : IndexedVertexGraph = object : VertexProperty<T> {
 
-    private val property: LongArray = LongArray(vertices.size) { write(initializer(Vertex(it))) }
+    private val property: LongArray = LongArray(graph.vertices.size) { write(initializer(Vertex(it))) }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("get")
@@ -141,10 +131,13 @@ private inline fun <T> ImmutableArray8ByteVertexProperty(
     }
 }
 
-private class ImmutableArrayVertexProperty<T>(vertices: VertexSetList, initializer: (Vertex) -> T) : VertexProperty<T> {
+private class ImmutableArrayVertexProperty<T, G>(
+    graph: G,
+    initializer: (Vertex) -> T
+) : VertexProperty<T> where G : ImmutableGraph, G : IndexedVertexGraph {
 
     @Suppress("UNCHECKED_CAST")
-    private val property: Array<T> = Array<Any?>(vertices.size) { initializer(Vertex(it)) } as Array<T>
+    private val property: Array<T> = Array<Any?>(graph.vertices.size) { initializer(Vertex(it)) } as Array<T>
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("get")
@@ -173,57 +166,54 @@ internal interface MutableVertexProperty<V> : VertexProperty<V> {
 
 @Suppress("UNCHECKED_CAST", "PLATFORM_CLASS_MAPPED_TO_KOTLIN")
 internal fun <T : S?, S> mutableArrayListVertexProperty(
-    vertices: VertexSetList,
+    graph: IndexedVertexGraph,
     clazz: Class<S>,
     initializer: (Vertex) -> T
 ): MutableVertexProperty<T> {
     return when (clazz) {
         java.lang.Boolean::class.java -> MutableArrayListBooleanVertexProperty(
-            vertices,
+            graph,
             initializer as (Vertex) -> Boolean,
         ) as MutableVertexProperty<T>
 
         Integer::class.java -> MutableArrayList4ByteVertexProperty(
-            vertices,
+            graph,
             initializer as (Vertex) -> Int,
             { it },
             { it }) as MutableVertexProperty<T>
 
         java.lang.Float::class.java -> MutableArrayList4ByteVertexProperty(
-            vertices,
+            graph,
             initializer as (Vertex) -> Float,
             { java.lang.Float.floatToRawIntBits(it) },
             { java.lang.Float.intBitsToFloat(it) }) as MutableVertexProperty<T>
 
         java.lang.Long::class.java -> MutableArrayList8ByteVertexProperty(
-            vertices,
+            graph,
             initializer as (Vertex) -> Long,
             { it },
             { it }) as MutableVertexProperty<T>
 
         java.lang.Double::class.java -> MutableArrayList8ByteVertexProperty(
-            vertices,
+            graph,
             initializer as (Vertex) -> Double,
             { java.lang.Double.doubleToRawLongBits(it) },
             { java.lang.Double.longBitsToDouble(it) }) as MutableVertexProperty<T>
 
-        else -> MutableArrayListVertexProperty(vertices, initializer)
+        else -> MutableArrayListVertexProperty(graph, initializer)
     }
 }
 
 private class MutableArrayListBooleanVertexProperty(
-    private val vertices: VertexSetList,
+    graph: IndexedVertexGraph,
     private val initializer: (Vertex) -> Boolean
 ) : MutableVertexProperty<Boolean> {
 
+    private val vertices = graph.vertices
     // we don't use BooleanArrayList because it doesn't properly implement ensureCapacity as we'd expect (it expands to
     // the exact size given, rather than allowing for larger expansions to save future effort)
     private var property = BooleanArray(0)
     private var propertySize = 0
-
-    init {
-        expand(vertices.size)
-    }
 
     private fun expand(size: Int) {
         assert(size <= vertices.size)
@@ -275,7 +265,7 @@ private class MutableArrayListBooleanVertexProperty(
 }
 
 private inline fun <T> MutableArrayList4ByteVertexProperty(
-    v: VertexSetList,
+    graph: IndexedVertexGraph,
     crossinline initializer: (Vertex) -> T,
     crossinline write: (T) -> Int,
     crossinline read: (Int) -> T
@@ -283,13 +273,9 @@ private inline fun <T> MutableArrayList4ByteVertexProperty(
 
     // we don't use LongArrayList because it doesn't properly implement ensureCapacity as we'd expect (it expands to the
     // exact size given, rather than allowing for larger expansions to save future effort)
-    private val vertices = v
+    private val vertices = graph.vertices
     private var property = IntArray(0)
     private var propertySize = 0
-
-    init {
-        expand(vertices.size)
-    }
 
     private fun expand(size: Int) {
         assert(size <= vertices.size)
@@ -341,7 +327,7 @@ private inline fun <T> MutableArrayList4ByteVertexProperty(
 }
 
 private inline fun <T> MutableArrayList8ByteVertexProperty(
-    v: VertexSetList,
+    graph: IndexedVertexGraph,
     crossinline initializer: (Vertex) -> T,
     crossinline write: (T) -> Long,
     crossinline read: (Long) -> T
@@ -349,13 +335,9 @@ private inline fun <T> MutableArrayList8ByteVertexProperty(
 
     // we don't use LongArrayList because it doesn't properly implement ensureCapacity as we'd expect (it expands to the
     // exact size given, rather than allowing for larger expansions to save future effort)
-    private val vertices = v
+    private val vertices = graph.vertices
     private var property = LongArray(0)
     private var propertySize = 0
-
-    init {
-        expand(vertices.size)
-    }
 
     private fun expand(size: Int) {
         assert(size <= vertices.size)
@@ -407,15 +389,12 @@ private inline fun <T> MutableArrayList8ByteVertexProperty(
 }
 
 private class MutableArrayListVertexProperty<T>(
-    private val vertices: VertexSetList,
+    graph: IndexedVertexGraph,
     private val initializer: (Vertex) -> T
 ) : MutableVertexProperty<T> {
 
+    private val vertices = graph.vertices
     private val property = ArrayList<T>(vertices.size)
-
-    init {
-        expand(vertices.size)
-    }
 
     private fun expand(size: Int) {
         assert(size <= vertices.size)

@@ -9,15 +9,21 @@ import io.github.sooniln.fastgraph.EdgeIterator
 import io.github.sooniln.fastgraph.EdgeProperty
 import io.github.sooniln.fastgraph.EdgeReference
 import io.github.sooniln.fastgraph.EdgeSet
-import io.github.sooniln.fastgraph.EdgeSetList
+import io.github.sooniln.fastgraph.MutableEdgeIterator
+import io.github.sooniln.fastgraph.MutableEdgeListIterator
+import io.github.sooniln.fastgraph.MutableEdgeSetList
 import io.github.sooniln.fastgraph.MutableGraph
+import io.github.sooniln.fastgraph.MutableIndexedEdgeGraph
+import io.github.sooniln.fastgraph.MutableIndexedVertexGraph
+import io.github.sooniln.fastgraph.MutableVertexIterator
+import io.github.sooniln.fastgraph.MutableVertexListIterator
+import io.github.sooniln.fastgraph.MutableVertexSetList
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexIterator
 import io.github.sooniln.fastgraph.VertexIteratorWrapper
 import io.github.sooniln.fastgraph.VertexProperty
 import io.github.sooniln.fastgraph.VertexReference
 import io.github.sooniln.fastgraph.VertexSet
-import io.github.sooniln.fastgraph.VertexSetList
 import io.github.sooniln.fastgraph.vertexSetOf
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
@@ -26,7 +32,8 @@ import it.unimi.dsi.fastutil.ints.IntIterator
 import it.unimi.dsi.fastutil.ints.IntList
 import it.unimi.dsi.fastutil.ints.IntLists
 
-internal class AdjacencyListNetwork(override val directed: Boolean) : MutableGraph {
+internal class AdjacencyListNetwork(override val directed: Boolean) : MutableGraph, MutableIndexedVertexGraph,
+    MutableIndexedEdgeGraph {
 
     private val _predecessors = lazy {
         check(directed)
@@ -74,14 +81,14 @@ internal class AdjacencyListNetwork(override val directed: Boolean) : MutableGra
         // remove outbound edges
         val outboundAdjacencies = successors[validateVertex(vertex).intValue]
         while (!outboundAdjacencies.isEmpty()) {
-            removeEdge(canonicalEdge(outboundAdjacencies.iterator().next().edgeId))
+            removeEdgeInternal(outboundAdjacencies.iterator().next().edgeId)
         }
 
         // remove inbound edges
         if (directed) {
             val inboundAdjacencies = predecessors[vertex.intValue]
             while (!inboundAdjacencies.isEmpty()) {
-                removeEdge(canonicalEdge(inboundAdjacencies.iterator().next().edgeId))
+                removeEdgeInternal(inboundAdjacencies.iterator().next().edgeId)
             }
         }
 
@@ -188,8 +195,9 @@ internal class AdjacencyListNetwork(override val directed: Boolean) : MutableGra
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("removeEdge")
-    override fun removeEdge(edge: Edge) {
-        val edgeId = validateEdge(edge).lowBits
+    override fun removeEdge(edge: Edge) = removeEdgeInternal(validateEdge(edge).lowBits)
+
+    private fun removeEdgeInternal(edgeId: Int) {
         val edgeValue = edgeValues[edgeId]
         val source = edgeValue.source
         val target = edgeValue.target
@@ -255,7 +263,7 @@ internal class AdjacencyListNetwork(override val directed: Boolean) : MutableGra
         return edge
     }
 
-    override val vertices: VertexSetList = object : AbstractVertexSetList() {
+    override val vertices: MutableVertexSetList = object : MutableVertexSetList, AbstractVertexSetList() {
         override val size: Int get() = successors.size
         override fun get(index: Int): Vertex = Vertex(index)
 
@@ -273,6 +281,14 @@ internal class AdjacencyListNetwork(override val directed: Boolean) : MutableGra
         @Suppress("INAPPLICABLE_JVM_NAME")
         @JvmName("lastIndexOf")
         override fun lastIndexOf(element: Vertex): Int = validateVertex(element).intValue
+
+        override fun iterator(): MutableVertexIterator = Iterator(0)
+        override fun listIterator(): MutableVertexListIterator = Iterator(0)
+        override fun listIterator(index: Int): MutableVertexListIterator = Iterator(index)
+
+        private inner class Iterator(index: Int) : AbstractVertexListIterator(index) {
+            override fun remove(index: Int) = removeVertex(Vertex(index))
+        }
     }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
@@ -318,7 +334,7 @@ internal class AdjacencyListNetwork(override val directed: Boolean) : MutableGra
         return IncidentEdgeSet(false, validateVertex(vertex), predecessors[vertex.intValue])
     }
 
-    override val edges: EdgeSetList = object : AbstractEdgeSetList() {
+    override val edges: MutableEdgeSetList = object : MutableEdgeSetList, AbstractEdgeSetList() {
         override val size: Int get() = edgeValues.size
         override fun get(index: Int): Edge = canonicalEdge(index)
 
@@ -335,6 +351,14 @@ internal class AdjacencyListNetwork(override val directed: Boolean) : MutableGra
         override fun contains(element: Edge): Boolean {
             validateEdge(element)
             return true
+        }
+
+        override fun iterator(): MutableEdgeIterator = Iterator(0)
+        override fun listIterator(): MutableEdgeListIterator = Iterator(0)
+        override fun listIterator(index: Int): MutableEdgeListIterator = Iterator(index)
+
+        private inner class Iterator(index: Int) : AbstractEdgeListIterator(index) {
+            override fun remove(index: Int) = removeEdgeInternal(index)
         }
     }
 
@@ -366,13 +390,15 @@ internal class AdjacencyListNetwork(override val directed: Boolean) : MutableGra
     }
 
     override fun <T : S?, S> createVertexProperty(clazz: Class<S>, initializer: (Vertex) -> T): VertexProperty<T> {
-        val property = mutableArrayListVertexProperty(vertices, clazz, initializer)
+        val property = mutableArrayListVertexProperty(this, clazz, initializer)
+        property.ensureCapacity(vertices.size)
         vertexProperties.addProperty(property)
         return property
     }
 
     override fun <T : S?, S> createEdgeProperty(clazz: Class<S>, initializer: (Edge) -> T): EdgeProperty<T> {
-        val property = mutableArrayListEdgeProperty(edges, clazz, initializer)
+        val property = mutableArrayListEdgeProperty(this, clazz, initializer)
+        property.ensureCapacity(edges.size)
         edgeProperties.addProperty(property)
         return property
     }

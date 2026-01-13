@@ -14,16 +14,19 @@ import io.github.sooniln.fastgraph.EdgeReference
 import io.github.sooniln.fastgraph.EdgeSet
 import io.github.sooniln.fastgraph.EdgeSetList
 import io.github.sooniln.fastgraph.GraphMutator
-import io.github.sooniln.fastgraph.ImmutableGraphAndProperties
+import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.ImmutableGraphBuilder
 import io.github.sooniln.fastgraph.IndexedEdgeGraph
 import io.github.sooniln.fastgraph.IndexedVertexGraph
+import io.github.sooniln.fastgraph.PropertyGraph
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexIterator
 import io.github.sooniln.fastgraph.VertexProperty
 import io.github.sooniln.fastgraph.VertexReference
 import io.github.sooniln.fastgraph.VertexSet
 import io.github.sooniln.fastgraph.VertexSetList
+import io.github.sooniln.fastgraph.nothingEdgeProperty
+import io.github.sooniln.fastgraph.nothingVertexProperty
 import io.github.sooniln.fastgraph.vertexSetOf
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
@@ -199,12 +202,12 @@ internal class ImmutableAdjacencyListNetwork(
 
     @Suppress("UNCHECKED_CAST", "PLATFORM_CLASS_MAPPED_TO_KOTLIN")
     override fun <T : S?, S> createVertexProperty(clazz: Class<S>, initializer: (Vertex) -> T): VertexProperty<T> {
-        return immutableArrayVertexProperty(vertices, clazz, initializer)
+        return immutableArrayVertexProperty(this, clazz, initializer)
     }
 
     @Suppress("UNCHECKED_CAST", "PLATFORM_CLASS_MAPPED_TO_KOTLIN")
     override fun <T : S?, S> createEdgeProperty(clazz: Class<S>, initializer: (Edge) -> T): EdgeProperty<T> {
-        return immutableArrayEdgeProperty(edges, clazz) { initializer(edges[it]) }
+        return immutableArrayEdgeProperty(this, clazz) { initializer(edges[it]) }
     }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
@@ -647,7 +650,7 @@ internal class ImmutableAdjacencyListNetworkBuilder<V, E> internal constructor(
 
     override fun mutate(): GraphMutator<V, E> = this
 
-    override fun build(): ImmutableGraphAndProperties<V, E> {
+    override fun build(): PropertyGraph<ImmutableGraph, V, E> {
         val graph = ImmutableAdjacencyListNetwork(
             directed,
             Successors(successors),
@@ -669,73 +672,6 @@ internal class ImmutableAdjacencyListNetworkBuilder<V, E> internal constructor(
         } else {
             nothingEdgeProperty()
         }
-        return ImmutableGraphAndProperties(graph, vertexProperty, edgeProperty)
+        return PropertyGraph(graph, vertexProperty, edgeProperty)
     }
 }
-
-/**
- * Creates a new [io.github.sooniln.fastgraph.ImmutableGraph] with the same topology as the given input graph. There is
- * no guarantee that the new immutable graph will have identical vertex identifiers as the given graph, so the
- * [CopiedImmutableGraph] returned by this method can be used to help translate between vertices, edges, and
- * properties. See [CopiedImmutableGraph] for more details.
- */
-/*fun copyOf(originalGraph: Graph): CopiedImmutableNetwork {
-    val graph: ImmutableNetwork
-    val vertexMap: Int2IntMap?
-    val inverseVertexMap: Int2IntMap?
-    val edgeMap: Long2LongMap?
-    val inverseEdgeMap: Long2LongMap?
-
-    if (originalGraph is ImmutableNetwork) {
-        graph = originalGraph
-        vertexMap = null
-        inverseVertexMap = null
-        edgeMap = null
-        inverseEdgeMap = null
-    } else if (originalGraph.vertices.isEmpty()) {
-        graph = emptyNetwork(originalGraph.directed)
-        vertexMap = Int2IntMaps.EMPTY_MAP
-        inverseVertexMap = Int2IntMaps.EMPTY_MAP
-        edgeMap = Long2LongMaps.EMPTY_MAP
-        inverseEdgeMap = Long2LongMaps.EMPTY_MAP
-    } else {
-        vertexMap = Int2IntOpenHashMap(originalGraph.vertices.size)
-        inverseVertexMap = Int2IntOpenHashMap(originalGraph.vertices.size)
-
-        val vertexIterator = originalGraph.vertices.iterator()
-        val successorsArr = Array(originalGraph.vertices.size) {
-            val oldVertex = vertexIterator.next()
-            vertexMap[oldVertex.intValue] = it
-            inverseVertexMap[it] = oldVertex.intValue
-            return@Array IntArray(originalGraph.outDegree(oldVertex))
-        }
-
-        edgeMap = Long2LongOpenHashMap(originalGraph.edges.size)
-        inverseEdgeMap = Long2LongOpenHashMap(originalGraph.edges.size)
-
-        for (oldSource in originalGraph.vertices) {
-            val newSourceIntValue = vertexMap[oldSource.intValue]
-            var index = 0
-            for (oldTarget in originalGraph.successors(oldSource)) {
-                val newTargetIntValue = vertexMap[oldTarget.intValue]
-                successorsArr[newSourceIntValue][index++] = newTargetIntValue
-
-                val oldEdge = originalGraph.getEdge(oldSource, oldTarget)
-                val newEdge = canonicalEdge(originalGraph.directed, newSourceIntValue, newTargetIntValue)
-                edgeMap[oldEdge.longValue] = newEdge.longValue
-                inverseEdgeMap[newEdge.longValue] = oldEdge.longValue
-            }
-
-            successorsArr[newSourceIntValue].sort()
-        }
-
-        graph = ImmutableGraph(
-            originalGraph.directed,
-            successorsArr,
-            null,
-            originalGraph.edges.size,
-        )
-    }
-
-    return CopiedImmutableNetwork(originalGraph, graph, vertexMap, inverseVertexMap, edgeMap, inverseEdgeMap)
-}*/

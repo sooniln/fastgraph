@@ -7,6 +7,10 @@ package io.github.sooniln.fastgraph
 
 import io.github.sooniln.fastgraph.internal.AdjacencyListGraph
 import io.github.sooniln.fastgraph.internal.AdjacencyListNetwork
+import io.github.sooniln.fastgraph.internal.GraphCopy
+import io.github.sooniln.fastgraph.internal.PropertyGraphCopy
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap
+import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
@@ -51,11 +55,10 @@ interface Graph {
     val directed: Boolean
 
     /**
-     * Returns true if this graph may currently contain multi-edges (multiple edges connecting the same vertices in the
-     * same direction). This value is not intended to reflect whether a graph is capable of supporting multi-edges, only
-     * whether it currently may contain multi-edges. Implementations may incorrectly return that they do contain
-     * multi-edges when in fact they don't, but may not incorrectly return that they don't contain multi-edges when in
-     * fact they do.
+     * Returns true if this graph currently contains multi-edges (multiple edges connecting the same vertices in the
+     * same direction). This value does not reflect whether a graph is capable of supporting multi-edges, only whether
+     * it currently contains multi-edges. Implementations are technically not required to return false if the graph does
+     * not currently contain multi-edges, but are heavily encouraged to do so anyway to avoid confusion.
      */
     val multiEdge: Boolean
 
@@ -228,6 +231,7 @@ interface Graph {
      * The extension method of the same name allows for not passing in the [Class] parameter explicitly - this should be
      * simpler to use where possible.
      */
+    // migration to KClass blocked by KT-58747 (fixed in Kotlin 2.4)
     fun <T : S?, S> createVertexProperty(clazz: Class<S>, initializer: (Vertex) -> T): VertexProperty<T>
 
     /**
@@ -250,6 +254,7 @@ interface Graph {
      * The extension method of the same name allows for not passing in the [Class] parameter explicitly - this should be
      * simpler to use where possible.
      */
+    // migration to KClass blocked by KT-58747 (fixed in Kotlin 2.4)
     fun <T : S?, S> createEdgeProperty(clazz: Class<S>, initializer: (Edge) -> T): EdgeProperty<T>
 
     /**
@@ -375,20 +380,61 @@ inline fun <reified T> Graph.createEdgeProperty(crossinline initializer: (Edge) 
 /**
  * A graph which guarantees that all vertices in the graph can be associated with an index from `0` to
  * `vertices.size() - 1`. This makes vertices accessible by index, and an index can be retrieved for each vertice (via
- * `vertices.indexOf(vertex)`). The `vertices.indexOf()` call is guaranteed to take constant time.
+ * `vertices.indexOf(vertex)`). The `vertices.indexOf()` call is guaranteed to take amortized constant time or better.
+ * Further, [IndexedVertexGraph.vertices] must iterate vertices in index order.
  */
 interface IndexedVertexGraph : Graph {
+    /**
+     * See [Graph.vertices].
+     *
+     * In addition, this container MUST iterate vertices in index order, and MUST implement `indexOf()` to return the
+     * correct index of a vertex in (amortized) constant time.
+     */
     override val vertices: VertexSetList
 }
 
+/**
+ * A mutable version of [IndexedVertexGraph].
+ */
+interface MutableIndexedVertexGraph : MutableGraph, IndexedVertexGraph {
+    /**
+     * See [IndexedVertexGraph.vertices].
+     *
+     * In addition, this container guarantees that vertex removal in backwards index order (starting from the highest
+     * index and progressing to the lowest index) will never be slower than vertex removal in forwards index order, and
+     * may in fact be faster.
+     */
+    override val vertices: MutableVertexSetList
+}
 
 /**
  * A graph which guarantees that all edges in the graph can be associated with an index from `0` to `edges.size() - 1`.
  * This makes edges accessible by index, and an index can be retrieved for each edge (via `edges.indexOf(edge)`).
- * The `edges.indexOf()` call is guaranteed to take constant time.
+ * The `edges.indexOf()` call is guaranteed to take amortized constant time or better. Further, [IndexedEdgeGraph.edges]
+ * must iterate edges in index order.
  */
 interface IndexedEdgeGraph : Graph {
+    /**
+     * See [Graph.edges].
+     *
+     * In addition, this container MUST iterate edges in index order, and MUST implement `indexOf()` to return the
+     * correct index of an edge in (amortized) constant time.
+     */
     override val edges: EdgeSetList
+}
+
+/**
+ * A mutable version of [IndexedEdgeGraph].
+ */
+interface MutableIndexedEdgeGraph : MutableGraph, IndexedEdgeGraph {
+    /**
+     * See [IndexedEdgeGraph.edges].
+     *
+     * In addition, this container guarantees that edge removal in backwards index order (starting from the highest
+     * index and progressing to the lowest index) will never be slower than edge removal in forwards index order, and
+     * may in fact be faster.
+     */
+    override val edges: MutableEdgeSetList
 }
 
 /**
@@ -396,6 +442,10 @@ interface IndexedEdgeGraph : Graph {
  * and edges. When mutation is not required, clients should prefer [Graph].
  */
 interface MutableGraph : Graph {
+
+    override val vertices: MutableVertexSet
+
+    override val edges: MutableEdgeSet
 
     /**
      * Adds a new vertex to the graph and returns it.
@@ -418,8 +468,9 @@ interface MutableGraph : Graph {
 
     /**
      * Adds a new edge connecting the given source and target vertex. See [Graph.containsEdge] for caveats on how
-     * source/target are treated in undirected graphs. In the [Graph] implementation does not support multi-edges, it
-     * may throw [IllegalArgumentException] if there already exists an edge connecting those vertices in the same order.
+     * source/target are treated in undirected graphs. In a [MutableGraph] implementation that does not support
+     * multi-edges, this method will throw [IllegalArgumentException] if there already exists an edge connecting those
+     * vertices in the same direction.
      */
     // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
     //   overrides of this method
@@ -501,6 +552,24 @@ operator fun <V> VertexProperty<V>.set(vertexReference: VertexReference, value: 
     set(vertexReference.unstable, value)
 
 /**
+ * Returns an unusable [VertexProperty].
+ */
+@Suppress("UNCHECKED_CAST")
+fun <T> nothingVertexProperty(): VertexProperty<T> = NothingVertexProperty as VertexProperty<T>
+
+private object NothingVertexProperty : VertexProperty<Nothing> {
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("get")
+    override fun get(vertex: Vertex): Nothing = throw IllegalStateException()
+
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("set")
+    override fun set(vertex: Vertex, value: Nothing) = throw IllegalStateException()
+}
+
+internal fun VertexProperty<*>.isNothingProperty() = this is NothingVertexProperty
+
+/**
  * A store of property values for edges. Conceptually this functions a map - mapping edges to values. Every edge
  * property is associated with a particular graph, and should make a best effort (but is not required) to throw
  * [IllegalArgumentException] when supplied with an edge belonging to a different graph. An edge property stores a
@@ -536,6 +605,78 @@ operator fun <E> EdgeProperty<E>.get(edgeReference: EdgeReference): E = get(edge
  */
 operator fun <E> EdgeProperty<E>.set(edgeReference: EdgeReference, value: E) = set(edgeReference.unstable, value)
 
+/**
+ * Returns an unusable [EdgeProperty].
+ */
+@Suppress("UNCHECKED_CAST")
+fun <T> nothingEdgeProperty(): EdgeProperty<T> = NothingEdgeProperty as EdgeProperty<T>
+
+private object NothingEdgeProperty : EdgeProperty<Nothing> {
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("get")
+    override fun get(edge: Edge): Nothing = throw IllegalStateException()
+
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("set")
+    override fun set(edge: Edge, value: Nothing) = throw IllegalStateException()
+}
+
+internal fun EdgeProperty<*>.isNothingProperty() = this is NothingEdgeProperty
+
+/**
+ * A uni-directional mapping from one set of vertices and edges to another. This mapping represents a relation, but the
+ * relation is not required to be bijective, injective, or surjective. Given a vertex/edge from an origin graph, this
+ * interface can map it to a corresponding vertex/edge in a destination graph.
+ */
+interface GraphMapping {
+    /**
+     * Given an origin [Vertex], returns the corresponding destination [Vertex]. Should make a best effort to throw
+     * [IllegalArgumentException] if given an invalid vertex.
+     */
+    fun getCorrespondingVertex(vertex: Vertex): Vertex
+
+    /**
+     * Given an origin [Edge], returns the corresponding destination [Edge]. Makes a best effort to throw
+     * [IllegalArgumentException] if given an invalid edge.
+     */
+    fun getCorrespondingEdge(edge: Edge): Edge
+}
+
+/**
+ * A convenience interface for bundling a graph topology and an associated vertex and edge property.
+ */
+interface PropertyGraph<G : Graph, V, E> {
+    val graph: G
+    val vertexProperty: VertexProperty<V>
+    val edgeProperty: EdgeProperty<E>
+}
+
+/**
+ * Constructs a [PropertyGraph] with the given arguments.
+ */
+fun <G : Graph, V, E> PropertyGraph(
+    graph: G,
+    vertexProperty: VertexProperty<V> = nothingVertexProperty(),
+    edgeProperty: EdgeProperty<E> = nothingEdgeProperty()
+): PropertyGraph<G, V, E> = object : PropertyGraph<G, V, E> {
+    override val graph: G = graph
+    override val vertexProperty: VertexProperty<V> = vertexProperty
+    override val edgeProperty: EdgeProperty<E> = edgeProperty
+}
+
+/**
+ * A copy of a [Graph], which includes a graph isomorphism via [GraphMapping] so that each vertex/edge of the copied
+ * graph is mapped to the equivalent vertex/edge of the new graph.
+ */
+interface GraphCopy<G : Graph> : GraphMapping {
+    val graph: G
+}
+
+/**
+ * A copy of a [PropertyGraph], which includes a graph isomorphism via [GraphMapping] so that each vertex/edge of the
+ * copied graph is mapped to the equivalent vertex/edge of the new graph.
+ */
+interface PropertyGraphCopy<G : Graph, V, E> : PropertyGraph<G, V, E>, GraphMapping
 
 /**
  * Returns a read-only empty graph with the given directedness.
@@ -543,16 +684,18 @@ operator fun <E> EdgeProperty<E>.set(edgeReference: EdgeReference, value: E) = s
 fun emptyGraph(directed: Boolean): Graph = emptyImmutableGraph(directed)
 
 /**
- * Constructs and returns a new empty mutable graph with the given directedness.
+ * Constructs and returns a new empty [MutableGraph] with the given directedness. The returned mutable graph is
+ * guaranteed to implement [IndexedVertexGraph].
  *
  * There are several parameters that help control the specific graph implementation chosen:
- *   * `allowMultiEdge`: Controls whether the returned mutable graph supports adding multi-edges (multiple
+ *   * `supportMultiEdge`: If set to true, ensures that the returned mutable graph supports adding multi-edges (multiple
  *   edges that connect the same pair of vertices in the same direction). If a client attempts to add a multi-edge to a
  *   [Graph] implementation that does not support multi-edges, [IllegalArgumentException] will be thrown.
- *   * `optimizeEdges`: If set to true, uses additional memory to speed up edge and edge property access and iteration.
- *   While this increases the amount of memory required to store edge topology, it can reduce the amount of memory
- *   needed to store edge properties, and thus in some circumstances may result in less overall memory usage for the
- *   graph topology + data.
+ *   * `indexEdges`: If set to true, uses additional memory to assign an index to every edge in order to speed up edge
+ *   and edge property access and iteration. While this increases the amount of memory required to store edge topology,
+ *   it can reduce the amount of memory needed to store edge properties, and thus in some circumstances may result in
+ *   less overall memory usage for the graph topology + data. If set to true, the returned mutable graph is guaranteed
+ *   to also implement [IndexedEdgeGraph].
  *
  * The implementation returned by this method guarantees that [Vertex] and [Edge] references are stable in the case of
  * additive mutations to the topology (i.e. adding a vertex or edge will not invalidate any [Vertex]/[Edge] references),
@@ -562,12 +705,163 @@ fun emptyGraph(directed: Boolean): Graph = emptyImmutableGraph(directed)
  * through subtractive mutations to the topology, [Graph.createVertexReference] and [Graph.createEdgeReference] may be
  * used to obtain a stable reference.
  */
-fun mutableGraph(directed: Boolean, allowMultiEdge: Boolean = false, optimizeEdges: Boolean = false): MutableGraph {
-    return if (allowMultiEdge || optimizeEdges) {
+fun mutableGraph(directed: Boolean, supportMultiEdge: Boolean = false, indexEdges: Boolean = false): MutableGraph {
+    return if (supportMultiEdge || indexEdges) {
         AdjacencyListNetwork(directed)
     } else {
         AdjacencyListGraph(directed)
     }
+}
+
+/**
+ * Creates a new mutable graph that is a copy of the given graph. See other [mutableGraph] overload for additional
+ * documentation on parameters and returned results.
+ *
+ * The returned graph is guaranteed to implement [IndexedVertexGraph], and is guaranteed to implement [IndexedEdgeGraph]
+ * if either (1) the input graph implements [IndexedEdgeGraph] or (2) `indexEdges` is true.
+ *
+ * If the input graph implements [IndexedVertexGraph], the returned graph guarantees to use the same indices for the
+ * same vertex in the topology, and if the input graph implements [IndexedEdgeGraph], the returned graph guarantees to
+ * use the same indices for the same edges in the topology. In addition, if the input graph was created via
+ * [mutableGraph] or [immutableGraph] then it is also guaranteed that a [Vertex] reference from the input graph will
+ * work with the returned graph (if the input graph is [IndexedVertexGraph] and as long as vertex references remain
+ * stable in the input graph), and it is guaranteed that an [Edge] reference from the input graph will work with the
+ * returned graph (if the input graph is [IndexedEdgeGraph] and as long as edge references remain stable in the input
+ * graph).
+ *
+ * Clients may pass in vertices and edges belonging to the input graph they would like to map via `mapVertices` and
+ * `mapEdges. The returned [CopiedGraph] object will support mapping a passed-in [Vertex] or [Edge] from the input graph
+ * to their topological equivalent [Vertex] or [Edge] in the new graph.
+ */
+fun mutableGraph(
+    graph: Graph,
+    supportMultiEdge: Boolean = false,
+    indexEdges: Boolean = false,
+    mapVertices: VertexSet = emptyVertexSet(),
+    mapEdges: EdgeSet = emptyEdgeSet()
+): GraphCopy<MutableGraph> {
+    val newGraph = mutableGraph(
+        graph.directed,
+        supportMultiEdge || graph.multiEdge,
+        indexEdges || graph is IndexedEdgeGraph
+    )
+
+    newGraph.ensureVertexCapacity(graph.vertices.size)
+    newGraph.ensureEdgeCapacity(graph.edges.size)
+
+    val allVertexMap = if (graph is IndexedVertexGraph) null else Int2IntOpenHashMap(graph.vertices.size)
+    val vertexMap = if (graph is IndexedVertexGraph) null else Int2IntOpenHashMap(mapVertices.size)
+    val edgeMap = if (graph is IndexedEdgeGraph) null else Long2LongOpenHashMap(mapEdges.size)
+
+    for (vertex in graph.vertices) {
+        val newVertex = newGraph.addVertex()
+        allVertexMap?.put(vertex.intValue, newVertex.intValue)
+        if (vertexMap != null && mapVertices.contains(vertex)) {
+            vertexMap.put(vertex.intValue, newVertex.intValue)
+        }
+    }
+
+    for (edge in graph.edges) {
+        var newSource = graph.edgeSource(edge)
+        var newTarget = graph.edgeTarget(edge)
+        if (allVertexMap != null) {
+            newSource = Vertex(allVertexMap.get(newSource.intValue))
+            newTarget = Vertex(allVertexMap.get(newTarget.intValue))
+        }
+        val newEdge = newGraph.addEdge(newSource, newTarget)
+        if (edgeMap != null && mapEdges.contains(edge)) {
+            edgeMap.put(edge.longValue, newEdge.longValue)
+        }
+    }
+
+    return GraphCopy(newGraph, vertexMap, edgeMap)
+}
+
+/**
+ * Convenience method for creating a new mutable [PropertyGraph]. See [mutableGraph] for more details.
+ */
+inline fun <reified V, reified E> mutablePropertyGraph(
+    directed: Boolean,
+    supportMultiEdge: Boolean = false,
+    indexEdges: Boolean = false,
+    noinline vertexInitializer: (Vertex) -> V,
+    noinline edgeInitializer: (Edge) -> E,
+): PropertyGraph<MutableGraph, V, E> {
+    val graph = mutableGraph(directed, supportMultiEdge, indexEdges)
+    return PropertyGraph(
+        graph,
+        graph.createVertexProperty(vertexInitializer),
+        graph.createEdgeProperty(edgeInitializer)
+    )
+}
+
+/**
+ * Convenience method for creating a new mutable [PropertyGraph] that is a copy of the given [PropertyGraph]. See
+ * [mutableGraph] for more details. The returned [PropertyGraphCopy] contains new vertex and edge properties with the
+ * same values as the originals. Null can only be passed in for the property class and initializer if the property type
+ * is [Nothing].
+ */
+fun <V : VS?, VS, E : ES?, ES> mutablePropertyGraph(
+    propertyGraph: PropertyGraph<*, V, E>,
+    supportMultiEdge: Boolean = false,
+    indexEdges: Boolean = false,
+    vertexClass: Class<VS>?,
+    vertexInitializer: ((Vertex) -> V)?,
+    edgeClass: Class<ES>?,
+    edgeInitializer: ((Edge) -> E)?,
+    mapVertices: VertexSet = emptyVertexSet(),
+    mapEdges: EdgeSet = emptyEdgeSet()
+): PropertyGraphCopy<MutableGraph, V, E> {
+    val graphCopy = mutableGraph(propertyGraph.graph, supportMultiEdge, indexEdges, mapVertices, mapEdges)
+
+    val vertexProperty: VertexProperty<V>
+    if (propertyGraph.vertexProperty.isNothingProperty()) {
+        vertexProperty = nothingVertexProperty()
+    } else {
+        vertexProperty = graphCopy.graph.createVertexProperty(vertexClass!!, vertexInitializer!!)
+        for (vertex in propertyGraph.graph.vertices) {
+            vertexProperty[graphCopy.getCorrespondingVertex(vertex)] = propertyGraph.vertexProperty[vertex]
+        }
+    }
+
+    val edgeProperty: EdgeProperty<E>
+    if (propertyGraph.vertexProperty.isNothingProperty()) {
+        edgeProperty = nothingEdgeProperty()
+    } else {
+        edgeProperty = graphCopy.graph.createEdgeProperty(edgeClass!!, edgeInitializer!!)
+        for (edge in propertyGraph.graph.edges) {
+            edgeProperty[graphCopy.getCorrespondingEdge(edge)] = propertyGraph.edgeProperty[edge]
+        }
+    }
+
+    return PropertyGraphCopy(graphCopy, vertexProperty, edgeProperty)
+}
+
+/**
+ * Convenience method for creating a new mutable [PropertyGraph] that is a copy of the given [PropertyGraph]. See
+ * [mutableGraph] for more details. The returned [PropertyGraphCopy] contains new vertex and edge properties with the
+ * same values as the originals.
+ */
+inline fun <reified V, reified E> mutablePropertyGraph(
+    propertyGraph: PropertyGraph<*, V, E>,
+    supportMultiEdge: Boolean = false,
+    indexEdges: Boolean = false,
+    noinline vertexInitializer: (Vertex) -> V,
+    noinline edgeInitializer: (Edge) -> E,
+    mapVertices: VertexSet = emptyVertexSet(),
+    mapEdges: EdgeSet = emptyEdgeSet()
+): PropertyGraphCopy<MutableGraph, V, E> {
+    return mutablePropertyGraph(
+        propertyGraph,
+        supportMultiEdge,
+        indexEdges,
+        V::class.java,
+        vertexInitializer,
+        E::class.java,
+        edgeInitializer,
+        mapVertices,
+        mapEdges
+    )
 }
 
 /**
@@ -652,11 +946,11 @@ interface GraphMutator<V, E> {
     fun ensureEdgeCapacity(edgeCapacity: Int) {}
 }
 
-private class GraphMutatorImpl<V, E>(
-    private val graph: MutableGraph,
-    private val vertexProperty: VertexProperty<V>? = null,
-    private val edgeProperty: EdgeProperty<E>? = null
-) : GraphMutator<V, E> {
+private fun <V, E> GraphMutator(
+    graph: MutableGraph,
+    vertexProperty: VertexProperty<V>?,
+    edgeProperty: EdgeProperty<E>?
+) = object : GraphMutator<V, E> {
 
     private val vertexMap = Object2IntOpenHashMap<V>()
 
@@ -733,9 +1027,7 @@ fun <V, E> mutateGraph(
     graph: MutableGraph,
     vertexProperty: VertexProperty<V>? = null,
     edgeProperty: EdgeProperty<E>? = null
-): GraphMutator<V, E> {
-    return GraphMutatorImpl(graph, vertexProperty, edgeProperty)
-}
+): GraphMutator<V, E> = GraphMutator(graph, vertexProperty, edgeProperty)
 
 /**
  * A helper for building a graph. See documentation on the overload for more information.
@@ -808,6 +1100,19 @@ inline fun <V, E> buildGraph(
 
     mutateGraph(graph, vertexProperty, edgeProperty).builderAction()
     return graph
+}
+
+@OptIn(ExperimentalContracts::class)
+inline fun <G : MutableGraph, V, E> buildGraph(
+    propertyGraph: PropertyGraph<G, V, E>,
+    builderAction: GraphMutator<V, E>.() -> Unit
+): PropertyGraph<G, V, E> {
+    contract {
+        callsInPlace(builderAction, InvocationKind.EXACTLY_ONCE)
+    }
+
+    mutateGraph(propertyGraph.graph, propertyGraph.vertexProperty, propertyGraph.edgeProperty).builderAction()
+    return propertyGraph
 }
 
 /**

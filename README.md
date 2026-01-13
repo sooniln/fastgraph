@@ -95,6 +95,10 @@ buildGraph(graph, vertexName, edgeWeight) {
 The `addEdge` method exposed by `buildGraph` can create new vertices with the given property value if they don't exist
 already, and then link the vertices with a new edge (with the given edge property value).
 
+> [!NOTE]
+> The grouping of a graph with a single vertex property and a single edge property is common enough that there is an
+> interface specifically to represent this grouping - `PropertyGraph`.
+
 Once we've constructed a graph, we can access and traverse the graph structure easily:
 
 ```kotlin
