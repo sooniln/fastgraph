@@ -120,7 +120,7 @@ for (edge in graph.edges) {
 }
 
 // iterate over all vertices that can be reached via outgoing edge from myVertex
-val myVertex = vertex.successors.first()
+val myVertex = graph.vertices.first()
 for (vertex in graph.successors(vertex)) {
     ...
 }
