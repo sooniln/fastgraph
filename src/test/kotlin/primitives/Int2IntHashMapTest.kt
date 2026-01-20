@@ -10,7 +10,7 @@ class Int2IntHashMapTest {
     private val random = Random(99)
 
     private val expectedMap = HashMap<Int, Int>()
-    private val map = Int2IntHashMap2()
+    private val map = Int2IntHashMap()
 
     @Test
     fun add() {
