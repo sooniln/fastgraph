@@ -365,7 +365,7 @@ class Int2IntHashMap(
             assert(threshold > 0)
             growTo(threshold)
         } else if (arrayUsage >= threshold) {
-            growTo(keysAndValuesArr.size)
+            growTo(threshold)
         }
     }
 
@@ -647,7 +647,7 @@ class Int2IntHashMap(
             return if (capacity <= HASHIFY_THRESHOLD) {
                 capacity shl 1
             } else {
-                max(minPowerOfTwo((capacity / loadFactor).toInt() + 1), MIN_HASH_CAPACITY) shl 1
+                max(minPowerOfTwo((capacity / loadFactor).toInt()), MIN_HASH_CAPACITY) shl 1
             }
         }
 

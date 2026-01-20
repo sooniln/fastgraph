@@ -297,7 +297,7 @@ class IntHashSet(
             assert(threshold > 0)
             growTo(threshold)
         } else if (arrayUsage >= threshold) {
-            growTo(valuesArr.size shl 1)
+            growTo(threshold shl 1)
         }
     }
 
@@ -429,7 +429,7 @@ class IntHashSet(
             return if (capacity <= HASHIFY_THRESHOLD) {
                 capacity
             } else {
-                max(minPowerOfTwo((capacity / loadFactor).toInt() + 1), MIN_HASH_CAPACITY)
+                max(minPowerOfTwo((capacity / loadFactor).toInt()), MIN_HASH_CAPACITY)
             }
         }
 
