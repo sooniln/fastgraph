@@ -6,10 +6,16 @@ import java.util.Arrays
 import kotlin.math.max
 
 /**
- * A replacement for fastutils Int2IntHashMap which (1) uses drastically less memory with < 32 elements (2) is slightly
- * faster with < 32 elements (3) is slightly slower for larger numbers of elements, but not by a hugely meaningful
- * amount. Fastutils wastes an enormous amount of memory at low sizes, which becomes an issue for us, when we have say
- * 4 million sets of 1-3 elements each...
+ * A replacement for fastutils Int2IntOpenHashMap which:
+ *   * uses drastically less memory with < 32 elements
+ *   * always has faster iteration
+ *   * is often slightly faster for get/set with < 32 elements
+ *   * is slightly slower for get/set with larger numbers of elements, but not by a hugely meaningful amount.
+ *
+ * Fastutils wastes an enormous amount of memory at low sizes, which becomes an issue for us when we have say 4 million
+ * maps of <10 elements each... (such as in many sparse graphs).
+ *
+ * Implementation uses robin hood hashing with backwards shift deletion.
  */
 class Int2IntHashMap(
     capacity: Int = DEFAULT_INITIAL_CAPACITY,
@@ -126,7 +132,7 @@ class Int2IntHashMap(
                             newKey = currKey
                             newValue = currValue
 
-                            slot = slot.nextSlot(mask)
+                            slot = (slot + 2) and mask
                             currKey = keysAndValuesArr[slot]
                             currValue = keysAndValuesArr[slot + 1]
                         } while (currKey != 0)
@@ -139,7 +145,7 @@ class Int2IntHashMap(
                 }
             }
 
-            slot = slot.nextSlot(mask)
+            slot = (slot + 2) and mask
             newKeySlotDistance += 2
         }
     }
@@ -208,7 +214,7 @@ class Int2IntHashMap(
                 key -> return slot
             }
 
-            slot = slot.nextSlot(mask)
+            slot = (slot + 2) and mask
             currKey = keysAndValuesArr[slot]
         }
     }
@@ -242,7 +248,7 @@ class Int2IntHashMap(
         // System.arrayCopy() to outperform the manual loop here, especially with the additional complexity needed
         // for System.arrayCopy().
         var currSlot = slot
-        var nextSlot = currSlot.nextSlot(mask)
+        var nextSlot = (currSlot + 2) and mask
         var nextKey = keysAndValuesArr[nextSlot]
         var nextValue = keysAndValuesArr[nextSlot + 1]
         while (nextKey != 0 && nextKey.slotDistance(nextSlot) > 0) {
@@ -250,7 +256,7 @@ class Int2IntHashMap(
             keysAndValuesArr[currSlot + 1] = nextValue
 
             currSlot = nextSlot
-            nextSlot = nextSlot.nextSlot(mask)
+            nextSlot = (nextSlot + 2) and mask
             nextKey = keysAndValuesArr[nextSlot]
             nextValue = keysAndValuesArr[nextSlot + 1]
         }
@@ -435,6 +441,8 @@ class Int2IntHashMap(
         return primitiveEntries.joinToString(", ", "{", "}") { "${it.key}=${it.value}" }
     }
 
+    // we use a duplicate implementation instead of reusing the entry iterator because we can get a little extra speed
+    // out of this (no need to load value + construct entry structure from key/value)
     inner class KeyIterator : MutableIntIterator() {
         private val keysAndValuesArr = this@Int2IntHashMap.keysAndValuesArr
         private val arrayUsage = this@Int2IntHashMap.arrayUsage
@@ -480,7 +488,12 @@ class Int2IntHashMap(
             if (entriesLeft <= 0) return
 
             do {
-                slot = slot.previousSlot(mask)
+                if (slot > 0) {
+                    // simple subtraction is a lot faster if we can get away with it (ie 99% of the time)
+                    slot -= 2
+                } else {
+                    slot = (slot - 2) and mask
+                }
                 nextKey = keysAndValuesArr[slot]
             } while (nextKey == 0)
         }
@@ -560,7 +573,12 @@ class Int2IntHashMap(
 
                 var key: Int
                 do {
-                    slot = slot.previousSlot(mask)
+                    if (slot > 0) {
+                        // simple subtraction is a lot faster if we can get away with it (ie 99% of the time)
+                        slot -= 2
+                    } else {
+                        slot = (slot - 2) and mask
+                    }
                     key = keysAndValuesArr[slot]
                 } while (key == 0)
 
@@ -604,18 +622,6 @@ class Int2IntHashMap(
 
     @Suppress("NOTHING_TO_INLINE")
     private inline fun Int.slot(): Int = (mixHash(this) and ((keysAndValuesArr.size shr 1) - 1)) shl 1
-
-    @Suppress("NOTHING_TO_INLINE")
-    private inline fun Int.nextSlot(mask: Int): Int {
-        assert(mask == keysAndValuesArr.mask())
-        return (this + 2) and mask
-    }
-
-    @Suppress("NOTHING_TO_INLINE")
-    private inline fun Int.previousSlot(mask: Int): Int {
-        assert(mask == keysAndValuesArr.mask())
-        return (this - 2) and mask
-    }
 
     @Suppress("NOTHING_TO_INLINE")
     private inline fun Int.slotDistance(slot: Int): Int {

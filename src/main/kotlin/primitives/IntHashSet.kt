@@ -4,10 +4,16 @@ import java.util.Arrays
 import kotlin.math.max
 
 /**
- * A replacement for fastutils IntHashSet which (1) uses drastically less memory with < 32 elements (2) is slightly
- * faster with < 32 elements (3) is slightly slower for larger numbers of elements, but not by a hugely meaningful
- * amount. Fastutils wastes an enormous amount of memory at low sizes, which becomes an issue for us, when we have say
- * 4 million sets of 1-3 elements each...
+ * A replacement for fastutils IntOpenHashSet which:
+ *   * uses drastically less memory with < 32 elements
+ *   * always has faster iteration
+ *   * is often slightly faster for get/set with < 32 elements
+ *   * is slightly slower for get/set with larger numbers of elements, but not by a hugely meaningful amount.
+ *
+ * Fastutils wastes an enormous amount of memory at low sizes, which becomes an issue for us when we have say 4 million
+ * sets of <10 elements each... (such as in many sparse graphs).
+ *
+ * Implementation uses robin hood hashing with backwards shift deletion.
  */
 class IntHashSet(
     capacity: Int = DEFAULT_INITIAL_CAPACITY,
@@ -103,7 +109,7 @@ class IntHashSet(
                             valuesArr[slot] = newValue
                             newValue = value
 
-                            slot = slot.nextSlot(mask)
+                            slot = (slot + 1) and mask
                             value = valuesArr[slot]
                         } while (value != 0)
 
@@ -114,7 +120,7 @@ class IntHashSet(
                 }
             }
 
-            slot = slot.nextSlot(mask)
+            slot = (slot + 1) and mask
             newValueSlotDistance++
         }
     }
@@ -175,7 +181,7 @@ class IntHashSet(
                 element -> return slot
             }
 
-            slot = slot.nextSlot(mask)
+            slot = (slot + 1) and mask
             value = valuesArr[slot]
         }
     }
@@ -209,13 +215,13 @@ class IntHashSet(
         // System.arrayCopy() to outperform the manual loop here, especially with the additional complexity needed
         // for System.arrayCopy().
         var slot = slot
-        var nextSlot = slot.nextSlot(mask)
+        var nextSlot = (slot + 1) and mask
         var nextValue = valuesArr[nextSlot]
         while (nextValue != 0 && nextValue.slotDistance(nextSlot, mask) > 0) {
             valuesArr[slot] = nextValue
 
             slot = nextSlot
-            nextSlot = nextSlot.nextSlot(mask)
+            nextSlot = (nextSlot + 1) and mask
             nextValue = valuesArr[nextSlot]
         }
         valuesArr[slot] = 0
@@ -285,7 +291,12 @@ class IntHashSet(
                 if (entriesLeft == 0) return
 
                 do {
-                    slot = slot.previousSlot(mask)
+                    if (slot > 0) {
+                        // simple subtraction is a lot faster if we can get away with it (ie 99% of the time)
+                        --slot
+                    } else {
+                        slot = (slot - 1) and mask
+                    }
                     nextValue = valuesArr[slot]
                 } while (nextValue == 0)
             }
@@ -386,17 +397,8 @@ class IntHashSet(
 
     @Suppress("NOTHING_TO_INLINE")
     private inline fun Int.slot(mask: Int): Int {
+        assert(mask == valuesArr.mask())
         return mixHash(this) and mask
-    }
-
-    @Suppress("NOTHING_TO_INLINE")
-    private inline fun Int.nextSlot(mask: Int): Int {
-        return (this + 1) and mask
-    }
-
-    @Suppress("NOTHING_TO_INLINE")
-    private inline fun Int.previousSlot(mask: Int): Int {
-        return (this - 1) and mask
     }
 
     @Suppress("NOTHING_TO_INLINE")
