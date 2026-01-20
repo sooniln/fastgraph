@@ -8,10 +8,8 @@ package io.github.sooniln.fastgraph
 import io.github.sooniln.fastgraph.internal.checkElementIndex
 import io.github.sooniln.fastgraph.internal.checkPositionIndex
 import io.github.sooniln.fastgraph.internal.checkRangeIndexes
-import it.unimi.dsi.fastutil.ints.IntArraySet
+import io.github.sooniln.fastgraph.primitives.IntHashSet
 import it.unimi.dsi.fastutil.ints.IntIterator
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet
-import it.unimi.dsi.fastutil.ints.IntSet
 import java.util.Spliterator
 
 private val VERTEX_HEX_FORMAT = HexFormat {
@@ -348,7 +346,7 @@ fun <T : Vertex> vertexSetOf(vararg vertices: T): VertexSet {
     } else if (vertices.size == 1) {
         SingletonVertexSet(vertices[0])
     } else {
-        val set = if (vertices.size < 100) IntArraySet(vertices.size) else IntOpenHashSet(vertices.size)
+        val set = IntHashSet(vertices.size)
         for (vertex in vertices) {
             set.add(vertex.intValue)
         }
@@ -534,12 +532,17 @@ private class SingletonVertexSet(private val vertex: Vertex) : AbstractVertexSet
     }
 }
 
-internal class VertexIteratorWrapper(private val it: IntIterator) : VertexIterator {
+internal class VertexIteratorWrapper(private val it: kotlin.collections.IntIterator) : VertexIterator {
     override fun hasNext(): Boolean = it.hasNext()
     override fun next(): Vertex = Vertex(it.nextInt())
 }
 
-internal open class VertexSetWrapper(internal val vertices: IntSet) : VertexSet, AbstractVertexCollection() {
+internal class VertexFastUtilIteratorWrapper(private val it: IntIterator) : VertexIterator {
+    override fun hasNext(): Boolean = it.hasNext()
+    override fun next(): Vertex = Vertex(it.nextInt())
+}
+
+internal open class VertexSetWrapper(internal val vertices: IntHashSet) : VertexSet, AbstractVertexCollection() {
     override val size: Int get() = vertices.size
 
     @Suppress("INAPPLICABLE_JVM_NAME")

@@ -103,10 +103,13 @@ private class EmptyGraph(override val directed: Boolean) : ImmutableGraph, Index
     @JvmName("getEdges")
     override fun getEdges(source: Vertex, target: Vertex): EdgeSet = throw IllegalArgumentException()
 
-    override fun <T : S?, S> createVertexProperty(clazz: Class<S>, initializer: (Vertex) -> T): VertexProperty<T> =
+    override fun <T : S?, S> createVertexProperty(
+        clazz: Class<S>,
+        initializer: VertexInitializer<T>
+    ): VertexProperty<T> =
         emptyVertexProperty(this)
 
-    override fun <T : S?, S> createEdgeProperty(clazz: Class<S>, initializer: (Edge) -> T): EdgeProperty<T> =
+    override fun <T : S?, S> createEdgeProperty(clazz: Class<S>, initializer: EdgeInitializer<T>): EdgeProperty<T> =
         emptyEdgeProperty(this)
 
     @Suppress("INAPPLICABLE_JVM_NAME")
@@ -404,7 +407,7 @@ abstract class ImmutableGraphBuilder<V, E> {
      */
     abstract fun withVertexProperty(
         clazz: Class<V>,
-        initializer: (Vertex) -> V = { throw IllegalStateException("No vertex initializer supplied") }
+        initializer: VertexInitializer<V> = VertexInitializer { throw IllegalStateException("No vertex initializer supplied") }
     ): ImmutableGraphBuilder<V, E>
 
     /**
@@ -417,7 +420,7 @@ abstract class ImmutableGraphBuilder<V, E> {
      */
     abstract fun withEdgeProperty(
         clazz: Class<E>,
-        initializer: (Edge) -> E = { throw IllegalStateException("No edge initializer supplied") }
+        initializer: EdgeInitializer<E> = EdgeInitializer { throw IllegalStateException("No edge initializer supplied") }
     ): ImmutableGraphBuilder<V, E>
 
     /**
@@ -468,29 +471,31 @@ abstract class ImmutableGraphBuilder<V, E> {
  * See [ImmutableGraphBuilder.withVertexProperty].
  */
 inline fun <reified V, E> ImmutableGraphBuilder<V, E>.withVertexProperty(
-    noinline initializer: (Vertex) -> V = { throw IllegalStateException("No vertex initializer supplied") }
+    initializer: VertexInitializer<V> = VertexInitializer { throw IllegalStateException("No vertex initializer supplied") }
 ): ImmutableGraphBuilder<V, E> = withVertexProperty(V::class.java, initializer)
 
 /**
  * See [ImmutableGraphBuilder.withVertexProperty].
  */
-inline fun <V : S?, S, E> ImmutableGraphBuilder<V, E>.withVertexProperty(
+@Suppress("UNCHECKED_CAST")
+fun <V : S?, S, E> ImmutableGraphBuilder<V, E>.withVertexProperty(
     clazz: Class<S>,
-    noinline initializer: (Vertex) -> V = { throw IllegalStateException("No vertex initializer supplied") }
+    initializer: VertexInitializer<V> = VertexInitializer { throw IllegalStateException("No vertex initializer supplied") }
 ): ImmutableGraphBuilder<V, E> = withVertexProperty(clazz as Class<V>, initializer)
 
 /**
  * See [ImmutableGraphBuilder.withEdgeProperty].
  */
 inline fun <V, reified E> ImmutableGraphBuilder<V, E>.withEdgeProperty(
-    noinline initializer: (Edge) -> E = { throw IllegalStateException("No edge initializer supplied") }
+    initializer: EdgeInitializer<E> = EdgeInitializer { throw IllegalStateException("No edge initializer supplied") }
 ): ImmutableGraphBuilder<V, E> = withEdgeProperty(E::class.java, initializer)
 
 
 /**
  * See [ImmutableGraphBuilder.withEdgeProperty].
  */
-inline fun <V, E : S?, S> ImmutableGraphBuilder<V, E>.withEdgeProperty(
+@Suppress("UNCHECKED_CAST")
+fun <V, E : S?, S> ImmutableGraphBuilder<V, E>.withEdgeProperty(
     clazz: Class<S>,
-    noinline initializer: (Edge) -> E = { throw IllegalStateException("No vertex initializer supplied") }
+    initializer: EdgeInitializer<E> = EdgeInitializer { throw IllegalStateException("No vertex initializer supplied") }
 ): ImmutableGraphBuilder<V, E> = withEdgeProperty(clazz as Class<E>, initializer)

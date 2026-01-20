@@ -231,7 +231,7 @@ interface Graph {
      * simpler to use where possible.
      */
     // migration to KClass blocked by KT-58747 (fixed in Kotlin 2.4)
-    fun <T : S?, S> createVertexProperty(clazz: Class<S>, initializer: (Vertex) -> T): VertexProperty<T>
+    fun <T : S?, S> createVertexProperty(clazz: Class<S>, initializer: VertexInitializer<T>): VertexProperty<T>
 
     /**
      * [Graph] represents only a topology, not any data associated with the vertices and edges of the topology. In order
@@ -254,7 +254,7 @@ interface Graph {
      * simpler to use where possible.
      */
     // migration to KClass blocked by KT-58747 (fixed in Kotlin 2.4)
-    fun <T : S?, S> createEdgeProperty(clazz: Class<S>, initializer: (Edge) -> T): EdgeProperty<T>
+    fun <T : S?, S> createEdgeProperty(clazz: Class<S>, initializer: EdgeInitializer<T>): EdgeProperty<T>
 
     /**
      * Returns a stable reference to the given vertex. For more information about vertices and stable references to
@@ -326,13 +326,15 @@ fun Graph.edgeTarget(edgeReference: EdgeReference): Vertex = edgeTarget(edgeRefe
  */
 @JvmName("edgeOpposite")
 fun Graph.edgeOpposite(edge: Edge, other: Vertex): Vertex {
-    val edgeSource = edgeSource(edge)
     val edgeTarget = edgeTarget(edge)
+    if (other == edgeTarget) {
+        return edgeSource(edge)
+    } else {
+        if (other != edgeSource(edge)) {
+            throw IllegalArgumentException("vertex $other is not in edge ${edgeSource(edge)} -> $edgeTarget")
+        }
 
-    return when (other) {
-        edgeTarget -> edgeSource
-        edgeSource -> edgeTarget
-        else -> throw IllegalArgumentException("vertex $other is not in edge $edgeSource -> $edgeTarget")
+        return edgeTarget
     }
 }
 
@@ -365,15 +367,15 @@ inline fun <reified T> Graph.createEdgeProperty(): EdgeProperty<T?> {
  * A convenient extension method for [Graph.createVertexProperty] that does not require explicitly providing the
  * [Class].
  */
-inline fun <reified T> Graph.createVertexProperty(crossinline initializer: (Vertex) -> T): VertexProperty<T> {
-    return createVertexProperty(T::class.java) { initializer(it) }
+inline fun <reified T> Graph.createVertexProperty(initializer: VertexInitializer<T>): VertexProperty<T> {
+    return createVertexProperty(T::class.java, initializer)
 }
 
 /**
  * A convenient extension method for [Graph.createEdgeProperty] that does not require explicitly providing the [Class].
  */
-inline fun <reified T> Graph.createEdgeProperty(crossinline initializer: (Edge) -> T): EdgeProperty<T> {
-    return createEdgeProperty(T::class.java) { initializer(it) }
+inline fun <reified T> Graph.createEdgeProperty(initializer: EdgeInitializer<T>): EdgeProperty<T> {
+    return createEdgeProperty(T::class.java, initializer)
 }
 
 /**
@@ -393,6 +395,12 @@ interface IndexedVertexGraph : Graph {
 }
 
 /**
+ * A marker interface which indicates that a vertex's index is always the same as its [Vertex.intValue]. This can allow
+ * some optimizations by using `vertex.intValue` instead of `graph.vertices.indexOf(vertex)`.
+ */
+interface VertexIndexedVertexGraph : IndexedVertexGraph
+
+/**
  * A mutable version of [IndexedVertexGraph]. This allows for vertex removal in backwards order via the vertex iterator
  * (see [vertices] for details).
  */
@@ -406,6 +414,12 @@ interface MutableIndexedVertexGraph : MutableGraph, IndexedVertexGraph {
      */
     override val vertices: MutableVertexSetList
 }
+
+/**
+ * A marker interface which indicates that an edge's index is always the same as the lower 32 bits of [Edge.longValue].
+ * This can allow some optimizations by using `edge.longValue.toInt()` instead of `graph.edges.indexOf(edge)`.
+ */
+interface EdgeIndexedEdgeGraph : IndexedEdgeGraph
 
 /**
  * A graph which guarantees that all edges in the graph can be associated with an index from `0` to `edges.size() - 1`.
@@ -516,6 +530,13 @@ fun MutableGraph.addEdge(source: VertexReference, target: VertexReference): Edge
 fun MutableGraph.removeEdge(edgeReference: EdgeReference) = removeEdge(edgeReference.unstable)
 
 /**
+ * The concrete [VertexProperty] initializer type.
+ */
+fun interface VertexInitializer<T> {
+    fun initialize(vertex: Vertex): T
+}
+
+/**
  * A store of property values for vertices. Conceptually this functions a map - mapping vertices to values. Every vertex
  * property is associated with a particular graph, and stores a value for every vertex in the graph. Vertex properties
  * are required to remain in sync with their respective graphs.
@@ -573,6 +594,13 @@ private class NothingVertexProperty(override val graph: Graph) : VertexProperty<
 }
 
 internal fun VertexProperty<*>.isNothingProperty() = this is NothingVertexProperty
+
+/**
+ * The concrete [EdgeProperty] initializer type.
+ */
+fun interface EdgeInitializer<T> {
+    fun initialize(edge: Edge): T
+}
 
 /**
  * A store of property values for edges. Conceptually this functions a map - mapping edges to values. Every edge
@@ -700,7 +728,7 @@ interface GraphCopy<G : Graph> : GraphMapping {
 fun <G : Graph, T : S?, S> GraphCopy<G>.copyVertexProperty(
     property: VertexProperty<T>,
     clazz: Class<S>,
-    initializer: (Vertex) -> T
+    initializer: VertexInitializer<T>
 ): VertexProperty<T> {
     require(property.graph == originalGraph)
     if (property.isNothingProperty()) {
@@ -719,7 +747,7 @@ fun <G : Graph, T : S?, S> GraphCopy<G>.copyVertexProperty(
  */
 inline fun <G : Graph, reified T> GraphCopy<G>.copyVertexProperty(
     property: VertexProperty<T>,
-    noinline initializer: (Vertex) -> T
+    initializer: VertexInitializer<T>
 ): VertexProperty<T> = copyVertexProperty(property, T::class.java, initializer)
 
 /**
@@ -735,7 +763,7 @@ inline fun <G : Graph, reified T> GraphCopy<G>.copyVertexProperty(
 fun <G : Graph, T : S?, S> GraphCopy<G>.copyEdgeProperty(
     property: EdgeProperty<T>,
     clazz: Class<S>,
-    initializer: (Edge) -> T
+    initializer: EdgeInitializer<T>
 ): EdgeProperty<T> {
     require(property.graph == originalGraph)
     if (property.isNothingProperty()) {
@@ -754,7 +782,7 @@ fun <G : Graph, T : S?, S> GraphCopy<G>.copyEdgeProperty(
  */
 inline fun <G : Graph, reified T> GraphCopy<G>.copyEdgeProperty(
     property: EdgeProperty<T>,
-    noinline initializer: (Edge) -> T
+    initializer: EdgeInitializer<T>
 ): EdgeProperty<T> = copyEdgeProperty(property, T::class.java, initializer)
 
 /**
@@ -805,6 +833,19 @@ fun mutableGraph(directed: Boolean, supportMultiEdge: Boolean = false, indexEdge
     } else {
         AdjacencyListGraph(directed)
     }
+}
+
+/**
+ * Convenience method for creating and building a new mutable [PropertyGraph]. See [mutableGraph] overload for more
+ * details.
+ */
+inline fun <V, E> mutableGraph(
+    directed: Boolean,
+    supportMultiEdge: Boolean = false,
+    indexEdges: Boolean = false,
+    builderAction: GraphMutator<V, E>.() -> Unit = {}
+): MutableGraph {
+    return buildGraph(mutableGraph(directed, supportMultiEdge, indexEdges), null, null, builderAction)
 }
 
 /**
@@ -995,6 +1036,13 @@ interface GraphMutator<V, E> {
     fun addEdge(sourceValue: V, targetValue: V, value: E): Edge
 
     /**
+     * Returns true if there is a vertex with the given property value (that was set through this instance).
+     */
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("hasVertex")
+    fun hasVertex(value: V): Boolean
+
+    /**
      * Returns the vertex with the given property value (that was set through this instance). Throws
      * [IllegalArgumentException] if no such vertex exists.
      */
@@ -1068,6 +1116,12 @@ private fun <V, E> GraphMutator(
         } else {
             Vertex(vertexMap.getInt(key))
         }
+    }
+
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("hasVertex")
+    override fun hasVertex(value: V): Boolean {
+        return vertexMap.containsKey(value)
     }
 
     @Suppress("INAPPLICABLE_JVM_NAME")

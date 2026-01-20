@@ -159,11 +159,11 @@ class UndirectedMutableGraphTest {
             it.remove()
             assertThat(graph.edges).containsExactlyInAnyOrder(e2.unstable, e3.unstable)
 
-            assertThat(it.next()).isEqualTo(e2.unstable)
-            it.remove()
-            assertThat(graph.edges).containsExactlyInAnyOrder(e3.unstable)
-
             assertThat(it.next()).isEqualTo(e3.unstable)
+            it.remove()
+            assertThat(graph.edges).containsExactlyInAnyOrder(e2.unstable)
+
+            assertThat(it.next()).isEqualTo(e2.unstable)
             it.remove()
             assertThat(graph.edges).isEmpty()
         }

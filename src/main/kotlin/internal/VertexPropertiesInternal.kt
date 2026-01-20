@@ -2,13 +2,13 @@ package io.github.sooniln.fastgraph.internal
 
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
-import io.github.sooniln.fastgraph.IndexedVertexGraph
 import io.github.sooniln.fastgraph.Vertex
+import io.github.sooniln.fastgraph.VertexIndexedVertexGraph
+import io.github.sooniln.fastgraph.VertexInitializer
 import io.github.sooniln.fastgraph.VertexProperty
 import it.unimi.dsi.fastutil.booleans.BooleanArrays
 import it.unimi.dsi.fastutil.ints.IntArrays
 import it.unimi.dsi.fastutil.longs.LongArrays
-import kotlin.math.max
 
 @Suppress("UNCHECKED_CAST")
 internal fun <T> emptyVertexProperty(graph: Graph): VertexProperty<T> = EmptyVertexProperty(graph) as VertexProperty<T>
@@ -27,35 +27,35 @@ private class EmptyVertexProperty(override val graph: Graph) : VertexProperty<No
 internal fun <T : S?, S, G> immutableArrayVertexProperty(
     graph: G,
     clazz: Class<S>,
-    initializer: (Vertex) -> T
-): VertexProperty<T> where G : ImmutableGraph, G : IndexedVertexGraph {
+    initializer: VertexInitializer<T>
+): VertexProperty<T> where G : ImmutableGraph, G : VertexIndexedVertexGraph {
     return when (clazz) {
         java.lang.Boolean::class.java -> ImmutableArrayBooleanVertexProperty(
             graph,
-            initializer as (Vertex) -> Boolean
+            initializer as VertexInitializer<Boolean>
         ) as VertexProperty<T>
 
         Integer::class.java -> ImmutableArray4ByteVertexProperty(
             graph,
-            initializer as (Vertex) -> Int,
+            initializer as VertexInitializer<Int>,
             { it },
             { it }) as VertexProperty<T>
 
         java.lang.Float::class.java -> ImmutableArray4ByteVertexProperty(
             graph,
-            initializer as (Vertex) -> Float,
+            initializer as VertexInitializer<Float>,
             { java.lang.Float.floatToRawIntBits(it) },
             { java.lang.Float.intBitsToFloat(it) }) as VertexProperty<T>
 
         java.lang.Long::class.java -> ImmutableArray8ByteVertexProperty(
             graph,
-            initializer as (Vertex) -> Long,
+            initializer as VertexInitializer<Long>,
             { it },
             { it }) as VertexProperty<T>
 
         java.lang.Double::class.java -> ImmutableArray8ByteVertexProperty(
             graph,
-            initializer as (Vertex) -> Double,
+            initializer as VertexInitializer<Double>,
             { java.lang.Double.doubleToRawLongBits(it) },
             { java.lang.Double.longBitsToDouble(it) }) as VertexProperty<T>
 
@@ -63,97 +63,121 @@ internal fun <T : S?, S, G> immutableArrayVertexProperty(
     }
 }
 
-private class ImmutableArrayBooleanVertexProperty(
-    override val graph: ImmutableGraph,
-    initializer: (Vertex) -> Boolean
-) : VertexProperty<Boolean> {
-    private val property: BooleanArray = BooleanArray(graph.vertices.size) { initializer(Vertex(it)) }
+private class ImmutableArrayBooleanVertexProperty<G>(
+    override val graph: G,
+    initializer: VertexInitializer<Boolean>
+) : VertexProperty<Boolean> where G : ImmutableGraph, G : VertexIndexedVertexGraph {
+    private val property: BooleanArray = BooleanArray(graph.vertices.size) { initializer.initialize(Vertex(it)) }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("get")
     override fun get(vertex: Vertex): Boolean {
-        if (vertex.intValue !in 0..<property.size) throw IllegalArgumentException("$vertex not found in property")
-        return property[vertex.intValue]
+        try {
+            return property[vertex.intValue]
+        } catch (e: ArrayIndexOutOfBoundsException) {
+            throw IllegalArgumentException("$vertex not found in property", e)
+        }
     }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("set")
     override fun set(vertex: Vertex, value: Boolean) {
-        if (vertex.intValue !in 0..<property.size) throw IllegalArgumentException("$vertex not found in property")
-        property[vertex.intValue] = value
+        try {
+            property[vertex.intValue] = value
+        } catch (e: ArrayIndexOutOfBoundsException) {
+            throw IllegalArgumentException("$vertex not found in property", e)
+        }
     }
 }
 
 private inline fun <T, G> ImmutableArray4ByteVertexProperty(
     graph: G,
-    crossinline initializer: (Vertex) -> T,
+    initializer: VertexInitializer<T>,
     crossinline write: (T) -> Int,
     crossinline read: (Int) -> T
-): VertexProperty<T> where G : ImmutableGraph, G : IndexedVertexGraph = object : VertexProperty<T> {
+): VertexProperty<T> where G : ImmutableGraph, G : VertexIndexedVertexGraph = object : VertexProperty<T> {
 
     override val graph: Graph get() = graph
-    private val property: IntArray = IntArray(graph.vertices.size) { write(initializer(Vertex(it))) }
+    private val property: IntArray = IntArray(graph.vertices.size) { write(initializer.initialize(Vertex(it))) }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("get")
     override fun get(vertex: Vertex): T {
-        if (vertex.intValue !in 0..<property.size) throw IllegalArgumentException("$vertex not found in property")
-        return read(property[vertex.intValue])
+        try {
+            return read(property[vertex.intValue])
+        } catch (e: ArrayIndexOutOfBoundsException) {
+            throw IllegalArgumentException("$vertex not found in property", e)
+        }
     }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("set")
     override fun set(vertex: Vertex, value: T) {
-        if (vertex.intValue !in 0..<property.size) throw IllegalArgumentException("$vertex not found in property")
-        property[vertex.intValue] = write(value)
+        try {
+            property[vertex.intValue] = write(value)
+        } catch (e: ArrayIndexOutOfBoundsException) {
+            throw IllegalArgumentException("$vertex not found in property", e)
+        }
     }
 }
 
 private inline fun <T, G> ImmutableArray8ByteVertexProperty(
     graph: G,
-    crossinline initializer: (Vertex) -> T,
+    initializer: VertexInitializer<T>,
     crossinline write: (T) -> Long,
     crossinline read: (Long) -> T
-): VertexProperty<T> where G : ImmutableGraph, G : IndexedVertexGraph = object : VertexProperty<T> {
+): VertexProperty<T> where G : ImmutableGraph, G : VertexIndexedVertexGraph = object : VertexProperty<T> {
 
     override val graph: Graph get() = graph
-    private val property: LongArray = LongArray(graph.vertices.size) { write(initializer(Vertex(it))) }
+    private val property: LongArray = LongArray(graph.vertices.size) { write(initializer.initialize(Vertex(it))) }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("get")
     override fun get(vertex: Vertex): T {
-        if (vertex.intValue !in 0..<property.size) throw IllegalArgumentException("$vertex not found in property")
-        return read(property[vertex.intValue])
+        try {
+            return read(property[vertex.intValue])
+        } catch (e: ArrayIndexOutOfBoundsException) {
+            throw IllegalArgumentException("$vertex not found in property", e)
+        }
     }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("set")
     override fun set(vertex: Vertex, value: T) {
-        if (vertex.intValue !in 0..<property.size) throw IllegalArgumentException("$vertex not found in property")
-        property[vertex.intValue] = write(value)
+        try {
+            property[vertex.intValue] = write(value)
+        } catch (e: ArrayIndexOutOfBoundsException) {
+            throw IllegalArgumentException("$vertex not found in property", e)
+        }
     }
 }
 
 private class ImmutableArrayVertexProperty<T, G>(
     override val graph: G,
-    initializer: (Vertex) -> T
-) : VertexProperty<T> where G : ImmutableGraph, G : IndexedVertexGraph {
+    initializer: VertexInitializer<T>
+) : VertexProperty<T> where G : ImmutableGraph, G : VertexIndexedVertexGraph {
 
     @Suppress("UNCHECKED_CAST")
-    private val property: Array<T> = Array<Any?>(graph.vertices.size) { initializer(Vertex(it)) } as Array<T>
+    private val property: Array<T> = Array<Any?>(graph.vertices.size) { initializer.initialize(Vertex(it)) } as Array<T>
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("get")
     override fun get(vertex: Vertex): T {
-        if (vertex.intValue !in 0..<property.size) throw IllegalArgumentException("$vertex not found in property")
-        return property[vertex.intValue]
+        try {
+            return property[vertex.intValue]
+        } catch (e: ArrayIndexOutOfBoundsException) {
+            throw IllegalArgumentException("$vertex not found in property", e)
+        }
     }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("set")
     override fun set(vertex: Vertex, value: T) {
-        if (vertex.intValue !in 0..<property.size) throw IllegalArgumentException("$vertex not found in property")
-        property[vertex.intValue] = value
+        try {
+            property[vertex.intValue] = value
+        } catch (e: ArrayIndexOutOfBoundsException) {
+            throw IllegalArgumentException("$vertex not found in property", e)
+        }
     }
 }
 
@@ -169,37 +193,37 @@ internal interface MutableVertexProperty<V> : VertexProperty<V> {
 
 @Suppress("UNCHECKED_CAST", "PLATFORM_CLASS_MAPPED_TO_KOTLIN")
 internal fun <T : S?, S> mutableArrayListVertexProperty(
-    graph: IndexedVertexGraph,
+    graph: VertexIndexedVertexGraph,
     clazz: Class<S>,
-    initializer: (Vertex) -> T
+    initializer: VertexInitializer<T>
 ): MutableVertexProperty<T> {
     return when (clazz) {
         java.lang.Boolean::class.java -> MutableArrayListBooleanVertexProperty(
             graph,
-            initializer as (Vertex) -> Boolean,
+            initializer as VertexInitializer<Boolean>,
         ) as MutableVertexProperty<T>
 
         Integer::class.java -> MutableArrayList4ByteVertexProperty(
             graph,
-            initializer as (Vertex) -> Int,
+            initializer as VertexInitializer<Int>,
             { it },
             { it }) as MutableVertexProperty<T>
 
         java.lang.Float::class.java -> MutableArrayList4ByteVertexProperty(
             graph,
-            initializer as (Vertex) -> Float,
+            initializer as VertexInitializer<Float>,
             { java.lang.Float.floatToRawIntBits(it) },
             { java.lang.Float.intBitsToFloat(it) }) as MutableVertexProperty<T>
 
         java.lang.Long::class.java -> MutableArrayList8ByteVertexProperty(
             graph,
-            initializer as (Vertex) -> Long,
+            initializer as VertexInitializer<Long>,
             { it },
             { it }) as MutableVertexProperty<T>
 
         java.lang.Double::class.java -> MutableArrayList8ByteVertexProperty(
             graph,
-            initializer as (Vertex) -> Double,
+            initializer as VertexInitializer<Double>,
             { java.lang.Double.doubleToRawLongBits(it) },
             { java.lang.Double.longBitsToDouble(it) }) as MutableVertexProperty<T>
 
@@ -208,8 +232,8 @@ internal fun <T : S?, S> mutableArrayListVertexProperty(
 }
 
 private class MutableArrayListBooleanVertexProperty(
-    override val graph: IndexedVertexGraph,
-    private val initializer: (Vertex) -> Boolean
+    override val graph: VertexIndexedVertexGraph,
+    private val initializer: VertexInitializer<Boolean>
 ) : MutableVertexProperty<Boolean> {
 
     // we don't use BooleanArrayList because it doesn't properly implement ensureCapacity as we'd expect (it expands to
@@ -218,40 +242,50 @@ private class MutableArrayListBooleanVertexProperty(
     private var propertySize = 0
 
     private fun expand(size: Int) {
-        assert(size <= graph.vertices.size)
-        if (size > property.size) {
-            property = BooleanArrays.grow(property, max(10, size))
+        if (size > propertySize) {
+            require(size <= graph.vertices.size)
+            property = BooleanArrays.grow(property, size)
             for (i in propertySize..<size) {
-                property[i] = initializer(graph.vertices[i])
+                property[i] = initializer.initialize(Vertex(i))
             }
             propertySize = size
         }
     }
 
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("get")
     override fun get(vertex: Vertex): Boolean {
-        val index = graph.vertices.indexOf(vertex)
-        require(index >= 0) { "$vertex not found in graph" }
-        expand(index + 1)
-        return property[index]
+        val index = vertex.intValue
+        try {
+            expand(index + 1)
+            return property[index]
+        } catch (e: ArrayIndexOutOfBoundsException) {
+            throw IllegalArgumentException("$vertex not found in graph", e)
+        }
     }
 
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("set")
     override fun set(vertex: Vertex, value: Boolean) {
-        val index = graph.vertices.indexOf(vertex)
-        require(index >= 0) { "$vertex not found in graph" }
-        expand(index + 1)
-        property[index] = value
+        val index = vertex.intValue
+        try {
+            expand(index + 1)
+            property[index] = value
+        } catch (e: ArrayIndexOutOfBoundsException) {
+            throw IllegalArgumentException("$vertex not found in graph", e)
+        }
     }
 
     override fun swapAndRemove(removeVertex: Vertex, swapVertex: Vertex) {
-        val oldIndex = graph.vertices.indexOf(removeVertex)
-        require(oldIndex >= 0) { "$removeVertex not found in graph" }
-        val newIndex = graph.vertices.indexOf(swapVertex)
-        require(newIndex >= 0) { "$swapVertex not found in graph" }
+        val oldIndex = removeVertex.intValue
+        require(oldIndex in 0..<graph.vertices.size) { "$removeVertex not found in graph" }
+        val newIndex = swapVertex.intValue
+        require(newIndex in 0..<graph.vertices.size) { "$swapVertex not found in graph" }
 
         assert(oldIndex == graph.vertices.lastIndex)
         if (oldIndex != newIndex && newIndex < propertySize) {
             if (oldIndex >= propertySize) {
-                property[newIndex] = initializer(removeVertex)
+                property[newIndex] = initializer.initialize(removeVertex)
             } else {
                 property[newIndex] = property[oldIndex]
             }
@@ -267,8 +301,8 @@ private class MutableArrayListBooleanVertexProperty(
 }
 
 private inline fun <T> MutableArrayList4ByteVertexProperty(
-    graph: IndexedVertexGraph,
-    crossinline initializer: (Vertex) -> T,
+    graph: VertexIndexedVertexGraph,
+    initializer: VertexInitializer<T>,
     crossinline write: (T) -> Int,
     crossinline read: (Int) -> T
 ): MutableVertexProperty<T> = object : MutableVertexProperty<T> {
@@ -280,40 +314,50 @@ private inline fun <T> MutableArrayList4ByteVertexProperty(
     private var propertySize = 0
 
     private fun expand(size: Int) {
-        assert(size <= graph.vertices.size)
-        if (size > property.size) {
-            property = IntArrays.grow(property, max(10, size))
+        if (size > propertySize) {
+            require(size <= graph.vertices.size)
+            property = IntArrays.grow(property, size)
             for (i in propertySize..<size) {
-                property[i] = write(initializer(graph.vertices[i]))
+                property[i] = write(initializer.initialize(Vertex(i)))
             }
             propertySize = size
         }
     }
 
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("get")
     override fun get(vertex: Vertex): T {
-        val index = graph.vertices.indexOf(vertex)
-        require(index >= 0) { "$vertex not found in graph" }
-        expand(index + 1)
-        return read(property[index])
+        val index = vertex.intValue
+        try {
+            expand(index + 1)
+            return read(property[index])
+        } catch (e: ArrayIndexOutOfBoundsException) {
+            throw IllegalArgumentException("$vertex not found in graph", e)
+        }
     }
 
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("set")
     override fun set(vertex: Vertex, value: T) {
-        val index = graph.vertices.indexOf(vertex)
-        require(index >= 0) { "$vertex not found in graph" }
-        expand(index + 1)
-        property[index] = write(value)
+        val index = vertex.intValue
+        try {
+            expand(index + 1)
+            property[index] = write(value)
+        } catch (e: ArrayIndexOutOfBoundsException) {
+            throw IllegalArgumentException("$vertex not found in graph", e)
+        }
     }
 
     override fun swapAndRemove(removeVertex: Vertex, swapVertex: Vertex) {
-        val oldIndex = graph.vertices.indexOf(removeVertex)
-        require(oldIndex >= 0) { "$removeVertex not found in graph" }
-        val newIndex = graph.vertices.indexOf(swapVertex)
-        require(newIndex >= 0) { "$swapVertex not found in graph" }
+        val oldIndex = removeVertex.intValue
+        require(oldIndex in 0..<graph.vertices.size) { "$removeVertex not found in graph" }
+        val newIndex = swapVertex.intValue
+        require(newIndex in 0..<graph.vertices.size) { "$swapVertex not found in graph" }
 
         assert(oldIndex == graph.vertices.lastIndex)
         if (oldIndex != newIndex && newIndex < propertySize) {
             if (oldIndex >= propertySize) {
-                property[newIndex] = write(initializer(removeVertex))
+                property[newIndex] = write(initializer.initialize(removeVertex))
             } else {
                 property[newIndex] = property[oldIndex]
             }
@@ -329,8 +373,8 @@ private inline fun <T> MutableArrayList4ByteVertexProperty(
 }
 
 private inline fun <T> MutableArrayList8ByteVertexProperty(
-    graph: IndexedVertexGraph,
-    crossinline initializer: (Vertex) -> T,
+    graph: VertexIndexedVertexGraph,
+    initializer: VertexInitializer<T>,
     crossinline write: (T) -> Long,
     crossinline read: (Long) -> T
 ): MutableVertexProperty<T> = object : MutableVertexProperty<T> {
@@ -342,40 +386,50 @@ private inline fun <T> MutableArrayList8ByteVertexProperty(
     private var propertySize = 0
 
     private fun expand(size: Int) {
-        assert(size <= graph.vertices.size)
-        if (size > property.size) {
-            property = LongArrays.grow(property, max(10, size))
+        if (size > propertySize) {
+            require(size <= graph.vertices.size)
+            property = LongArrays.grow(property, size)
             for (i in propertySize..<size) {
-                property[i] = write(initializer(graph.vertices[i]))
+                property[i] = write(initializer.initialize(Vertex(i)))
             }
             propertySize = size
         }
     }
 
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("get")
     override fun get(vertex: Vertex): T {
-        val index = graph.vertices.indexOf(vertex)
-        require(index >= 0) { "$vertex not found in graph" }
-        expand(index + 1)
-        return read(property[index])
+        val index = vertex.intValue
+        try {
+            expand(index + 1)
+            return read(property[index])
+        } catch (e: ArrayIndexOutOfBoundsException) {
+            throw IllegalArgumentException("$vertex not found in graph", e)
+        }
     }
 
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("set")
     override fun set(vertex: Vertex, value: T) {
-        val index = graph.vertices.indexOf(vertex)
-        require(index >= 0) { "$vertex not found in graph" }
-        expand(index + 1)
-        property[index] = write(value)
+        val index = vertex.intValue
+        try {
+            expand(index + 1)
+            property[index] = write(value)
+        } catch (e: ArrayIndexOutOfBoundsException) {
+            throw IllegalArgumentException("$vertex not found in graph", e)
+        }
     }
 
     override fun swapAndRemove(removeVertex: Vertex, swapVertex: Vertex) {
-        val oldIndex = graph.vertices.indexOf(removeVertex)
-        require(oldIndex >= 0) { "$removeVertex not found in graph" }
-        val newIndex = graph.vertices.indexOf(swapVertex)
-        require(newIndex >= 0) { "$swapVertex not found in graph" }
+        val oldIndex = removeVertex.intValue
+        require(oldIndex in 0..<graph.vertices.size) { "$removeVertex not found in graph" }
+        val newIndex = swapVertex.intValue
+        require(newIndex in 0..<graph.vertices.size) { "$swapVertex not found in graph" }
 
         assert(oldIndex == graph.vertices.lastIndex)
         if (oldIndex != newIndex && newIndex < propertySize) {
             if (oldIndex >= propertySize) {
-                property[newIndex] = write(initializer(removeVertex))
+                property[newIndex] = write(initializer.initialize(removeVertex))
             } else {
                 property[newIndex] = property[oldIndex]
             }
@@ -391,44 +445,56 @@ private inline fun <T> MutableArrayList8ByteVertexProperty(
 }
 
 private class MutableArrayListVertexProperty<T>(
-    override val graph: IndexedVertexGraph,
-    private val initializer: (Vertex) -> T
+    override val graph: VertexIndexedVertexGraph,
+    private val initializer: VertexInitializer<T>
 ) : MutableVertexProperty<T> {
 
     private val property = ArrayList<T>(graph.vertices.size)
 
     private fun expand(size: Int) {
-        assert(size <= graph.vertices.size)
-        property.ensureCapacity(size)
-        for (i in property.size..<size) {
-            property.add(initializer(graph.vertices[i]))
+        if (size > property.size) {
+            require(size <= graph.vertices.size)
+            property.ensureCapacity(graph.vertices.size)
+            for (i in property.size..<size) {
+                property.add(initializer.initialize(Vertex(i)))
+            }
         }
     }
 
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("get")
     override fun get(vertex: Vertex): T {
-        val index = graph.vertices.indexOf(vertex)
-        require(vertex.intValue >= 0) { "$vertex not found in graph" }
-        expand(index + 1)
-        return property[index]
+        val index = vertex.intValue
+        try {
+            expand(index + 1)
+            return property[index]
+        } catch (e: ArrayIndexOutOfBoundsException) {
+            throw IllegalArgumentException("$vertex not found in graph", e)
+        }
     }
 
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("set")
     override fun set(vertex: Vertex, value: T) {
-        val index = graph.vertices.indexOf(vertex)
-        require(vertex.intValue >= 0) { "$vertex not found in graph" }
-        expand(index + 1)
-        property[index] = value
+        val index = vertex.intValue
+        try {
+            expand(index + 1)
+            property[index] = value
+        } catch (e: ArrayIndexOutOfBoundsException) {
+            throw IllegalArgumentException("$vertex not found in graph", e)
+        }
     }
 
     override fun swapAndRemove(removeVertex: Vertex, swapVertex: Vertex) {
-        val oldIndex = graph.vertices.indexOf(removeVertex)
-        require(oldIndex >= 0) { "$removeVertex not found in graph" }
-        val newIndex = graph.vertices.indexOf(swapVertex)
-        require(newIndex >= 0) { "$swapVertex not found in graph" }
+        val oldIndex = removeVertex.intValue
+        require(oldIndex in 0..<graph.vertices.size) { "$removeVertex not found in graph" }
+        val newIndex = swapVertex.intValue
+        require(newIndex in 0..<graph.vertices.size) { "$swapVertex not found in graph" }
 
         assert(oldIndex == graph.vertices.lastIndex)
         if (removeVertex != swapVertex && swapVertex.intValue < property.size) {
             if (removeVertex.intValue > property.lastIndex) {
-                property[swapVertex.intValue] = initializer(removeVertex)
+                property[swapVertex.intValue] = initializer.initialize(removeVertex)
             } else {
                 property[swapVertex.intValue] = property[removeVertex.intValue]
             }
@@ -438,5 +504,7 @@ private class MutableArrayListVertexProperty<T>(
         }
     }
 
-    override fun ensureCapacity(capacity: Int) = property.ensureCapacity(capacity)
+    override fun ensureCapacity(capacity: Int) {
+        property.ensureCapacity(capacity)
+    }
 }

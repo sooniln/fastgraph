@@ -61,6 +61,8 @@ dokka {
 
 tasks.test {
     useJUnitPlatform()
+
+    enableAssertions = true
 }
 
 jmh {

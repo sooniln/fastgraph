@@ -8,6 +8,8 @@ import io.github.sooniln.fastgraph.AbstractImmutableGraph
 import io.github.sooniln.fastgraph.AbstractVertexCollection
 import io.github.sooniln.fastgraph.AbstractVertexSetList
 import io.github.sooniln.fastgraph.Edge
+import io.github.sooniln.fastgraph.EdgeIndexedEdgeGraph
+import io.github.sooniln.fastgraph.EdgeInitializer
 import io.github.sooniln.fastgraph.EdgeIterator
 import io.github.sooniln.fastgraph.EdgeProperty
 import io.github.sooniln.fastgraph.EdgeReference
@@ -16,10 +18,10 @@ import io.github.sooniln.fastgraph.EdgeSetList
 import io.github.sooniln.fastgraph.GraphMutator
 import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.ImmutableGraphBuilder
-import io.github.sooniln.fastgraph.IndexedEdgeGraph
-import io.github.sooniln.fastgraph.IndexedVertexGraph
 import io.github.sooniln.fastgraph.PropertyGraph
 import io.github.sooniln.fastgraph.Vertex
+import io.github.sooniln.fastgraph.VertexIndexedVertexGraph
+import io.github.sooniln.fastgraph.VertexInitializer
 import io.github.sooniln.fastgraph.VertexIterator
 import io.github.sooniln.fastgraph.VertexProperty
 import io.github.sooniln.fastgraph.VertexReference
@@ -44,7 +46,7 @@ internal class ImmutableAdjacencyListNetwork(
     _predecessors: Successors?,
     override val multiEdge: Boolean,
     private val edgeValues: EdgeValueArray,
-) : AbstractImmutableGraph(), IndexedVertexGraph, IndexedEdgeGraph {
+) : AbstractImmutableGraph(), VertexIndexedVertexGraph, EdgeIndexedEdgeGraph {
 
     private val predecessors: Successors by lazy {
         check(directed)
@@ -201,13 +203,16 @@ internal class ImmutableAdjacencyListNetwork(
     }
 
     @Suppress("UNCHECKED_CAST", "PLATFORM_CLASS_MAPPED_TO_KOTLIN")
-    override fun <T : S?, S> createVertexProperty(clazz: Class<S>, initializer: (Vertex) -> T): VertexProperty<T> {
+    override fun <T : S?, S> createVertexProperty(
+        clazz: Class<S>,
+        initializer: VertexInitializer<T>
+    ): VertexProperty<T> {
         return immutableArrayVertexProperty(this, clazz, initializer)
     }
 
     @Suppress("UNCHECKED_CAST", "PLATFORM_CLASS_MAPPED_TO_KOTLIN")
-    override fun <T : S?, S> createEdgeProperty(clazz: Class<S>, initializer: (Edge) -> T): EdgeProperty<T> {
-        return immutableArrayEdgeProperty(this, clazz) { initializer(edges[it]) }
+    override fun <T : S?, S> createEdgeProperty(clazz: Class<S>, initializer: EdgeInitializer<T>): EdgeProperty<T> {
+        return immutableArrayEdgeProperty(this, clazz, initializer)
     }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
@@ -478,6 +483,14 @@ internal value class SuccessorArray(private val arr: IntArray) : EdgeAdjacencySe
     override fun toString(): String = joinToString(", ", "[", "]") { it.toString() }
 }
 
+// creates an array with the following format:
+// [0] = total number of edges represented
+// [1] = (#V) total number of distinct target vertices represented by edges
+// [2 -> (#V + 2)] = a list of target vertices in sorted order. for the given target vertex, if there is only one edge
+// for this target vertex, the edge id for that edge. if there is more than one edge for this target vertex, this
+// contains a negative index (-#VE) to deeper in the array where a list of edge ids for this target vertex can be found.
+// [#VE] = the number of edge ids (#E) listed in the next indices
+// [#VE + 1 -> #VE + 1 + #E] = a list of edge ids in sorted order
 private fun toSuccessorArray(map: Int2ObjectMap<out IntList>): IntArray {
     if (map.isEmpty()) {
         return IntArray(0)
@@ -516,6 +529,7 @@ private fun toSuccessorArray(map: Int2ObjectMap<out IntList>): IntArray {
     return arr
 }
 
+// TODO: use graph internally
 internal class ImmutableAdjacencyListNetworkBuilder<V, E> internal constructor(
     private val directed: Boolean,
     private val supportMultiEdge: Boolean,
@@ -528,14 +542,14 @@ internal class ImmutableAdjacencyListNetworkBuilder<V, E> internal constructor(
     private val vertexMap = Object2IntOpenHashMap<V>()
 
     private var vertexPropertyClass: Class<V>? = null
-    private var vertexPropertyInitializer: ((Vertex) -> V)? = null
+    private var vertexPropertyInitializer: VertexInitializer<V>? = null
     private var vertexProperty: ArrayList<V>? = null
 
     private var edgePropertyClass: Class<E>? = null
-    private var edgePropertyInitializer: ((Edge) -> E)? = null
+    private var edgePropertyInitializer: EdgeInitializer<E>? = null
     private var edgeProperty: Long2ObjectOpenHashMap<E>? = null
 
-    override fun withVertexProperty(clazz: Class<V>, initializer: (Vertex) -> V): ImmutableGraphBuilder<V, E> {
+    override fun withVertexProperty(clazz: Class<V>, initializer: VertexInitializer<V>): ImmutableGraphBuilder<V, E> {
         check(successors.isEmpty())
         vertexPropertyClass = clazz
         vertexPropertyInitializer = initializer
@@ -543,7 +557,7 @@ internal class ImmutableAdjacencyListNetworkBuilder<V, E> internal constructor(
         return this
     }
 
-    override fun withEdgeProperty(clazz: Class<E>, initializer: (Edge) -> E): ImmutableGraphBuilder<V, E> {
+    override fun withEdgeProperty(clazz: Class<E>, initializer: EdgeInitializer<E>): ImmutableGraphBuilder<V, E> {
         check(successors.isEmpty())
         edgePropertyClass = clazz
         edgePropertyInitializer = initializer
@@ -558,7 +572,7 @@ internal class ImmutableAdjacencyListNetworkBuilder<V, E> internal constructor(
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("addVertex")
-    override fun addVertex(): Vertex = addVertexInternal(false) { vertexPropertyInitializer!!(it) }
+    override fun addVertex(): Vertex = addVertexInternal(false) { vertexPropertyInitializer!!.initialize(it) }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("addVertex")
@@ -580,7 +594,7 @@ internal class ImmutableAdjacencyListNetworkBuilder<V, E> internal constructor(
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("addEdge")
     override fun addEdge(source: Vertex, target: Vertex): Edge =
-        addEdgeInternal(source, target) { edgePropertyInitializer!!(it) }
+        addEdgeInternal(source, target) { edgePropertyInitializer!!.initialize(it) }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("addEdge")
@@ -634,6 +648,12 @@ internal class ImmutableAdjacencyListNetworkBuilder<V, E> internal constructor(
         } else {
             Vertex(vertexMap.getInt(key))
         }
+    }
+
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("hasVertex")
+    override fun hasVertex(value: V): Boolean {
+        return vertexMap.containsKey(value)
     }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
