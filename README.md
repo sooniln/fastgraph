@@ -3,7 +3,7 @@
 
 # FastGraph
 
-A highly efficient mathematical graph-theory library for JVM.
+A high performance mathematical graph-theory library for JVM.
 
 FastGraph is designed primarily read-heavy work. When there is a design choice between optimizing read paths vs write
 paths in this library, generally read paths are optimized at the expense of write paths.
