@@ -134,9 +134,7 @@ and capabilities see the [Getting Started](docs/GETTING_STARTED.md) docs.
 The main competitor graph-theory libraries for Java/Kotlin are [JGraphT](https://jgrapht.org/) and
 [Guava Graphs](https://github.com/google/guava/wiki/GraphsExplained). There also exists
 [JUNG](https://github.com/jrtom/jung), but this is an older and unmaintained library which has partly been superseded
-by Guava Graphs. There is also [Cassovary](https://github.com/twitter/cassovary/), an older graph library from Twitter
-which does not appear to be actively maintained, but is supposedly more performance oriented. I would have liked to
-compare performance and useability with Cassovary as well, but frankly didn't have the time.
+by Guava Graphs and JGraphT.
 
 Some (biased) observations on these libraries:
 
