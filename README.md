@@ -21,7 +21,7 @@ You can add FastGraph as a dependency in your project with:
 #### Gradle
 
 ```groovy
-implementation 'io.github.sooniln:fastgraph:0.2.0'
+implementation 'io.github.sooniln:fastgraph:0.2.1'
 ```
 
 #### Maven
@@ -30,7 +30,7 @@ implementation 'io.github.sooniln:fastgraph:0.2.0'
 <dependency>
     <groupId>io.github.sooniln</groupId>
     <artifactId>fastgraph</artifactId>
-    <version>0.2.0</version>
+    <version>0.2.1</version>
 </dependency>
 ```
 
