@@ -13,6 +13,9 @@ import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongArrays
 
+private const val DEFAULT_POISON_INT = Int.MIN_VALUE + 2
+private const val DEFAULT_POISON_LONG = Long.MIN_VALUE + 2
+
 @Suppress("UNCHECKED_CAST")
 internal fun <T> emptyEdgeProperty(graph: Graph): EdgeProperty<T> = EmptyEdgeProperty(graph) as EdgeProperty<T>
 
@@ -86,8 +89,9 @@ private inline fun <T> ImmutableMap4ByteEdgeProperty(
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("get")
     override fun get(edge: Edge): T {
-        require(property.containsKey(edge.longValue)) { "$edge not found in property" }
-        return read(property.get(edge.longValue))
+        val value = property.getOrDefault(edge.longValue, DEFAULT_POISON_INT)
+        require(value != DEFAULT_POISON_INT || property.containsKey(edge.longValue)) { "$edge not found in property" }
+        return read(value)
     }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
@@ -117,8 +121,9 @@ private inline fun <T> ImmutableMap8ByteEdgeProperty(
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("get")
     override fun get(edge: Edge): T {
-        require(property.containsKey(edge.longValue)) { "$edge not found in property" }
-        return read(property.get(edge.longValue))
+        val value = property.getOrDefault(edge.longValue, DEFAULT_POISON_LONG)
+        require(value != DEFAULT_POISON_LONG || property.containsKey(edge.longValue)) { "$edge not found in property" }
+        return read(value)
     }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
@@ -145,8 +150,9 @@ private class ImmutableMapEdgeProperty<T>(
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("get")
     override fun get(edge: Edge): T {
-        require(property.containsKey(edge.longValue)) { "$edge not found in property" }
-        return property.get(edge.longValue)
+        val value = property.getOrDefault(edge.longValue, null)
+        require(value != null || property.containsKey(edge.longValue)) { "$edge not found in property" }
+        return value
     }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
@@ -390,15 +396,15 @@ private inline fun <T> MutableMap4ByteEdgeProperty(
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("get")
     override fun get(edge: Edge): T {
-        val value: T
-        if (!property.containsKey(edge.longValue)) {
+        val value = property.getOrDefault(edge.longValue, DEFAULT_POISON_INT)
+        if (value == DEFAULT_POISON_INT && !property.containsKey(edge.longValue)) {
             require(graph.edges.contains(edge)) { "$edge not found in graph" }
-            value = initializer.initialize(edge)
-            property[edge.longValue] = write(value)
+            val retValue = initializer.initialize(edge)
+            property[edge.longValue] = write(retValue)
+            return retValue
         } else {
-            value = read(property.get(edge.longValue))
+            return read(value)
         }
-        return value
     }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
@@ -435,15 +441,15 @@ private inline fun <T> MutableMap8ByteEdgeProperty(
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("get")
     override fun get(edge: Edge): T {
-        val value: T
-        if (!property.containsKey(edge.longValue)) {
-            require(graph.edges.contains(edge)) { "$edge (${graph.edgeSource(edge)} -> ${graph.edgeTarget(edge)}) not found in graph" }
-            value = initializer.initialize(edge)
-            property[edge.longValue] = write(value)
+        val value = property.getOrDefault(edge.longValue, DEFAULT_POISON_LONG)
+        if (value == DEFAULT_POISON_LONG && !property.containsKey(edge.longValue)) {
+            require(graph.edges.contains(edge)) { "$edge not found in graph" }
+            val retValue = initializer.initialize(edge)
+            property[edge.longValue] = write(retValue)
+            return retValue
         } else {
-            value = read(property.get(edge.longValue))
+            return read(value)
         }
-        return value
     }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
@@ -475,13 +481,13 @@ private class MutableMapEdgeProperty<T>(override val graph: Graph, private val i
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("get")
     override fun get(edge: Edge): T {
-        var t = property[edge.longValue]
-        if (t == null && !property.containsKey(edge.longValue)) {
+        var value = property.getOrDefault(edge.longValue, null)
+        if (value == null && !property.containsKey(edge.longValue)) {
             require(graph.edges.contains(edge)) { "$edge not found in property" }
-            t = initializer.initialize(edge)
-            property[edge.longValue] = t
+            value = initializer.initialize(edge)
+            property[edge.longValue] = value
         }
-        return t
+        return value
     }
 
     @Suppress("INAPPLICABLE_JVM_NAME")

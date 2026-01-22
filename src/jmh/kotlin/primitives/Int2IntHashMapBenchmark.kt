@@ -88,4 +88,13 @@ open class Int2IntHashMapBenchmark {
         }
         return c
     }
+
+    @Benchmark
+    fun iterateValues(): Int {
+        var c = 0
+        for (i in map.values) {
+            c += i
+        }
+        return c
+    }
 }

@@ -11,7 +11,7 @@ import org.openjdk.jmh.annotations.State
 import org.openjdk.jmh.annotations.Warmup
 import java.util.concurrent.TimeUnit
 
-@Fork(1)
+@Fork(1, jvmArgsAppend = ["-Djdk.attach.allowAttachSelf"])
 @Warmup(iterations = 4, time = 20)
 @Measurement(iterations = 4, time = 20)
 @State(Scope.Benchmark)

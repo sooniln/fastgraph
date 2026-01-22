@@ -147,10 +147,11 @@ interface Int2IntMap : Map<Int, Int> {
 }
 
 inline fun Int2IntMap.getOrElse(key: Int, defaultValue: () -> Int): Int {
-    return if (containsKey(key)) {
-        get(key)
-    } else {
+    val value = get(key)
+    return if (value == poisonValue && !containsKey(key)) {
         defaultValue()
+    } else {
+        value
     }
 }
 

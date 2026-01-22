@@ -68,8 +68,6 @@ tasks.test {
 jmh {
     includeTests = false
     verbosity = "EXTRA"
-
-    //jvmArgs.add("-Djdk.attach.allowAttachSelf")
 }
 
 mavenPublishing {
@@ -80,7 +78,7 @@ mavenPublishing {
 
     pom {
         name = "fastgraph"
-        description = "A highly efficient mathematical graph-theory library for JVM."
+        description = "A high performance mathematical graph-theory library for JVM."
         inceptionYear = "2026"
         url = "https://github.com/sooniln/fastgraph"
         licenses {
