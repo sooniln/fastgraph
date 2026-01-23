@@ -33,7 +33,7 @@ import kotlin.contracts.contract
  *
  * To create immutable graphs, see the [immutableGraph] factory method.
  */
-sealed interface ImmutableGraph : Graph, IndexedVertexGraph
+sealed interface ImmutableGraph : Graph
 
 // exists purely to allow implementations in different packages
 internal abstract class AbstractImmutableGraph : ImmutableGraph
