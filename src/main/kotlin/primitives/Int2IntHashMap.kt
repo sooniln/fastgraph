@@ -18,7 +18,7 @@ import kotlin.math.max
  *
  * Implementation uses robin hood hashing with backwards shift deletion.
  */
-class Int2IntHashMap(
+internal class Int2IntHashMap(
     capacity: Int = DEFAULT_INITIAL_CAPACITY,
     private val loadFactor: Float = DEFAULT_LOAD_FACTOR,
     override val poisonValue: Int = -1

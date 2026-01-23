@@ -2,9 +2,9 @@ package io.github.sooniln.fastgraph.primitives
 
 import io.github.sooniln.fastgraph.primitives.Int2IntMap.Int2IntEntry
 
-abstract class MutableIntIterator : IntIterator(), MutableIterator<Int>
+internal abstract class MutableIntIterator : IntIterator(), MutableIterator<Int>
 
-fun emptyIntIterator(): MutableIntIterator = EmptyIntIterator
+internal fun emptyIntIterator(): MutableIntIterator = EmptyIntIterator
 
 private object EmptyIntIterator : MutableIntIterator() {
     override fun hasNext(): Boolean = false
@@ -12,7 +12,7 @@ private object EmptyIntIterator : MutableIntIterator() {
     override fun remove() = throw IllegalStateException()
 }
 
-interface IntCollection : Collection<Int> {
+internal interface IntCollection : Collection<Int> {
     override fun contains(element: Int): Boolean
 
     override fun containsAll(elements: Collection<Int>): Boolean {
@@ -32,7 +32,7 @@ interface IntCollection : Collection<Int> {
     override fun iterator(): IntIterator
 }
 
-interface MutableIntCollection : IntCollection, MutableCollection<Int> {
+internal interface MutableIntCollection : IntCollection, MutableCollection<Int> {
     override fun isEmpty(): Boolean {
         return size == 0
     }
@@ -99,18 +99,18 @@ interface MutableIntCollection : IntCollection, MutableCollection<Int> {
     override fun iterator(): MutableIntIterator
 }
 
-interface IntSet : Set<Int>, IntCollection {
+internal interface IntSet : Set<Int>, IntCollection {
     override fun containsAll(elements: Collection<Int>): Boolean = super.containsAll(elements)
 }
 
-interface MutableIntSet : IntSet, MutableIntCollection, MutableSet<Int> {
+internal interface MutableIntSet : IntSet, MutableIntCollection, MutableSet<Int> {
     override fun isEmpty(): Boolean = super.isEmpty()
     override fun addAll(elements: Collection<Int>): Boolean = super.addAll(elements)
     override fun removeAll(elements: Collection<Int>): Boolean = super.removeAll(elements)
     override fun retainAll(elements: Collection<Int>): Boolean = super.retainAll(elements)
 }
 
-interface Int2IntMap : Map<Int, Int> {
+internal interface Int2IntMap : Map<Int, Int> {
     /**
      * The value returned from various [Int2IntMap] and [MutableInt2IntMap] methods such as [get]/[MutableMap.put] to
      * indicate that no value was present. Normal objects collections would return null from these methods if there is
@@ -146,7 +146,7 @@ interface Int2IntMap : Map<Int, Int> {
     }
 }
 
-inline fun Int2IntMap.getOrElse(key: Int, defaultValue: () -> Int): Int {
+internal inline fun Int2IntMap.getOrElse(key: Int, defaultValue: () -> Int): Int {
     val value = get(key)
     return if (value == poisonValue && !containsKey(key)) {
         defaultValue()
@@ -155,7 +155,7 @@ inline fun Int2IntMap.getOrElse(key: Int, defaultValue: () -> Int): Int {
     }
 }
 
-interface MutableInt2IntMap : Int2IntMap, MutableMap<Int, Int> {
+internal interface MutableInt2IntMap : Int2IntMap, MutableMap<Int, Int> {
 
     override val keys: MutableIntSet
     override val values: MutableIntCollection
@@ -196,7 +196,7 @@ interface MutableInt2IntMap : Int2IntMap, MutableMap<Int, Int> {
     }
 }
 
-inline fun MutableInt2IntMap.putOrElse(key: Int, value: Int, defaultValue: () -> Int): Int {
+internal inline fun MutableInt2IntMap.putOrElse(key: Int, value: Int, defaultValue: () -> Int): Int {
     return if (containsKey(key)) {
         put(key, value)
     } else {
@@ -204,7 +204,7 @@ inline fun MutableInt2IntMap.putOrElse(key: Int, value: Int, defaultValue: () ->
     }
 }
 
-inline fun MutableInt2IntMap.removeOrElse(key: Int, defaultValue: () -> Int): Int {
+internal inline fun MutableInt2IntMap.removeOrElse(key: Int, defaultValue: () -> Int): Int {
     return if (containsKey(key)) {
         remove(key)
     } else {

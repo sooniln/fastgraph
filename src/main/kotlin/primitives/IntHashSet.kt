@@ -15,7 +15,7 @@ import kotlin.math.max
  *
  * Implementation uses robin hood hashing with backwards shift deletion.
  */
-class IntHashSet(
+internal class IntHashSet(
     capacity: Int = DEFAULT_INITIAL_CAPACITY,
     private val loadFactor: Float = DEFAULT_LOAD_FACTOR
 ) : MutableIntSet {
