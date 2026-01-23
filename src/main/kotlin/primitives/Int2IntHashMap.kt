@@ -455,7 +455,7 @@ class Int2IntHashMap(
         private var nextKey = 0
 
         init {
-            if (!containsZero) decrement()
+            if (entriesLeft > 0 && !containsZero) decrement()
         }
 
         private fun numSlots() = if (isHashing()) keysArr.size else arrayUsage
@@ -509,7 +509,7 @@ class Int2IntHashMap(
         private var nextValue = zeroValue
 
         init {
-            if (!containsZero) decrement()
+            if (entriesLeft > 0 && !containsZero) decrement()
         }
 
         private fun numSlots() = if (isHashing()) keysArr.size else arrayUsage
@@ -563,7 +563,7 @@ class Int2IntHashMap(
         private var nextEntry = Entry.of(0, zeroValue)
 
         init {
-            if (!containsZero) decrement()
+            if (entriesLeft > 0 && !containsZero) decrement()
         }
 
         private fun numSlots() = if (isHashing()) keysArr.size else arrayUsage

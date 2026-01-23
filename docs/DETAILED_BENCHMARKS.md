@@ -43,27 +43,27 @@ much memory savings.
 ```
 JGraphTSimpleGraph:   1579150656 bytes
 GuavaSimpleGraph:      683802456 bytes
-MutableSimpleGraph:    121345720 bytes
-    topology:              120385248 bytes
-    data:                     960472 bytes
+MutableSimpleGraph:    116142664 bytes
+    topology:              115313056 bytes
+    data:                     829608 bytes
 ImmutableSimpleGraph:   58755488 bytes
     topology:               58082984 bytes
     data:                     672504 bytes
 
 JGraphTGraph:         1579150656 bytes
 GuavaGraph:            792563272 bytes
-MutableGraph:          322672448 bytes
-    topology:              120385248 bytes
-    data:                  202287200 bytes
+MutableGraph:          317469392 bytes
+    topology:              115313056 bytes
+    data:                  202156336 bytes
 ImmutableGraph:        260082192 bytes
     topology:               58082984 bytes
     data:                  201999208 bytes
 
 JGraphTNetwork:       1579150672 bytes
 GuavaNetwork:         1143011008 bytes
-MutableNetwork:        394223992 bytes
-    topology:              356343072 bytes
-    data:                   37880920 bytes
+MutableNetwork:        396506528 bytes
+    topology:              363787120 bytes
+    data:                   32719408 bytes
 ImmutableNetwork:      195711488 bytes
     topology:              167848728 bytes
     data:                   27862760 bytes
@@ -137,16 +137,16 @@ Dijkstra's focuses heavily on edges and weights, and thus this provides a test c
 
 ```
 Benchmark                                     Mode  Cnt     Score      Error  Units
-GuavaGraphBenchmark.dijkstras                 avgt    4  5545.439 ±  550.693  ms/op
-GuavaNetworkBenchmark.dijkstras               avgt    4  2976.803 ±  376.683  ms/op
-JGraphNetworkBenchmark.dijkstras              avgt    4   993.315 ±  126.623  ms/op
-JGraphGraphBenchmark.dijkstras                avgt    4   896.574 ±   66.561  ms/op
-MutableGraphBenchmark.dijkstras               avgt    4   891.122 ±   30.033  ms/op
-MutableNetworkBenchmark.dijkstras             avgt    4   654.752 ±   14.063  ms/op
-JGraphNetworkBenchmark.dijkstrasJGraph        avgt    4   471.196 ±   36.788  ms/op
-JGraphGraphBenchmark.dijkstrasJGraph          avgt    4   451.695 ±  111.547  ms/op
-ImmutableGraphBenchmark.dijkstras             avgt    4   429.757 ±   26.303  ms/op
-ImmutableNetworkBenchmark.djikstras           avgt    4   352.646 ±   13.857  ms/op
+GuavaGraphBenchmark.dijkstras                 avgt    4  5383.428 ±   93.734  ms/op
+GuavaNetworkBenchmark.dijkstras               avgt    4  3125.794 ±  126.471  ms/op
+JGraphNetworkBenchmark.dijkstras              avgt    4   905.458 ±   78.649  ms/op
+JGraphGraphBenchmark.dijkstras                avgt    4   918.595 ±   62.341  ms/op
+MutableGraphBenchmark.dijkstras               avgt    4   836.289 ±   10.841  ms/op
+MutableNetworkBenchmark.dijkstras             avgt    4   635.534 ±    9.620  ms/op
+JGraphGraphBenchmark.dijkstrasJGraph          avgt    4   455.715 ±   34.777  ms/op
+JGraphNetworkBenchmark.dijkstrasJGraph        avgt    4   448.324 ±   18.224  ms/op
+ImmutableGraphBenchmark.dijkstras             avgt    4   423.763 ±    8.328  ms/op
+ImmutableNetworkBenchmark.dijkstras           avgt    4   311.660 ±    3.504  ms/op
 ```
 
 > [!NOTE]
