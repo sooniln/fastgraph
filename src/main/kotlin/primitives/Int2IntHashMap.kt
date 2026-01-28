@@ -37,7 +37,7 @@ internal class Int2IntHashMap(
 
     // use threshold to store the initial size before we allocate anything, and since threshold cannot be negative, we
     // also use the highest bit to store whether the map contains zero or not
-    private var thresholdAndContainsZero = capacity
+    private var thresholdAndContainsZero = if (capacity == 0) DEFAULT_INITIAL_CAPACITY else capacity
 
     private var threshold: Int
         inline get() = thresholdAndContainsZero and ARRAY_USAGE_MASK
@@ -90,6 +90,26 @@ internal class Int2IntHashMap(
         resizeIfNecessary()
 
         return if (isHashing()) putInternalHashing(key, value) else putInternalArray(key, value)
+    }
+
+    override fun putIfAbsent(key: Int, value: Int): Int {
+        if (key == 0) {
+            if (containsZero) {
+                return zeroValue
+            } else {
+                zeroValue = value
+                containsZero = true
+                return poisonValue
+            }
+        } else {
+            val slot = findSlot(key)
+            if (slot >= 0) {
+                return valuesArr[slot]
+            } else {
+                put(key, value)
+                return poisonValue
+            }
+        }
     }
 
     private fun putInternalHashing(key: Int, value: Int): Int {
@@ -235,7 +255,7 @@ internal class Int2IntHashMap(
         if (isHashing()) removeSlotHashing(slot) else removeSlotArray(slot)
     }
 
-    fun removeSlotHashing(slot: Int) {
+    private fun removeSlotHashing(slot: Int) {
         assert(isHashing())
 
         val mask = keysArr.mask()
@@ -274,11 +294,11 @@ internal class Int2IntHashMap(
 
     override fun putAll(from: Int2IntMap) {
         if (from is Int2IntHashMap) {
-            for (entry in primitiveEntries) {
+            for (entry in from.primitiveEntries) {
                 set(entry.key, entry.value)
             }
         } else {
-            for (entry in primitiveEntries) {
+            for (entry in from.primitiveEntries) {
                 set(entry.key, entry.value)
             }
         }
@@ -367,6 +387,23 @@ internal class Int2IntHashMap(
         }
     }
 
+    override fun getOrDefault(key: Int, defaultValue: Int): Int {
+        if (key == 0) {
+            return if (containsZero) {
+                zeroValue
+            } else {
+                defaultValue
+            }
+        } else {
+            val slot = findSlot(key)
+            return if (slot >= 0) {
+                valuesArr[slot]
+            } else {
+                defaultValue
+            }
+        }
+    }
+
     private fun resizeIfNecessary() {
         if (keysArr.isEmpty()) {
             assert(threshold > 0)
@@ -434,9 +471,8 @@ internal class Int2IntHashMap(
 
     override fun hashCode(): Int {
         var result = 0
-        for (element in primitiveEntries) {
-            result = 31 * result + element.key
-            result = 31 * result + element.value
+        for (entry in primitiveEntries) {
+            result += entry.key xor entry.value
         }
         return result
     }
@@ -633,6 +669,9 @@ internal class Int2IntHashMap(
             inline get() = longValue.ushr(32).toInt()
         override val value: Int
             inline get() = longValue.toInt()
+
+        operator fun component1() = key
+        operator fun component2() = value
 
         override fun setValue(newValue: Int): Int = throw UnsupportedOperationException()
 
