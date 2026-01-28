@@ -206,7 +206,7 @@ internal class Int2IntHashMap(
     }
 
     override fun clear() {
-        Arrays.setAll(keysArr) { 0 }
+        Arrays.fill(keysArr, 0)
         containsZero = false
         arrayUsage = 0
     }
@@ -224,7 +224,8 @@ internal class Int2IntHashMap(
         var slot = key.slot(mask)
         var currKey = keysArr[slot]
         while (true) {
-            // TODO: we could stop looking once the distance < current distance
+            // we could stop looking once the distance < current distance, but this generally worsens performance (extra
+            // unpredictable branch which only cuts off a couple iterations).
             when (currKey) {
                 0 -> return -1
                 key -> return slot
@@ -292,14 +293,26 @@ internal class Int2IntHashMap(
         --arrayUsage
     }
 
-    override fun putAll(from: Int2IntMap) {
-        if (from is Int2IntHashMap) {
-            for (entry in from.primitiveEntries) {
-                set(entry.key, entry.value)
+    override fun putAll(from: Map<out Int, Int>) {
+        ensureCapacity(from.size)
+
+        when (from) {
+            is Int2IntHashMap -> {
+                for (entry in from.primitiveEntries) {
+                    set(entry.key, entry.value)
+                }
             }
-        } else {
-            for (entry in from.primitiveEntries) {
-                set(entry.key, entry.value)
+
+            is Int2IntMap -> {
+                for (entry in from.primitiveEntries) {
+                    set(entry.key, entry.value)
+                }
+            }
+
+            else -> {
+                for (entry in from.entries) {
+                    set(entry.key, entry.value)
+                }
             }
         }
     }
@@ -356,7 +369,7 @@ internal class Int2IntHashMap(
         if (isHashing()) {
             var slot = 0
             while (slot < keysArr.size) {
-                if (keysArr[slot] != 0 && valuesArr[slot] == value) return true
+                if (valuesArr[slot] == value && keysArr[slot] != 0) return true
                 ++slot
             }
             return false
@@ -438,7 +451,7 @@ internal class Int2IntHashMap(
         if (oldValues.size <= HASHIFY_THRESHOLD) {
             var slot = 0
             while (slot < oldArrayUsage) {
-                set(oldKeys[slot], oldValues[slot])
+                putInternalHashing(oldKeys[slot], oldValues[slot])
                 ++slot
             }
         } else {
@@ -446,7 +459,7 @@ internal class Int2IntHashMap(
             for (slot in 0..<oldKeys.size) {
                 val key = oldKeys[slot]
                 if (key != 0) {
-                    set(key, oldValues[slot])
+                    putInternalHashing(key, oldValues[slot])
                 }
             }
         }
@@ -703,6 +716,7 @@ internal class Int2IntHashMap(
 
     @Suppress("NOTHING_TO_INLINE")
     private inline fun Int.slot(mask: Int): Int {
+        assert(this != 0)
         assert(mask == keysArr.mask())
         return mixHash(this) and mask
     }
@@ -714,13 +728,7 @@ internal class Int2IntHashMap(
     }
 
     private fun Int.slotDistance(slot: Int, mask: Int): Int {
-        assert(this != 0)
-        val idealSlot = slot(mask)
-        return if (idealSlot <= slot) {
-            slot - idealSlot
-        } else {
-            slot + keysArr.size - idealSlot
-        }
+        return (slot - slot(mask)) and mask
     }
 
     companion object {
