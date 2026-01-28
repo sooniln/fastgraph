@@ -162,8 +162,7 @@ internal class ImmutableAdjacencyListNetwork(
         @Suppress("INAPPLICABLE_JVM_NAME")
         @JvmName("contains")
         override fun contains(element: Edge): Boolean {
-            validateEdge(element)
-            return true
+            return containsEdge(edgeSource(element), edgeTarget(element))
         }
 
         @Suppress("INAPPLICABLE_JVM_NAME")

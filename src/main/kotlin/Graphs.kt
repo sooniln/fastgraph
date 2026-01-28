@@ -9,6 +9,9 @@ import io.github.sooniln.fastgraph.internal.AdjacencyListGraph
 import io.github.sooniln.fastgraph.internal.AdjacencyListNetwork
 import io.github.sooniln.fastgraph.internal.GraphCopy
 import io.github.sooniln.fastgraph.internal.PropertyGraphCopy
+import io.github.sooniln.fastgraph.internal.TransposedGraph
+import io.github.sooniln.fastgraph.internal.VertexInducedImmutableSubgraph
+import io.github.sooniln.fastgraph.internal.VertexInducedSubgraph
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap
@@ -73,8 +76,8 @@ interface Graph {
     fun isEmpty(): Boolean = vertices.isEmpty()
 
     /**
-     * Returns the number of outgoing edges from the given vertex. Equivalent to `successors(vertex).size()`, but is
-     * likely to be cheaper (as [successors] may return a new collection on every invocation). In an undirected graph
+     * Returns the number of outgoing edges from the given vertex. Equivalent to `outgoingEdges(vertex).size()`, but is
+     * likely to be cheaper (as [outgoingEdges] may return a new collection on every invocation). In an undirected graph
      * all edges connected to this vertex are considered outgoing.
      */
     // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
@@ -84,8 +87,8 @@ interface Graph {
     fun outDegree(vertex: Vertex): Int
 
     /**
-     * Returns the number of edges incoming to the given vertex. Equivalent to `predecessors(vertex).size()`, but is
-     * likely to be cheaper (as [predecessors] may return a new collection on every invocation). In an undirected graph
+     * Returns the number of edges incoming to the given vertex. Equivalent to `incomingEdges(vertex).size()`, but is
+     * likely to be cheaper (as [incomingEdges] may return a new collection on every invocation). In an undirected graph
      * all edges connected to this vertex are considered incoming.
      */
     // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
@@ -1240,7 +1243,25 @@ inline fun <G : MutableGraph, V, E> buildGraph(
 }
 
 /**
- * Returns a read-only view of a graph with every edge direction reversed (transposed).
+ * Returns a live-view subgraph based on the given vertices. Any edge incident to one of the given vertices is always
+ * included in the subgraph. Since this is a live view based on the parent graph, if the parent graph is mutable then
+ * some subgraph methods may execute in linear time with respect to the same methods on the parent. If the parent graph
+ * is immutable, then all subgraph methods are guaranteed to execute in amortized constant time with respect to the same
+ * methods on the parent.
+ *
+ * Note that creating a property for a subgraph will actually create a property that is backed by a property on the
+ * original graph.
+ */
+fun Graph.subgraph(vertices: VertexSet): Graph {
+    return if (this is ImmutableGraph) {
+        VertexInducedImmutableSubgraph(this, vertices)
+    } else {
+        VertexInducedSubgraph(this, vertices)
+    }
+}
+
+/**
+ * Returns a live-view of a graph with every edge direction reversed (transposed).
  */
 fun Graph.transpose(): Graph {
     return if (!directed || (this is ImmutableGraph && isEmpty())) {
@@ -1250,50 +1271,4 @@ fun Graph.transpose(): Graph {
     } else {
         TransposedGraph(this)
     }
-}
-
-private class TransposedGraph(val graph: Graph) : Graph by graph {
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("outDegree")
-    override fun outDegree(vertex: Vertex): Int = graph.inDegree(vertex)
-
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("inDegree")
-    override fun inDegree(vertex: Vertex): Int = graph.outDegree(vertex)
-
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("successors")
-    override fun successors(vertex: Vertex): VertexSet = graph.predecessors(vertex)
-
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("predecessors")
-    override fun predecessors(vertex: Vertex): VertexSet = graph.successors(vertex)
-
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("outgoingEdges")
-    override fun outgoingEdges(vertex: Vertex): EdgeSet = graph.incomingEdges(vertex)
-
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("incomingEdges")
-    override fun incomingEdges(vertex: Vertex): EdgeSet = graph.outgoingEdges(vertex)
-
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("edgeSource")
-    override fun edgeSource(edge: Edge): Vertex = graph.edgeTarget(edge)
-
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("edgeTarget")
-    override fun edgeTarget(edge: Edge): Vertex = graph.edgeSource(edge)
-
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("containsEdge")
-    override fun containsEdge(source: Vertex, target: Vertex): Boolean = graph.containsEdge(target, source)
-
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("getEdge")
-    override fun getEdge(source: Vertex, target: Vertex): Edge = graph.getEdge(target, source)
-
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("getEdges")
-    override fun getEdges(source: Vertex, target: Vertex): EdgeSet = graph.getEdges(target, source)
 }

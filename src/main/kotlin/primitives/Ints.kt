@@ -185,12 +185,6 @@ internal interface MutableInt2IntMap : Int2IntMap, MutableMap<Int, Int> {
         }
     }
 
-    fun putAll(from: Int2IntMap) {
-        for (entry in from.entries) {
-            set(entry.key, entry.value)
-        }
-    }
-
     interface MutableInt2IntEntry : Int2IntEntry, MutableMap.MutableEntry<Int, Int> {
         override fun setValue(newValue: Int): Int
     }

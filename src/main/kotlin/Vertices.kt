@@ -266,6 +266,9 @@ interface VertexCollection : Collection<Vertex>, VertexIterable {
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("contains")
     override fun contains(element: Vertex): Boolean
+
+    fun toIntArray(): IntArray
+    fun toIntArray(array: IntArray): IntArray
 }
 
 /**
@@ -313,6 +316,9 @@ interface VertexList : VertexCollection, List<Vertex> {
 
     @Deprecated("For JVM usage only", level = DeprecationLevel.ERROR)
     fun getVertex(index: Int): Int = get(index).intValue
+
+    override fun toIntArray(): IntArray = IntArray(0)
+    override fun toIntArray(array: IntArray): IntArray = array
 }
 
 /**
@@ -401,14 +407,34 @@ private object EmptyVertexIterator : VertexListIterator {
  */
 abstract class AbstractVertexCollection : VertexCollection {
     override fun containsAll(elements: Collection<Vertex>): Boolean {
-        return if (elements is VertexCollection) {
-            elements.all(this::contains)
+        if (elements.isEmpty()) return true
+        if (elements is VertexCollection) {
+            for (element in elements) {
+                if (!contains(element)) return false
+            }
         } else {
-            elements.all(this::contains)
+            for (element in elements) {
+                if (!contains(element)) return false
+            }
         }
+        return true
     }
 
     override fun isEmpty(): Boolean = size == 0
+
+    override fun toIntArray(): IntArray = toIntArray(IntArray(size))
+    override fun toIntArray(array: IntArray): IntArray {
+        val size = size
+        if (size == 0) return array
+        val array = if (array.size < size) IntArray(size) else array
+
+        val it = iterator()
+        var i = 0
+        while (it.hasNext()) {
+            array[i++] = it.next().intValue
+        }
+        return array
+    }
 
     override fun toString(): String = joinToString(", ", "[", "]") { it.intValue.toString() }
 }
@@ -422,6 +448,18 @@ abstract class AbstractVertexSetList : VertexSetList, AbstractList<Vertex>() {
     override fun listIterator(): VertexListIterator = AbstractVertexListIterator(0)
     override fun listIterator(index: Int): VertexListIterator = AbstractVertexListIterator(index)
     override fun subList(fromIndex: Int, toIndex: Int): VertexSetList = SubList(this, fromIndex, toIndex)
+
+    override fun toIntArray(): IntArray = IntArray(size) { get(it).intValue }
+    override fun toIntArray(array: IntArray): IntArray {
+        val size = size
+        if (size == 0) return array
+        if (array.size < size) return IntArray(size) { get(it).intValue }
+
+        for (i in 0..<size) {
+            array[i] = get(i).intValue
+        }
+        return array
+    }
 
     private class SubList(private val list: VertexSetList, private val fromIndex: Int, toIndex: Int) :
         AbstractVertexSetList(), RandomAccess {
@@ -479,7 +517,7 @@ abstract class AbstractVertexSetList : VertexSetList, AbstractList<Vertex>() {
         return hashCode
     }
 
-    protected open inner class AbstractVertexListIterator(protected var index: Int) : MutableVertexListIterator {
+    protected open class AbstractVertexListIterator(protected var index: Int) : MutableVertexListIterator {
         protected var lastIndex = -1
 
         init {

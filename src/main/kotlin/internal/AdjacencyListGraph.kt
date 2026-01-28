@@ -87,16 +87,32 @@ internal class AdjacencyListGraph(override val directed: Boolean) : MutableGraph
     @JvmName("removeVertex")
     override fun removeVertex(vertex: Vertex) {
         // remove outbound edges
-        val outboundTargets = successors[validateVertex(vertex).intValue]
-        while (!outboundTargets.isEmpty()) {
-            removeEdgeInternal(vertex.intValue, outboundTargets.iterator().nextInt())
+        val outIt = successors[validateVertex(vertex).intValue].iterator()
+        while (outIt.hasNext()) {
+            val targetIntValue = outIt.nextInt()
+
+            outIt.remove()
+            if (!directed) {
+                if (vertex.intValue != targetIntValue) {
+                    check(successors[targetIntValue].remove(vertex.intValue))
+                }
+            } else if (_predecessors.isInitialized()) {
+                check(predecessors[targetIntValue].remove(vertex.intValue))
+            }
+
+            cleanupEdgeInternal(vertex.intValue, targetIntValue)
         }
 
         // remove inbound edges
         if (directed) {
-            val inboundSources = predecessors[vertex.intValue]
-            while (!inboundSources.isEmpty()) {
-                removeEdgeInternal(inboundSources.iterator().nextInt(), vertex.intValue)
+            val inIt = predecessors[vertex.intValue].iterator()
+            while (inIt.hasNext()) {
+                val sourceIntValue = inIt.nextInt()
+
+                inIt.remove()
+                check(successors[sourceIntValue].remove(vertex.intValue))
+
+                cleanupEdgeInternal(sourceIntValue, vertex.intValue)
             }
         }
 
@@ -205,16 +221,14 @@ internal class AdjacencyListGraph(override val directed: Boolean) : MutableGraph
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("removeEdge")
     override fun removeEdge(edge: Edge) {
-        check(
-            removeEdgeInternal(
-                validateVertex(edgeSource(validateEdge(edge))).intValue,
-                validateVertex(edgeTarget(edge)).intValue
-            )
+        removeEdgeInternal(
+            validateVertex(edgeSource(validateEdge(edge))).intValue,
+            validateVertex(edgeTarget(edge)).intValue
         )
     }
 
-    private fun removeEdgeInternal(sourceIntValue: Int, targetIntValue: Int): Boolean {
-        val r = successors[sourceIntValue].remove(targetIntValue)
+    private fun removeEdgeInternal(sourceIntValue: Int, targetIntValue: Int) {
+        check(successors[sourceIntValue].remove(targetIntValue))
         if (!directed) {
             if (sourceIntValue != targetIntValue) {
                 check(successors[targetIntValue].remove(sourceIntValue))
@@ -222,11 +236,15 @@ internal class AdjacencyListGraph(override val directed: Boolean) : MutableGraph
         } else if (_predecessors.isInitialized()) {
             check(predecessors[targetIntValue].remove(sourceIntValue))
         }
+
+        cleanupEdgeInternal(sourceIntValue, targetIntValue)
+    }
+
+    private fun cleanupEdgeInternal(sourceIntValue: Int, targetIntValue: Int) {
         val edge = canonicalEdge(directed, sourceIntValue, targetIntValue)
         edgeProperties.swapAndRemove(edge, edge)
         edgeRefs.swapAndRemove(edge, edge)
         --numEdges
-        return r
     }
 
     override val multiEdge: Boolean
@@ -326,8 +344,7 @@ internal class AdjacencyListGraph(override val directed: Boolean) : MutableGraph
         @Suppress("INAPPLICABLE_JVM_NAME")
         @JvmName("contains")
         override fun contains(element: Edge): Boolean {
-            validateEdge(element)
-            return true
+            return containsEdge(edgeSource(element), edgeTarget(element))
         }
 
         override fun iterator(): MutableEdgeIterator = object : MutableEdgeIterator {
@@ -374,7 +391,17 @@ internal class AdjacencyListGraph(override val directed: Boolean) : MutableGraph
 
             override fun remove() {
                 targetIt.remove()
-                removeEdgeInternal(source, edgeTarget(edge).intValue)
+
+                val target = edgeTarget(edge).intValue
+                if (!directed) {
+                    if (source != target) {
+                        check(successors[target].remove(source))
+                    }
+                } else if (_predecessors.isInitialized()) {
+                    check(predecessors[target].remove(source))
+                }
+
+                cleanupEdgeInternal(source, target)
             }
         }
     }

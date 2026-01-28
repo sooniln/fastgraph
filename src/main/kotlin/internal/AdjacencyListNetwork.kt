@@ -149,7 +149,7 @@ internal class AdjacencyListNetwork(
                     val edgeId = adjacency.edgeId
                     // successors has already been updated, so no translation necessary
                     val vertexOther = if (adjacency.vertex == lastVertex) vertex else adjacency.vertex
-                    edgeValues[edgeId] = EdgeValue(true, vertex, vertexOther)
+                    edgeValues[edgeId] = EdgeValue(false, vertex, vertexOther)
                 }
 
                 val targetIt = successors[lastIndex].vertexIterator()
@@ -366,8 +366,7 @@ internal class AdjacencyListNetwork(
         @Suppress("INAPPLICABLE_JVM_NAME")
         @JvmName("contains")
         override fun contains(element: Edge): Boolean {
-            validateEdge(element)
-            return true
+            return containsEdge(edgeSource(element), edgeTarget(element))
         }
 
         override fun iterator(): MutableEdgeIterator = Iterator(0)
@@ -429,7 +428,7 @@ internal class AdjacencyListNetwork(
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("createEdgeReference")
-    override fun createEdgeReference(edge: Edge): EdgeReference = edgeRefs.ref(edge)
+    override fun createEdgeReference(edge: Edge): EdgeReference = edgeRefs.ref(validateEdge(edge))
 
     override fun ensureVertexCapacity(vertexCapacity: Int) {
         successors.ensureCapacity(vertexCapacity)
