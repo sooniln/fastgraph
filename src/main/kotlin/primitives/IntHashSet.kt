@@ -365,7 +365,7 @@ internal class IntHashSet(
         if (other === this) return true
         if (other is Set<*>) {
             if (size != other.size) return false
-            return other.containsAll(other)
+            return other.containsAll(this)
         }
 
         return false

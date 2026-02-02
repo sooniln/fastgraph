@@ -552,21 +552,34 @@ private class SingletonEdgeSet(private val edge: Edge) : AbstractEdgeSetList() {
     }
 }
 
-internal class EdgeIteratorWrapper(private val it: LongIterator) : EdgeIterator {
+internal fun kotlin.collections.LongIterator.asEdgeIterator(): EdgeIterator = EdgeIteratorWrapper(this)
+
+internal fun LongIterator.asEdgeIterator(): EdgeIterator = EdgeFastUtilIteratorWrapper(this)
+
+private class EdgeIteratorWrapper(private val it: kotlin.collections.LongIterator) : EdgeIterator {
     override fun hasNext(): Boolean = it.hasNext()
     override fun next(): Edge {
         return Edge(it.nextLong())
     }
 }
 
-internal class EdgeSetWrapper(internal val edges: LongSet) : EdgeSet, AbstractEdgeCollection() {
+private class EdgeFastUtilIteratorWrapper(private val it: LongIterator) : EdgeIterator {
+    override fun hasNext(): Boolean = it.hasNext()
+    override fun next(): Edge {
+        return Edge(it.nextLong())
+    }
+}
+
+internal fun LongSet.asEdgeSet(): EdgeSet = EdgeSetWrapper(this)
+
+private class EdgeSetWrapper(private val edges: LongSet) : EdgeSet, AbstractEdgeCollection() {
     override val size: Int get() = edges.size
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("contains")
     override fun contains(element: Edge): Boolean = edges.contains(element.longValue)
 
-    override fun iterator(): EdgeIterator = EdgeIteratorWrapper(edges.iterator())
+    override fun iterator(): EdgeIterator = EdgeFastUtilIteratorWrapper(edges.iterator())
 
     override fun toLongArray(): LongArray = edges.toLongArray()
 

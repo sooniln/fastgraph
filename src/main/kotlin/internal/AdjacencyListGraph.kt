@@ -21,7 +21,7 @@ import io.github.sooniln.fastgraph.VertexInitializer
 import io.github.sooniln.fastgraph.VertexProperty
 import io.github.sooniln.fastgraph.VertexReference
 import io.github.sooniln.fastgraph.VertexSet
-import io.github.sooniln.fastgraph.VertexSetWrapper
+import io.github.sooniln.fastgraph.asVertexSet
 import io.github.sooniln.fastgraph.edgeSetOf
 import io.github.sooniln.fastgraph.emptyEdgeSet
 import io.github.sooniln.fastgraph.primitives.IntHashSet
@@ -311,7 +311,7 @@ internal class AdjacencyListGraph(override val directed: Boolean) : MutableGraph
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("successors")
-    override fun successors(vertex: Vertex): VertexSet = VertexSetWrapper(successors[validateVertex(vertex).intValue])
+    override fun successors(vertex: Vertex): VertexSet = successors[validateVertex(vertex).intValue].asVertexSet()
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("predecessors")
@@ -320,7 +320,7 @@ internal class AdjacencyListGraph(override val directed: Boolean) : MutableGraph
             return successors(vertex)
         }
 
-        return VertexSetWrapper(predecessors[validateVertex(vertex).intValue])
+        return predecessors[validateVertex(vertex).intValue].asVertexSet()
     }
 
     @Suppress("INAPPLICABLE_JVM_NAME")

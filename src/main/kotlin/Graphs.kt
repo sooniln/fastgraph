@@ -1147,6 +1147,7 @@ private fun <V, E> GraphMutator(
  * In most cases it is unlikely clients will need to call this directly - it is more convenient to use [buildGraph]
  * which directly accepts a lambda to build the graph.
  */
+@JvmOverloads
 fun <V, E> mutateGraph(
     graph: MutableGraph,
     vertexProperty: VertexProperty<V>? = null,

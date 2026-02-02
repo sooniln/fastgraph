@@ -2,7 +2,6 @@ package io.github.sooniln.fastgraph.internal
 
 import io.github.sooniln.fastgraph.AbstractEdgeCollection
 import io.github.sooniln.fastgraph.AbstractEdgeSetList
-import io.github.sooniln.fastgraph.AbstractVertexCollection
 import io.github.sooniln.fastgraph.AbstractVertexSetList
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeIndexedEdgeGraph
@@ -24,10 +23,11 @@ import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexIndexedVertexGraph
 import io.github.sooniln.fastgraph.VertexInitializer
 import io.github.sooniln.fastgraph.VertexIterator
-import io.github.sooniln.fastgraph.VertexIteratorWrapper
 import io.github.sooniln.fastgraph.VertexProperty
 import io.github.sooniln.fastgraph.VertexReference
 import io.github.sooniln.fastgraph.VertexSet
+import io.github.sooniln.fastgraph.asVertexIterator
+import io.github.sooniln.fastgraph.asVertexSet
 import io.github.sooniln.fastgraph.primitives.Int2IntHashMap
 import io.github.sooniln.fastgraph.vertexSetOf
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
@@ -511,14 +511,7 @@ private class AdjacencySet : EdgeAdjacencySet {
 
     override fun containsAll(elements: Collection<EdgeAdjacency>): Boolean = throw UnsupportedOperationException()
 
-    override fun vertices(): VertexSet = object : VertexSet, AbstractVertexCollection() {
-        override val size: Int get() = map.size
-
-        @Suppress("INAPPLICABLE_JVM_NAME")
-        @JvmName("contains")
-        override fun contains(element: Vertex): Boolean = map.containsKey(element.intValue)
-        override fun iterator(): VertexIterator = VertexIteratorWrapper(map.keys.iterator())
-    }
+    override fun vertices(): VertexSet = map.keys.asVertexSet()
 
     override fun iterator(): EdgeAdjacencyIterator = object : EdgeAdjacencyIterator {
         private val mapIt = map.primitiveEntries.iterator()
@@ -677,7 +670,7 @@ private class AdjacencySet : EdgeAdjacencySet {
         --size
     }
 
-    fun vertexIterator(): VertexIterator = VertexIteratorWrapper(map.keys.iterator())
+    fun vertexIterator(): VertexIterator = map.keys.iterator().asVertexIterator()
 
     override fun edgeIdIterator(): IntIterator = object : IntIterator {
         private val mapIt = map.values.iterator()

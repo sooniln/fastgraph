@@ -9,6 +9,7 @@ import io.github.sooniln.fastgraph.internal.checkElementIndex
 import io.github.sooniln.fastgraph.internal.checkPositionIndex
 import io.github.sooniln.fastgraph.internal.checkRangeIndexes
 import io.github.sooniln.fastgraph.primitives.IntHashSet
+import io.github.sooniln.fastgraph.primitives.IntSet
 import it.unimi.dsi.fastutil.ints.IntIterator
 import java.util.Spliterator
 
@@ -517,7 +518,7 @@ abstract class AbstractVertexSetList : VertexSetList, AbstractList<Vertex>() {
         return hashCode
     }
 
-    protected open class AbstractVertexListIterator(protected var index: Int) : MutableVertexListIterator {
+    protected open inner class AbstractVertexListIterator(protected var index: Int) : MutableVertexListIterator {
         protected var lastIndex = -1
 
         init {
@@ -570,17 +571,23 @@ private class SingletonVertexSet(private val vertex: Vertex) : AbstractVertexSet
     }
 }
 
-internal class VertexIteratorWrapper(private val it: kotlin.collections.IntIterator) : VertexIterator {
+internal fun kotlin.collections.IntIterator.asVertexIterator(): VertexIterator = VertexIteratorWrapper(this)
+
+internal fun IntIterator.asVertexIterator(): VertexIterator = VertexFastUtilIteratorWrapper(this)
+
+private class VertexIteratorWrapper(private val it: kotlin.collections.IntIterator) : VertexIterator {
     override fun hasNext(): Boolean = it.hasNext()
     override fun next(): Vertex = Vertex(it.nextInt())
 }
 
-internal class VertexFastUtilIteratorWrapper(private val it: IntIterator) : VertexIterator {
+private class VertexFastUtilIteratorWrapper(private val it: IntIterator) : VertexIterator {
     override fun hasNext(): Boolean = it.hasNext()
     override fun next(): Vertex = Vertex(it.nextInt())
 }
 
-internal open class VertexSetWrapper(internal val vertices: IntHashSet) : VertexSet, AbstractVertexCollection() {
+internal fun IntSet.asVertexSet(): VertexSet = VertexSetWrapper(this)
+
+private class VertexSetWrapper(private val vertices: IntSet) : VertexSet, AbstractVertexCollection() {
     override val size: Int get() = vertices.size
 
     @Suppress("INAPPLICABLE_JVM_NAME")
