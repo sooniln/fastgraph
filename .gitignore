@@ -13,6 +13,9 @@ out/
 !**/src/main/**/out/
 !**/src/test/**/out/
 
+### AI ###
+.claude
+
 ### Kotlin ###
 .kotlin
 
