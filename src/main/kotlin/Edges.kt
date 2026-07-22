@@ -5,14 +5,9 @@
 
 package io.github.sooniln.fastgraph
 
-import io.github.sooniln.fastgraph.internal.checkElementIndex
-import io.github.sooniln.fastgraph.internal.checkPositionIndex
-import io.github.sooniln.fastgraph.internal.checkRangeIndexes
-import it.unimi.dsi.fastutil.longs.LongArraySet
-import it.unimi.dsi.fastutil.longs.LongIterator
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet
-import it.unimi.dsi.fastutil.longs.LongSet
-import java.util.Spliterator
+import io.github.sooniln.fastcollect.longs.LongSet
+import io.github.sooniln.fastcollect.longs.emptyLongIterator
+import io.github.sooniln.fastgraph.primitives.collections.GraphLongHashSet
 
 private val EDGE_HEX_FORMAT = HexFormat {
     number {
@@ -147,7 +142,7 @@ interface EdgeReference {
 }
 
 /**
- * Accesses the property value of a edge. Equivalent to accessing the property value through the [EdgeProperty] itself.
+ * Accesses the property value of an edge. Equivalent to accessing the property value through the [EdgeProperty] itself.
  */
 context(property: EdgeProperty<T>)
 var <T> EdgeReference.property: T
@@ -198,7 +193,7 @@ operator fun EdgeReference.component1(): Vertex = source
 @JvmSynthetic
 @JvmName("#EdgeReference_component2")
 context(graph: Graph)
-operator fun EdgeReference.component2(): Vertex = source
+operator fun EdgeReference.component2(): Vertex = target
 
 /**
  * An iterator over edges. Note that this interface is distinct from [Iterator<Edge>][Iterator] in order to avoid Edge
@@ -218,23 +213,6 @@ interface EdgeIterator : Iterator<Edge> {
 interface MutableEdgeIterator : EdgeIterator, MutableIterator<Edge>
 
 /**
- * A list iterator over edges. Note that this interface is distinct from [ListIterator<Edge>][ListIterator] in order to
- * avoid Edge boxing/unboxing, and associated performance penalties. Prefer to use this interface whenever possible for
- * those reasons.
- */
-interface EdgeListIterator : EdgeIterator, ListIterator<Edge> {
-    override fun previous(): Edge
-
-    @Deprecated("For JVM usage only", level = DeprecationLevel.ERROR)
-    fun previousEdge(): Long = previous().longValue
-}
-
-/**
- * A list iterator over edges that allows for edge removal.
- */
-interface MutableEdgeListIterator : EdgeListIterator, MutableEdgeIterator, MutableListIterator<Edge>
-
-/**
  * An iterable of edges. Note that this interface is distinct from [Iterable<Edge>][Iterable] in order to avoid Edge
  * boxing/unboxing, and associated performance penalties. Prefer to use this interface whenever possible for those
  * reasons.
@@ -249,14 +227,55 @@ interface EdgeIterable : Iterable<Edge> {
  * those reasons.
  */
 interface EdgeCollection : Collection<Edge>, EdgeIterable {
+
+    override fun isEmpty(): Boolean {
+        return size == 0
+    }
+
+    fun fastForEach(action: (Edge) -> Unit) {
+        val it = iterator()
+        while (it.hasNext()) {
+            action(it.next())
+        }
+    }
+
     // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
     //   overrides of this method
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("contains")
-    override fun contains(element: Edge): Boolean
+    override fun contains(element: Edge): Boolean {
+        for (e in this) {
+            if (e == element) return true
+        }
+        return false
+    }
 
-    fun toLongArray(): LongArray
-    fun toLongArray(array: LongArray): LongArray
+    fun containsAll(elements: EdgeCollection): Boolean {
+        for (e in elements) {
+            if (!contains(e)) return false
+        }
+        return true
+    }
+
+    override fun containsAll(elements: Collection<Edge>): Boolean {
+        if (elements is EdgeCollection) {
+            return containsAll(elements)
+        }
+
+        for (e in this) {
+            if (!contains(e)) return false
+        }
+        return true
+    }
+
+    fun toLongArray(): LongArray {
+        val array = LongArray(size)
+        var index = 0
+        for (element in this) {
+            array[index++] = element.longValue
+        }
+        return array
+    }
 }
 
 /**
@@ -271,7 +290,17 @@ interface MutableEdgeCollection : EdgeCollection {
  * boxing/unboxing, and associated performance penalties. Prefer to use this interface whenever possible for those
  * reasons.
  */
-interface EdgeSet : EdgeCollection, Set<Edge>
+interface EdgeSet : EdgeCollection, Set<Edge> {
+    override fun isEmpty(): Boolean = super.isEmpty()
+
+    // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
+    //   overrides of this method
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("contains")
+    override fun contains(element: Edge): Boolean = super.contains(element)
+
+    override fun containsAll(elements: Collection<Edge>): Boolean = super.containsAll(elements)
+}
 
 /**
  * A set of edges with an iterator that allows for removal.
@@ -279,52 +308,56 @@ interface EdgeSet : EdgeCollection, Set<Edge>
 interface MutableEdgeSet : EdgeSet, MutableEdgeCollection
 
 /**
- * A read-only list of edges. Note that this interface is distinct from [List<Edge>][List] in order to avoid Edge
- * boxing/unboxing, and associated performance penalties. Prefer to use this interface whenever possible for those
- * reasons.
+ * A read-only set of edges where each edge is associated with an index from `0` to `size() - 1`. This makes edges
+ * accessible by index, and an index can be retrieved for each edge (via `indexOf(edge)`). The `indexOf()` call is
+ * guaranteed to take amortized constant time or better. This collection MUST iterate edges in index order.
  */
-interface EdgeList : EdgeCollection, List<Edge> {
-    override fun get(index: Int): Edge
+interface IndexedEdgeSet : EdgeSet {
 
     // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
     //   overrides of this method
     @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("indexOf")
-    override fun indexOf(element: Edge): Int
+    @JvmName("contains")
+    override fun contains(element: Edge): Boolean
 
-    // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
-    //   overrides of this method
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("lastIndexOf")
-    override fun lastIndexOf(element: Edge): Int
+    override fun containsAll(elements: Collection<Edge>): Boolean = super.containsAll(elements)
 
-    override fun listIterator(): EdgeListIterator
-    override fun listIterator(index: Int): EdgeListIterator
-    override fun subList(fromIndex: Int, toIndex: Int): EdgeSetList
+    fun get(index: Int): Edge
 
     @Deprecated("For JVM usage only", level = DeprecationLevel.ERROR)
     fun getEdge(index: Int): Long = get(index).longValue
+
+    /**
+     * Returns the index of the given edge in this collection, or -1 if the edge is not in this set.
+     */
+    fun indexOf(element: Edge): Int
+
+    override fun iterator(): EdgeIterator = EdgeIteratorImpl(this)
+
+    private class EdgeIteratorImpl(private val edges: IndexedEdgeSet) : EdgeIterator {
+        private var index = 0
+
+        override fun hasNext(): Boolean = index < edges.size
+        override fun next(): Edge = edges.get(index++)
+    }
+
+    override fun fastForEach(action: (Edge) -> Unit) {
+        var index = 0
+        while (index < size) {
+            action(get(index))
+            index++
+        }
+    }
 }
 
 /**
- * A list of edges with an iterator that allows for removal.
+ * A set of edges where each edge is associated with an index from `0` to `size() - 1`. This makes edges accessible by
+ * index, and an index can be retrieved for each edge (via `indexOf(edge)`). The `indexOf()` call is guaranteed to take
+ * amortized constant time or better. This collection MUST iterate edges in index order.
  */
-interface MutableEdgeList : EdgeList, MutableEdgeCollection {
-    override fun listIterator(): MutableEdgeListIterator
-    override fun listIterator(index: Int): MutableEdgeListIterator
+interface MutableIndexedEdgeSet : IndexedEdgeSet, MutableEdgeSet {
+    override fun iterator(): MutableEdgeIterator
 }
-
-/**
- * A read-only set of edges that can also be accessed by index like a list.
- */
-interface EdgeSetList : EdgeSet, EdgeList {
-    override fun spliterator(): Spliterator<Edge> = super<EdgeList>.spliterator()
-}
-
-/**
- * A set of edges that can also be accessed by index like a list, with an iterator that allows for removal.
- */
-interface MutableEdgeSetList : EdgeSetList, MutableEdgeSet, MutableEdgeList
 
 /**
  * Returns a new read-only set of the given edges.
@@ -337,7 +370,7 @@ fun <T : Edge> edgeSetOf(vararg edges: T): EdgeSet {
     } else if (edges.size == 1) {
         SingletonEdgeSet(edges[0])
     } else {
-        val set = if (edges.size < 100) LongArraySet(edges.size) else LongOpenHashSet(edges.size)
+        val set = GraphLongHashSet(edges.size)
         for (edge in edges) {
             set.add(edge.longValue)
         }
@@ -345,225 +378,117 @@ fun <T : Edge> edgeSetOf(vararg edges: T): EdgeSet {
     }
 }
 
+fun emptyEdgeIterator() = EmptyEdgeIterator
+
+private val EmptyEdgeIterator = emptyLongIterator().asEdgeIterator()
+
 /**
  * Returns a read-only empty set/list of edges.
  */
-fun emptyEdgeSet(): EdgeSetList = EmptyEdgeSetList
+fun emptyEdgeSet(): IndexedEdgeSet = EmptyEdgeSet
 
-private object EmptyEdgeSetList : EdgeSetList, List<Edge> {
+private object EmptyEdgeSet : IndexedEdgeSet {
     override val size: Int get() = 0
 
+    // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
+    //   overrides of this method
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("contains")
     override fun contains(element: Edge): Boolean = false
 
     override fun containsAll(elements: Collection<Edge>): Boolean = elements.isEmpty()
-    override fun isEmpty(): Boolean = true
-    override fun iterator(): EdgeIterator = EmptyEdgeIterator
+    override fun iterator(): EdgeIterator = emptyEdgeIterator()
+    override fun fastForEach(action: (Edge) -> Unit) {}
 
     override fun get(index: Int): Edge = throw IndexOutOfBoundsException()
-
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("indexOf")
     override fun indexOf(element: Edge): Int = -1
-
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("lastIndexOf")
-    override fun lastIndexOf(element: Edge): Int = -1
-
-    override fun listIterator(): EdgeListIterator = EmptyEdgeIterator
-    override fun listIterator(index: Int): EdgeListIterator =
-        EmptyEdgeIterator.also { if (index != 0) throw IndexOutOfBoundsException() }
-
-    override fun subList(fromIndex: Int, toIndex: Int): EdgeSetList = this
-
-    override fun toLongArray(): LongArray = LongArray(0)
-    override fun toLongArray(array: LongArray): LongArray = array
-}
-
-private object EmptyEdgeIterator : EdgeListIterator {
-    override fun hasPrevious(): Boolean = false
-    override fun hasNext(): Boolean = false
-    override fun previous(): Edge = throw NoSuchElementException()
-    override fun next(): Edge = throw NoSuchElementException()
-    override fun nextIndex(): Int = throw NoSuchElementException()
-    override fun previousIndex(): Int = throw NoSuchElementException()
 }
 
 /**
  * Provides a skeletal implementation of the read-only [EdgeCollection] interface.
  */
-abstract class AbstractEdgeCollection : EdgeCollection {
-    override fun containsAll(elements: Collection<Edge>): Boolean {
-        return if (elements is EdgeCollection) {
-            elements.all(this::contains)
-        } else {
-            elements.all(this::contains)
-        }
-    }
+abstract class AbstractEdgeCollection : EdgeCollection, AbstractCollection<Edge>() {
+    override fun isEmpty(): Boolean = super<EdgeCollection>.isEmpty()
 
-    override fun isEmpty(): Boolean = size == 0
-
-    override fun toLongArray(): LongArray = toLongArray(LongArray(size))
-    override fun toLongArray(array: LongArray): LongArray {
-        val size = size
-        if (size == 0) return array
-        val array = if (array.size < size) LongArray(size) else array
-
-        val it = iterator()
-        var i = 0
-        while (it.hasNext()) {
-            array[i++] = it.next().longValue
-        }
-        return array
-    }
-
-    override fun toString(): String = joinToString(", ", "[", "]") { it.toString() }
+    // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
+    //   overrides of this method
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("contains")
+    override fun contains(element: Edge): Boolean = super<EdgeCollection>.contains(element)
+    override fun containsAll(elements: Collection<Edge>): Boolean = super<EdgeCollection>.containsAll(elements)
 }
 
 /**
- * Provides a skeletal implementation of the read-only [EdgeSetList] interface.
+ * Provides a skeletal implementation of the read-only [EdgeSet] interface.
  */
-abstract class AbstractEdgeSetList : EdgeSetList, AbstractList<Edge>() {
-    override fun iterator(): EdgeIterator = AbstractEdgeListIterator(0)
+abstract class AbstractEdgeSet : EdgeSet, AbstractSet<Edge>() {
+    override fun isEmpty(): Boolean = super<EdgeSet>.isEmpty()
 
-    override fun listIterator(): EdgeListIterator = AbstractEdgeListIterator(0)
-    override fun listIterator(index: Int): EdgeListIterator = AbstractEdgeListIterator(index)
-    override fun subList(fromIndex: Int, toIndex: Int): EdgeSetList = SubList(this, fromIndex, toIndex)
+    // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
+    //   overrides of this method
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("contains")
+    override fun contains(element: Edge): Boolean = super<EdgeSet>.contains(element)
+    override fun containsAll(elements: Collection<Edge>): Boolean = super<EdgeSet>.containsAll(elements)
+}
 
-    override fun toLongArray(): LongArray = LongArray(size) { get(it).longValue }
-    override fun toLongArray(array: LongArray): LongArray {
-        val size = size
-        if (size == 0) return array
-        if (array.size < size) return LongArray(size) { get(it).longValue }
+/**
+ * Provides a skeletal implementation of the read-only [IndexedEdgeSet] interface.
+ */
+abstract class AbstractIndexedEdgeSet : IndexedEdgeSet, AbstractSet<Edge>(), EdgeSet {
+    override fun isEmpty(): Boolean = super<IndexedEdgeSet>.isEmpty()
 
-        for (i in 0..<size) {
-            array[i] = get(i).longValue
-        }
-        return array
-    }
+    // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
+    //   overrides of this method
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("contains")
+    override fun contains(element: Edge): Boolean = super<EdgeSet>.contains(element)
+    override fun containsAll(elements: Collection<Edge>): Boolean = super<IndexedEdgeSet>.containsAll(elements)
 
-    private class SubList(private val list: EdgeSetList, private val fromIndex: Int, toIndex: Int) :
-        AbstractEdgeSetList(), RandomAccess {
-        init {
-            checkRangeIndexes(fromIndex, toIndex, list.size)
-        }
+    override fun iterator(): EdgeIterator = super.iterator()
 
-        override val size = toIndex - fromIndex
-
-        override fun get(index: Int): Edge {
-            checkElementIndex(index, size)
-            return list[fromIndex + index]
-        }
-
-        override fun subList(fromIndex: Int, toIndex: Int): EdgeSetList {
-            checkRangeIndexes(fromIndex, toIndex, size)
-            return SubList(list, this.fromIndex + fromIndex, this.fromIndex + toIndex)
+    override fun fastForEach(action: (Edge) -> Unit) {
+        var index = 0
+        while (index < size) {
+            action(get(index++))
         }
     }
 
-    override fun equals(other: Any?): Boolean {
-        if (other is List<*>) {
-            if (size != other.size) {
-                return false
-            }
-
-            if (other is EdgeSetList) {
-                val it = other.iterator()
-                for (edge in this) {
-                    val otherEdge = it.next()
-                    if (edge != otherEdge) {
-                        return false
-                    }
-                }
-            } else {
-                val it = other.iterator()
-                for (edge in this) {
-                    val otherElement = it.next()
-                    if (edge != otherElement) {
-                        return false
-                    }
-                }
-            }
-            return true
-        }
-
-        return false
-    }
-
-    override fun hashCode(): Int {
-        var hashCode = 1
-        for (edge in this) {
-            hashCode = 31 * hashCode + java.lang.Long.hashCode(edge.longValue)
-        }
-        return hashCode
-    }
-
-    protected open inner class AbstractEdgeListIterator(protected var index: Int) : MutableEdgeListIterator {
-        protected var lastIndex = -1
-
-        init {
-            checkPositionIndex(index, size)
-        }
+    protected abstract inner class AbstractMutableEdgeIterator : MutableEdgeIterator {
+        private var index = 0
+        private var previous = -1
 
         override fun hasNext(): Boolean = index < size
-        override fun hasPrevious(): Boolean = index > 0
-        override fun nextIndex(): Int = index
-        override fun previousIndex(): Int = index - 1
-
-        override fun next(): Edge {
-            if (index >= size) throw NoSuchElementException()
-            lastIndex = index++
-            return get(lastIndex)
+        override fun next(): Edge = get(index++)
+        override fun remove() {
+            if (previous == -1) throw IllegalStateException()
+            val index = previous
+            previous = -1
+            removeAt(index)
         }
 
-        override fun previous(): Edge {
-            if (index <= 0) throw NoSuchElementException()
-            lastIndex = --index
-            return get(lastIndex)
-        }
-
-        final override fun set(element: Edge): Unit = throw UnsupportedOperationException()
-        final override fun add(element: Edge): Unit = throw UnsupportedOperationException()
-
-        final override fun remove() {
-            check(lastIndex != -1)
-            remove(lastIndex)
-            index = lastIndex
-            lastIndex = -1
-        }
-
-        protected open fun remove(index: Int): Unit = throw UnsupportedOperationException()
+        protected abstract fun removeAt(index: Int)
     }
 }
 
-private class SingletonEdgeSet(private val edge: Edge) : AbstractEdgeSetList() {
+private class SingletonEdgeSet(private val edge: Edge) : AbstractIndexedEdgeSet() {
     override val size: Int
         get() = 1
 
     override fun get(index: Int): Edge {
-        checkElementIndex(index, size)
-        return edge
+        if (index == 0) return edge else throw IndexOutOfBoundsException()
     }
 
-    override fun subList(fromIndex: Int, toIndex: Int): EdgeSetList {
-        checkRangeIndexes(fromIndex, toIndex, size)
-        return if (fromIndex == toIndex) emptyEdgeSet() else this
+    override fun indexOf(element: Edge): Int {
+        return if (element == edge) 0 else -1
     }
+
+    override fun fastForEach(action: (Edge) -> Unit) = action(edge)
 }
 
-internal fun kotlin.collections.LongIterator.asEdgeIterator(): EdgeIterator = EdgeIteratorWrapper(this)
+internal fun LongIterator.asEdgeIterator(): EdgeIterator = EdgeIteratorWrapper(this)
 
-internal fun LongIterator.asEdgeIterator(): EdgeIterator = EdgeFastUtilIteratorWrapper(this)
-
-private class EdgeIteratorWrapper(private val it: kotlin.collections.LongIterator) : EdgeIterator {
-    override fun hasNext(): Boolean = it.hasNext()
-    override fun next(): Edge {
-        return Edge(it.nextLong())
-    }
-}
-
-private class EdgeFastUtilIteratorWrapper(private val it: LongIterator) : EdgeIterator {
+private class EdgeIteratorWrapper(private val it: LongIterator) : EdgeIterator {
     override fun hasNext(): Boolean = it.hasNext()
     override fun next(): Edge {
         return Edge(it.nextLong())
@@ -572,16 +497,16 @@ private class EdgeFastUtilIteratorWrapper(private val it: LongIterator) : EdgeIt
 
 internal fun LongSet.asEdgeSet(): EdgeSet = EdgeSetWrapper(this)
 
-private class EdgeSetWrapper(private val edges: LongSet) : EdgeSet, AbstractEdgeCollection() {
+private class EdgeSetWrapper(private val edges: LongSet) : AbstractEdgeSet() {
     override val size: Int get() = edges.size
 
+    // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
+    //   overrides of this method
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("contains")
     override fun contains(element: Edge): Boolean = edges.contains(element.longValue)
-
-    override fun iterator(): EdgeIterator = EdgeFastUtilIteratorWrapper(edges.iterator())
+    override fun iterator(): EdgeIterator = EdgeIteratorWrapper(edges.iterator())
+    override fun fastForEach(action: (Edge) -> Unit) = edges.fastForEach { edge -> action(Edge(edge)) }
 
     override fun toLongArray(): LongArray = edges.toLongArray()
-
-    override fun toLongArray(array: LongArray): LongArray = edges.toArray(array)
 }

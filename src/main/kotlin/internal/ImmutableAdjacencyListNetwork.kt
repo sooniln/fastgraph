@@ -2,11 +2,16 @@
 
 package io.github.sooniln.fastgraph.internal
 
+import io.github.sooniln.fastcollect.ints.Int2AnyMap
+import io.github.sooniln.fastcollect.ints.IntArrayList
+import io.github.sooniln.fastcollect.ints.IntList
+import io.github.sooniln.fastcollect.ints.getOrPut
+import io.github.sooniln.fastcollect.longs.LongArrayList
 import io.github.sooniln.fastgraph.AbstractEdgeCollection
-import io.github.sooniln.fastgraph.AbstractEdgeSetList
 import io.github.sooniln.fastgraph.AbstractImmutableGraph
-import io.github.sooniln.fastgraph.AbstractVertexCollection
-import io.github.sooniln.fastgraph.AbstractVertexSetList
+import io.github.sooniln.fastgraph.AbstractIndexedEdgeSet
+import io.github.sooniln.fastgraph.AbstractIndexedVertexSet
+import io.github.sooniln.fastgraph.AbstractVertexSet
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeIndexedEdgeGraph
 import io.github.sooniln.fastgraph.EdgeInitializer
@@ -14,10 +19,11 @@ import io.github.sooniln.fastgraph.EdgeIterator
 import io.github.sooniln.fastgraph.EdgeProperty
 import io.github.sooniln.fastgraph.EdgeReference
 import io.github.sooniln.fastgraph.EdgeSet
-import io.github.sooniln.fastgraph.EdgeSetList
 import io.github.sooniln.fastgraph.GraphMutator
 import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.ImmutableGraphBuilder
+import io.github.sooniln.fastgraph.IndexedEdgeSet
+import io.github.sooniln.fastgraph.IndexedVertexSet
 import io.github.sooniln.fastgraph.PropertyGraph
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexIndexedVertexGraph
@@ -26,18 +32,11 @@ import io.github.sooniln.fastgraph.VertexIterator
 import io.github.sooniln.fastgraph.VertexProperty
 import io.github.sooniln.fastgraph.VertexReference
 import io.github.sooniln.fastgraph.VertexSet
-import io.github.sooniln.fastgraph.VertexSetList
 import io.github.sooniln.fastgraph.nothingEdgeProperty
 import io.github.sooniln.fastgraph.nothingVertexProperty
+import io.github.sooniln.fastgraph.primitives.collections.GraphInt2AnyHashMap
+import io.github.sooniln.fastgraph.primitives.collections.GraphLong2AnyHashMap
 import io.github.sooniln.fastgraph.vertexSetOf
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
-import it.unimi.dsi.fastutil.ints.IntArrayList
-import it.unimi.dsi.fastutil.ints.IntIterator
-import it.unimi.dsi.fastutil.ints.IntList
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
-import it.unimi.dsi.fastutil.longs.LongArrayList
-import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap
 import kotlin.math.max
 
 internal class ImmutableAdjacencyListNetwork(
@@ -59,11 +58,11 @@ internal class ImmutableAdjacencyListNetwork(
             return@lazy Successors(emptyArray())
         }
 
-        val pds = Array(successors.size) { Int2ObjectOpenHashMap<IntArrayList>() }
-        for (vertexIntValue in 0..<successors.size) {
+        val pds = Array(successors.size) { GraphInt2AnyHashMap<IntArrayList>() }
+        for (vertexIntValue in successors.indices) {
             val vertex = Vertex(vertexIntValue)
             for (edgeAdjacency in successors[vertex.intValue]) {
-                pds[edgeAdjacency.vertex.intValue].computeIfAbsent(vertex.intValue) { IntArrayList() }
+                pds[edgeAdjacency.vertex.intValue].getOrPut(vertex.intValue) { IntArrayList() }
                     .add(edgeAdjacency.edgeId)
             }
         }
@@ -78,20 +77,20 @@ internal class ImmutableAdjacencyListNetwork(
     }
 
     private fun validateVertex(vertex: Vertex): Vertex {
-        if (vertex.intValue !in 0..<successors.size) {
+        if (vertex.intValue !in successors.indices) {
             throw IllegalArgumentException("$vertex not found in graph")
         }
         return vertex
     }
 
     private fun validateEdge(edge: Edge): Edge {
-        if (edge.lowBits !in 0..<edgeValues.size) {
+        if (edge.lowBits !in edgeValues.indices) {
             throw IllegalArgumentException("$edge not found in graph")
         }
         return edge
     }
 
-    override val vertices: VertexSetList = object : AbstractVertexSetList() {
+    override val vertices: IndexedVertexSet = object : AbstractIndexedVertexSet() {
         override val size: Int get() = successors.size
         override fun get(index: Int): Vertex = Vertex(index)
 
@@ -105,10 +104,6 @@ internal class ImmutableAdjacencyListNetwork(
         @Suppress("INAPPLICABLE_JVM_NAME")
         @JvmName("indexOf")
         override fun indexOf(element: Vertex): Int = validateVertex(element).intValue
-
-        @Suppress("INAPPLICABLE_JVM_NAME")
-        @JvmName("lastIndexOf")
-        override fun lastIndexOf(element: Vertex): Int = validateVertex(element).intValue
     }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
@@ -155,7 +150,7 @@ internal class ImmutableAdjacencyListNetwork(
         }
     }
 
-    override val edges: EdgeSetList = object : EdgeSetList, AbstractEdgeSetList() {
+    override val edges: IndexedEdgeSet = object : AbstractIndexedEdgeSet() {
         override val size: Int get() = edgeValues.size
         override fun get(index: Int): Edge = canonicalEdge(directed, edgeValues[index], index)
 
@@ -168,10 +163,6 @@ internal class ImmutableAdjacencyListNetwork(
         @Suppress("INAPPLICABLE_JVM_NAME")
         @JvmName("indexOf")
         override fun indexOf(element: Edge): Int = validateEdge(element).lowBits
-
-        @Suppress("INAPPLICABLE_JVM_NAME")
-        @JvmName("lastIndexOf")
-        override fun lastIndexOf(element: Edge): Int = validateEdge(element).lowBits
     }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
@@ -285,13 +276,13 @@ private inline fun canonicalEdge(directed: Boolean, source: Vertex, target: Vert
 @JvmInline
 internal value class Successors private constructor(private val arr: Array<IntArray>) : List<SuccessorArray> {
 
-    constructor(successors: Array<out Int2ObjectMap<out IntList>>) : this(Array(successors.size) {
+    constructor(successors: Array<out Int2AnyMap<out IntList>>) : this(Array(successors.size) {
         toSuccessorArray(
             successors[it]
         )
     })
 
-    constructor(successors: List<Int2ObjectMap<out IntList>>) : this(Array(successors.size) {
+    constructor(successors: List<Int2AnyMap<out IntList>>) : this(Array(successors.size) {
         toSuccessorArray(
             successors[it]
         )
@@ -357,7 +348,7 @@ internal value class SuccessorArray(private val arr: IntArray) : EdgeAdjacencySe
 
     override inline fun contains(vertex: Vertex): Boolean = findVertex(vertex) >= 0
 
-    override fun vertices(): VertexSet = object : VertexSet, AbstractVertexCollection() {
+    override fun vertices(): VertexSet = object : AbstractVertexSet() {
         override val size: Int get() = numVertices
 
         @Suppress("INAPPLICABLE_JVM_NAME")
@@ -414,15 +405,15 @@ internal value class SuccessorArray(private val arr: IntArray) : EdgeAdjacencySe
 
     fun firstAdjacency(vertex: Vertex): EdgeAdjacency {
         val vertexIdx = findVertex(vertex)
-        if (vertexIdx < 0) {
+        return if (vertexIdx < 0) {
             throw NoSuchElementException()
         } else {
             val vertexDataIdx = vertexDataIdx(vertexIdx)
             val vertexData = arr[vertexDataIdx]
             if (vertexData >= 0) {
-                return EdgeAdjacency(vertex, vertexData)
+                EdgeAdjacency(vertex, vertexData)
             } else {
-                return EdgeAdjacency(vertex, arr[edgeIdsStart(vertexData)])
+                EdgeAdjacency(vertex, arr[edgeIdsStart(vertexData)])
             }
         }
     }
@@ -490,7 +481,7 @@ internal value class SuccessorArray(private val arr: IntArray) : EdgeAdjacencySe
 // contains a negative index (-#VE) to deeper in the array where a list of edge ids for this target vertex can be found.
 // [#VE] = the number of edge ids (#E) listed in the next indices
 // [#VE + 1 -> #VE + 1 + #E] = a list of edge ids in sorted order
-private fun toSuccessorArray(map: Int2ObjectMap<out IntList>): IntArray {
+private fun toSuccessorArray(map: Int2AnyMap<out IntList>): IntArray {
     if (map.isEmpty()) {
         return IntArray(0)
     }
@@ -513,12 +504,12 @@ private fun toSuccessorArray(map: Int2ObjectMap<out IntList>): IntArray {
     var edgeIdsStart = i + numVertices
     for (vIdx in 2..<i) {
         val vertex = arr[vIdx]
-        val list = map[vertex]
+        val list = map.getValue(vertex)
         if (list.size == 1) {
-            arr[i++] = list.getInt(0)
+            arr[i++] = list[0]
         } else {
             arr[i++] = -edgeIdsStart
-            val edges = list.toArray(IntArray(0)).apply { sort() }
+            val edges = list.toIntArray().apply { sort() }
             arr[edgeIdsStart++] = edges.size
             System.arraycopy(edges, 0, arr, edgeIdsStart, edges.size)
             edgeIdsStart += edges.size
@@ -535,7 +526,7 @@ internal class ImmutableAdjacencyListNetworkBuilder<V, E> internal constructor(
 ) : ImmutableGraphBuilder<V, E>(), GraphMutator<V, E> {
 
     private var multiEdge = false
-    private val successors = ArrayList<Int2ObjectOpenHashMap<IntArrayList>>()
+    private val successors = ArrayList<GraphInt2AnyHashMap<IntArrayList>>()
     private var edgeValues = LongArrayList()
 
     private val vertexMap = Object2IntOpenHashMap<V>()
@@ -546,7 +537,7 @@ internal class ImmutableAdjacencyListNetworkBuilder<V, E> internal constructor(
 
     private var edgePropertyClass: Class<E>? = null
     private var edgePropertyInitializer: EdgeInitializer<E>? = null
-    private var edgeProperty: Long2ObjectOpenHashMap<E>? = null
+    private var edgeProperty: GraphLong2AnyHashMap<E>? = null
 
     override fun withVertexProperty(clazz: Class<V>, initializer: VertexInitializer<V>): ImmutableGraphBuilder<V, E> {
         check(successors.isEmpty())
@@ -560,12 +551,12 @@ internal class ImmutableAdjacencyListNetworkBuilder<V, E> internal constructor(
         check(successors.isEmpty())
         edgePropertyClass = clazz
         edgePropertyInitializer = initializer
-        edgeProperty = Long2ObjectOpenHashMap()
+        edgeProperty = GraphLong2AnyHashMap()
         return this
     }
 
     private fun validateVertex(vertex: Vertex): Vertex {
-        if (vertex.intValue !in 0..<successors.size) throw IllegalArgumentException("$vertex not found in graph builder")
+        if (vertex.intValue !in successors.indices) throw IllegalArgumentException("$vertex not found in graph builder")
         return vertex
     }
 
@@ -579,7 +570,7 @@ internal class ImmutableAdjacencyListNetworkBuilder<V, E> internal constructor(
 
     private inline fun addVertexInternal(mapValue: Boolean, valueRetriever: (Vertex) -> V): Vertex {
         val vertex = Vertex(successors.size)
-        successors.add(Int2ObjectOpenHashMap<IntArrayList>())
+        successors.add(GraphInt2AnyHashMap())
         if (mapValue || vertexProperty != null) {
             val value = valueRetriever(vertex)
             vertexProperty?.add(value)
@@ -611,13 +602,13 @@ internal class ImmutableAdjacencyListNetworkBuilder<V, E> internal constructor(
         }
 
         edgeValues.add(edgeValue.longValue)
-        adjacencySet.computeIfAbsent(target.intValue) { IntArrayList() }.add(edgeId)
+        adjacencySet.getOrPut(target.intValue) { IntArrayList() }.add(edgeId)
         if (containsTarget) {
             multiEdge = true
         }
 
         if (!directed && source != target) {
-            successors[target.intValue].computeIfAbsent(source.intValue) { IntArrayList() }.add(edgeId)
+            successors[target.intValue].getOrPut(source.intValue) { IntArrayList() }.add(edgeId)
         }
 
         val edge = canonicalEdge(directed, edgeValue, edgeId)

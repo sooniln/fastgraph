@@ -2,9 +2,11 @@
 
 package io.github.sooniln.fastgraph.internal
 
+import io.github.sooniln.fastcollect.ints.IntArrayList
 import io.github.sooniln.fastgraph.AbstractEdgeCollection
+import io.github.sooniln.fastgraph.AbstractEdgeSet
 import io.github.sooniln.fastgraph.AbstractImmutableGraph
-import io.github.sooniln.fastgraph.AbstractVertexSetList
+import io.github.sooniln.fastgraph.AbstractIndexedVertexSet
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeInitializer
 import io.github.sooniln.fastgraph.EdgeIterator
@@ -14,6 +16,7 @@ import io.github.sooniln.fastgraph.EdgeSet
 import io.github.sooniln.fastgraph.GraphMutator
 import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.ImmutableGraphBuilder
+import io.github.sooniln.fastgraph.IndexedVertexSet
 import io.github.sooniln.fastgraph.PropertyGraph
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexIndexedVertexGraph
@@ -21,15 +24,12 @@ import io.github.sooniln.fastgraph.VertexInitializer
 import io.github.sooniln.fastgraph.VertexIterator
 import io.github.sooniln.fastgraph.VertexProperty
 import io.github.sooniln.fastgraph.VertexReference
-import io.github.sooniln.fastgraph.VertexSetList
 import io.github.sooniln.fastgraph.edgeSetOf
 import io.github.sooniln.fastgraph.emptyEdgeSet
 import io.github.sooniln.fastgraph.nothingEdgeProperty
 import io.github.sooniln.fastgraph.nothingVertexProperty
-import io.github.sooniln.fastgraph.primitives.IntHashSet
-import it.unimi.dsi.fastutil.ints.IntArrayList
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
-import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap
+import io.github.sooniln.fastgraph.primitives.collections.GraphIntHashSet
+import io.github.sooniln.fastgraph.primitives.collections.GraphLong2AnyHashMap
 import kotlin.math.max
 import kotlin.math.min
 
@@ -52,7 +52,7 @@ internal class ImmutableAdjacencyListGraph(
         }
 
         val pds = Array(successors.size) { IntArrayList() }
-        for (vertexIntValue in 0..<successors.size) {
+        for (vertexIntValue in successors.indices) {
             val vertex = Vertex(vertexIntValue)
             for (successor in successors(vertex)) {
                 pds[successor.intValue].add(vertexIntValue)
@@ -72,7 +72,7 @@ internal class ImmutableAdjacencyListGraph(
         get() = false
 
     private fun validateVertex(vertex: Vertex): Vertex {
-        if (vertex.intValue !in 0..<successors.size) {
+        if (vertex.intValue !in successors.indices) {
             throw IllegalArgumentException("$vertex not found in graph")
         }
         return vertex
@@ -88,7 +88,7 @@ internal class ImmutableAdjacencyListGraph(
         return edge
     }
 
-    override val vertices: VertexSetList = object : AbstractVertexSetList() {
+    override val vertices: IndexedVertexSet = object : AbstractIndexedVertexSet() {
         override val size: Int get() = successors.size
         override fun get(index: Int): Vertex = Vertex(index)
 
@@ -98,6 +98,10 @@ internal class ImmutableAdjacencyListGraph(
             validateVertex(element)
             return true
         }
+
+        @Suppress("INAPPLICABLE_JVM_NAME")
+        @JvmName("indexOf")
+        override fun indexOf(element: Vertex): Int = validateVertex(element).intValue
     }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
@@ -116,12 +120,12 @@ internal class ImmutableAdjacencyListGraph(
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("successors")
-    override fun successors(vertex: Vertex): VertexSetList =
+    override fun successors(vertex: Vertex): IndexedVertexSet =
         VertexNeighbors(successors[validateVertex(vertex).intValue])
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("predecessors")
-    override fun predecessors(vertex: Vertex): VertexSetList {
+    override fun predecessors(vertex: Vertex): IndexedVertexSet {
         if (!directed) {
             return successors(vertex)
         }
@@ -144,7 +148,7 @@ internal class ImmutableAdjacencyListGraph(
         return IncidentEdgeSet(false, vertex, predecessors[validateVertex(vertex).intValue])
     }
 
-    override val edges: EdgeSet = object : EdgeSet, AbstractEdgeCollection() {
+    override val edges: EdgeSet = object : AbstractEdgeSet() {
         override val size: Int get() = numEdges
 
         @Suppress("INAPPLICABLE_JVM_NAME")
@@ -244,7 +248,7 @@ internal class ImmutableAdjacencyListGraph(
     @JvmName("createEdgeReference")
     override fun createEdgeReference(edge: Edge): EdgeReference = EdgeReferenceImpl(validateEdge(edge))
 
-    private class VertexNeighbors(private val sortedNeighbors: IntArray) : AbstractVertexSetList() {
+    private class VertexNeighbors(private val sortedNeighbors: IntArray) : AbstractIndexedVertexSet() {
         override val size: Int
             get() = sortedNeighbors.size
 
@@ -252,6 +256,9 @@ internal class ImmutableAdjacencyListGraph(
         @JvmName("contains")
         override fun contains(element: Vertex): Boolean = sortedNeighbors.binarySearch(element.intValue) >= 0
         override fun get(index: Int): Vertex = Vertex(sortedNeighbors[index])
+        override fun indexOf(element: Vertex): Int {
+            TODO("Not yet implemented")
+        }
 
         // override superclass implementation for substantial speed gains, likely by changing the JVM profile point and
         // thus enabling additional optimizations?
@@ -329,7 +336,7 @@ internal class ImmutableAdjacencyListGraphBuilder<V, E>(
     private val directed: Boolean,
 ) : ImmutableGraphBuilder<V, E>(), GraphMutator<V, E> {
 
-    private val successors = ArrayList<IntHashSet>()
+    private val successors = ArrayList<GraphIntHashSet>()
     private var numEdges = 0
 
     private val vertexMap = Object2IntOpenHashMap<V>()
@@ -340,7 +347,7 @@ internal class ImmutableAdjacencyListGraphBuilder<V, E>(
 
     private var edgePropertyClass: Class<E>? = null
     private var edgePropertyInitializer: EdgeInitializer<E>? = null
-    private var edgeProperty: Long2ObjectOpenHashMap<E>? = null
+    private var edgeProperty: GraphLong2AnyHashMap<E>? = null
 
     override fun withVertexProperty(clazz: Class<V>, initializer: VertexInitializer<V>): ImmutableGraphBuilder<V, E> {
         check(successors.isEmpty())
@@ -354,12 +361,12 @@ internal class ImmutableAdjacencyListGraphBuilder<V, E>(
         check(successors.isEmpty())
         edgePropertyClass = clazz
         edgePropertyInitializer = initializer
-        edgeProperty = Long2ObjectOpenHashMap()
+        edgeProperty = GraphLong2AnyHashMap()
         return this
     }
 
     private fun validateVertex(vertex: Vertex): Vertex {
-        if (vertex.intValue !in 0..<successors.size) throw IllegalArgumentException("$vertex not found in graph builder")
+        if (vertex.intValue !in successors.indices) throw IllegalArgumentException("$vertex not found in graph builder")
         return vertex
     }
 
@@ -373,7 +380,7 @@ internal class ImmutableAdjacencyListGraphBuilder<V, E>(
 
     private inline fun addVertexInternal(mapValue: Boolean, valueRetriever: (Vertex) -> V): Vertex {
         val vertex = Vertex(successors.size)
-        successors.add(IntHashSet())
+        successors.add(GraphIntHashSet())
         if (mapValue || vertexProperty != null) {
             val value = valueRetriever(vertex)
             vertexProperty?.add(value)

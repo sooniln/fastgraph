@@ -1,7 +1,9 @@
 package io.github.sooniln.fastgraph.internal
 
+import io.github.sooniln.fastcollect.ints.emptyMutableIntIterator
 import io.github.sooniln.fastgraph.AbstractEdgeCollection
-import io.github.sooniln.fastgraph.AbstractVertexSetList
+import io.github.sooniln.fastgraph.AbstractEdgeSet
+import io.github.sooniln.fastgraph.AbstractIndexedVertexSet
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeInitializer
 import io.github.sooniln.fastgraph.EdgeIterator
@@ -12,9 +14,8 @@ import io.github.sooniln.fastgraph.MutableEdgeIterator
 import io.github.sooniln.fastgraph.MutableEdgeSet
 import io.github.sooniln.fastgraph.MutableGraph
 import io.github.sooniln.fastgraph.MutableIndexedVertexGraph
+import io.github.sooniln.fastgraph.MutableIndexedVertexSet
 import io.github.sooniln.fastgraph.MutableVertexIterator
-import io.github.sooniln.fastgraph.MutableVertexListIterator
-import io.github.sooniln.fastgraph.MutableVertexSetList
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexIndexedVertexGraph
 import io.github.sooniln.fastgraph.VertexInitializer
@@ -24,8 +25,7 @@ import io.github.sooniln.fastgraph.VertexSet
 import io.github.sooniln.fastgraph.asVertexSet
 import io.github.sooniln.fastgraph.edgeSetOf
 import io.github.sooniln.fastgraph.emptyEdgeSet
-import io.github.sooniln.fastgraph.primitives.IntHashSet
-import io.github.sooniln.fastgraph.primitives.emptyIntIterator
+import io.github.sooniln.fastgraph.primitives.collections.GraphIntHashSet
 import kotlin.math.max
 import kotlin.math.min
 
@@ -35,21 +35,18 @@ internal class AdjacencyListGraph(override val directed: Boolean) : MutableGraph
     private val _predecessors = lazy {
         check(directed)
 
-        val predecessors = ArrayList<IntHashSet>(successors.size)
+        val predecessors = ArrayList<GraphIntHashSet>(successors.size)
         repeat(successors.size) {
-            predecessors.add(IntHashSet())
+            predecessors.add(GraphIntHashSet())
         }
         for (vertexIntValue in successors.indices) {
-            val it = successors[vertexIntValue].iterator()
-            while (it.hasNext()) {
-                predecessors[it.nextInt()].add(vertexIntValue)
-            }
+            successors[vertexIntValue].fastForEach { successor -> predecessors[successor].add(vertexIntValue) }
         }
         return@lazy predecessors
     }
 
-    private val successors: ArrayList<IntHashSet> = ArrayList()
-    private val predecessors: ArrayList<IntHashSet> by _predecessors
+    private val successors: ArrayList<GraphIntHashSet> = ArrayList()
+    private val predecessors: ArrayList<GraphIntHashSet> by _predecessors
 
     private val vertexRefs = VertexReferenceHolder()
     private val edgeRefs = LongEdgeReferenceHolder()
@@ -75,9 +72,9 @@ internal class AdjacencyListGraph(override val directed: Boolean) : MutableGraph
     @JvmName("addVertex")
     override fun addVertex(): Vertex {
         val vertex = Vertex(successors.size)
-        successors.add(IntHashSet())
+        successors.add(GraphIntHashSet())
         if (_predecessors.isInitialized()) {
-            predecessors.add(IntHashSet())
+            predecessors.add(GraphIntHashSet())
         }
 
         return vertex
@@ -128,9 +125,7 @@ internal class AdjacencyListGraph(override val directed: Boolean) : MutableGraph
         if (index != lastIndex) {
             // update edge references
             if (directed) {
-                val inboundIt = predecessors[lastIndex].iterator()
-                while (inboundIt.hasNext()) {
-                    val source = inboundIt.nextInt()
+                predecessors[lastIndex].fastForEach { source ->
                     // predecessors hasn't been corrected yet, so treat lastIndex as index when necessary
                     val newSource = if (source == lastIndex) index else source
 
@@ -143,9 +138,7 @@ internal class AdjacencyListGraph(override val directed: Boolean) : MutableGraph
                     check(successors[source].add(index))
                 }
 
-                val outboundIt = successors[lastIndex].iterator()
-                while (outboundIt.hasNext()) {
-                    val newTarget = outboundIt.nextInt()
+                successors[lastIndex].fastForEach { newTarget ->
                     // successors has already been corrected, so treat index as lastIndex when necessary
                     val target = if (newTarget == index) lastIndex else newTarget
 
@@ -163,9 +156,7 @@ internal class AdjacencyListGraph(override val directed: Boolean) : MutableGraph
                     check(predecessors[target].add(index))
                 }
             } else {
-                val outboundIt = successors[lastIndex].iterator()
-                while (outboundIt.hasNext()) {
-                    val target = outboundIt.nextInt()
+                successors[lastIndex].fastForEach { target ->
                     // successors hasn't been corrected yet, so treat lastIndex as index when necessary
                     val newTarget = if (target == lastIndex) index else target
 
@@ -251,7 +242,7 @@ internal class AdjacencyListGraph(override val directed: Boolean) : MutableGraph
         get() = false
 
     private fun validateVertex(vertex: Vertex): Vertex {
-        if (vertex.intValue !in 0..<successors.size) {
+        if (vertex.intValue !in successors.indices) {
             throw IllegalArgumentException("$vertex not found in graph")
         }
         return vertex
@@ -267,7 +258,7 @@ internal class AdjacencyListGraph(override val directed: Boolean) : MutableGraph
         return edge
     }
 
-    override val vertices: MutableVertexSetList = object : MutableVertexSetList, AbstractVertexSetList() {
+    override val vertices: MutableIndexedVertexSet = object : MutableIndexedVertexSet, AbstractIndexedVertexSet() {
         override val size: Int get() = successors.size
         override fun get(index: Int): Vertex = Vertex(index)
 
@@ -278,20 +269,10 @@ internal class AdjacencyListGraph(override val directed: Boolean) : MutableGraph
             return true
         }
 
-        @Suppress("INAPPLICABLE_JVM_NAME")
-        @JvmName("indexOf")
         override fun indexOf(element: Vertex): Int = validateVertex(element).intValue
 
-        @Suppress("INAPPLICABLE_JVM_NAME")
-        @JvmName("lastIndexOf")
-        override fun lastIndexOf(element: Vertex): Int = validateVertex(element).intValue
-
-        override fun iterator(): MutableVertexIterator = Iterator(0)
-        override fun listIterator(): MutableVertexListIterator = Iterator(0)
-        override fun listIterator(index: Int): MutableVertexListIterator = Iterator(index)
-
-        private inner class Iterator(index: Int) : AbstractVertexListIterator(index) {
-            override fun remove(index: Int) = removeVertex(Vertex(index))
+        override fun iterator(): MutableVertexIterator = object : AbstractMutableVertexIterator() {
+            override fun removeAt(index: Int) = removeVertex(Vertex(index))
         }
     }
 
@@ -338,7 +319,7 @@ internal class AdjacencyListGraph(override val directed: Boolean) : MutableGraph
         return IncidentEdgeSet(false, validateVertex(vertex), predecessors[vertex.intValue])
     }
 
-    override val edges: MutableEdgeSet = object : MutableEdgeSet, AbstractEdgeCollection() {
+    override val edges: MutableEdgeSet = object : MutableEdgeSet, AbstractEdgeSet() {
         override val size: Int get() = numEdges
 
         @Suppress("INAPPLICABLE_JVM_NAME")
@@ -350,7 +331,7 @@ internal class AdjacencyListGraph(override val directed: Boolean) : MutableGraph
         override fun iterator(): MutableEdgeIterator = object : MutableEdgeIterator {
             private var ready = false
             private var source = 0
-            private var targetIt = if (successors.isEmpty()) emptyIntIterator() else successors[0].iterator()
+            private var targetIt = if (successors.isEmpty()) emptyMutableIntIterator() else successors[0].iterator()
             private var edge: Edge = Edge(0L)
 
             override fun hasNext(): Boolean {
@@ -402,6 +383,16 @@ internal class AdjacencyListGraph(override val directed: Boolean) : MutableGraph
                 }
 
                 cleanupEdgeInternal(source, target)
+            }
+        }
+
+        override fun fastForEach(action: (Edge) -> Unit) {
+            for (source in successors.indices) {
+                successors[source].fastForEach { target ->
+                    if (directed || source <= target) {
+                        action(canonicalSortedEdge(source, target))
+                    }
+                }
             }
         }
     }
@@ -459,7 +450,7 @@ internal class AdjacencyListGraph(override val directed: Boolean) : MutableGraph
     override fun createEdgeReference(edge: Edge): EdgeReference = edgeRefs.ref(validateEdge(edge))
 
     private inner class IncidentEdgeSet(
-        private val outgoing: Boolean, private val vertex: Vertex, private val neighbors: IntHashSet
+        private val outgoing: Boolean, private val vertex: Vertex, private val neighbors: GraphIntHashSet
     ) : EdgeSet, AbstractEdgeCollection() {
         override val size: Int get() = neighbors.size
 
@@ -494,6 +485,17 @@ internal class AdjacencyListGraph(override val directed: Boolean) : MutableGraph
                 } else {
                     canonicalEdge(directed, it.nextInt(), vertex.intValue)
                 }
+            }
+        }
+
+        override fun fastForEach(action: (Edge) -> Unit) {
+            neighbors.fastForEach { nextVertex ->
+                val edge = if (outgoing) {
+                    canonicalEdge(directed, vertex.intValue, nextVertex)
+                } else {
+                    canonicalEdge(directed, nextVertex, vertex.intValue)
+                }
+                action(edge)
             }
         }
     }

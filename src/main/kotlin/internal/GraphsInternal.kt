@@ -1,5 +1,9 @@
 package io.github.sooniln.fastgraph.internal
 
+import io.github.sooniln.fastcollect.ints.Int2IntMap
+import io.github.sooniln.fastcollect.longs.Long2LongMap
+import io.github.sooniln.fastcollect.longs.LongArrayList
+import io.github.sooniln.fastcollect.longs.LongListIterator
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeProperty
 import io.github.sooniln.fastgraph.EdgeReference
@@ -12,13 +16,8 @@ import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexProperty
 import io.github.sooniln.fastgraph.VertexReference
 import io.github.sooniln.fastgraph.VertexSet
-import it.unimi.dsi.fastutil.ints.Int2IntMap
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
-import it.unimi.dsi.fastutil.ints.IntIterator
-import it.unimi.dsi.fastutil.longs.Long2LongMap
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
-import it.unimi.dsi.fastutil.longs.LongArrayList
-import it.unimi.dsi.fastutil.longs.LongListIterator
 import java.lang.ref.ReferenceQueue
 import java.lang.ref.WeakReference
 import kotlin.math.max
@@ -113,13 +112,13 @@ internal value class EdgeValueArrayList private constructor(private val arrayLis
     constructor() : this(LongArrayList())
 
     inline fun ensureCapacity(minimumCapacity: Int) = arrayList.ensureCapacity(minimumCapacity)
-    inline fun trimToSize() = arrayList.trim()
+    inline fun trimToSize() = arrayList.trimToSize()
 
     override val size: Int inline get() = arrayList.size
-    override inline fun isEmpty(): Boolean = arrayList.isEmpty
+    override inline fun isEmpty(): Boolean = arrayList.isEmpty()
     override inline fun contains(element: EdgeValue): Boolean = arrayList.contains(element.longValue)
     override inline fun containsAll(elements: Collection<EdgeValue>): Boolean = throw UnsupportedOperationException()
-    override inline fun get(index: Int): EdgeValue = EdgeValue(arrayList.getLong(index))
+    override inline fun get(index: Int): EdgeValue = EdgeValue(arrayList[index])
     override inline fun indexOf(element: EdgeValue): Int = arrayList.indexOf(element.longValue)
     override inline fun lastIndexOf(element: EdgeValue): Int = arrayList.lastIndexOf(element.longValue)
 
@@ -132,13 +131,13 @@ internal value class EdgeValueArrayList private constructor(private val arrayLis
         throw UnsupportedOperationException()
 
     override inline fun add(element: EdgeValue): Boolean = arrayList.add(element.longValue)
-    override inline fun remove(element: EdgeValue): Boolean = arrayList.rem(element.longValue)
+    override inline fun remove(element: EdgeValue): Boolean = arrayList.remove(element.longValue)
     override inline fun clear() = arrayList.clear()
     override inline fun set(index: Int, element: EdgeValue): EdgeValue =
         EdgeValue(arrayList.set(index, element.longValue))
 
     override inline fun add(index: Int, element: EdgeValue) = arrayList.add(index, element.longValue)
-    override inline fun removeAt(index: Int): EdgeValue = EdgeValue(arrayList.removeLong(index))
+    override inline fun removeAt(index: Int): EdgeValue = EdgeValue(arrayList.removeAt(index))
 
     override inline fun addAll(elements: Collection<EdgeValue>): Boolean = throw UnsupportedOperationException()
     override inline fun addAll(index: Int, elements: Collection<EdgeValue>): Boolean =
@@ -214,7 +213,19 @@ internal interface EdgeAdjacencySet : Set<EdgeAdjacency> {
     fun contains(vertex: Vertex): Boolean
     fun vertices(): VertexSet
     override fun iterator(): EdgeAdjacencyIterator
+    fun fastForEach(action: (EdgeAdjacency) -> Unit) {
+        val it = iterator()
+        while (it.hasNext()) {
+            action(it.next())
+        }
+    }
     fun edgeIdIterator(): IntIterator
+    fun fastForEachEdgeId(action: (Int) -> Unit) {
+        val it = edgeIdIterator()
+        while (it.hasNext()) {
+            action(it.next())
+        }
+    }
 }
 
 @Suppress("NOTHING_TO_INLINE")
@@ -241,11 +252,7 @@ internal class VertexReferenceImpl(vertex: Vertex) : VertexReference {
     }
 
     override fun equals(other: Any?): Boolean {
-        if (other is VertexReferenceImpl) {
-            return valid && other.valid && unstable == other.unstable
-        }
-
-        return false
+        return other is VertexReferenceImpl && valid && other.valid && unstable == other.unstable
     }
 
     override fun hashCode(): Int = unstable.hashCode()
@@ -271,11 +278,7 @@ internal class EdgeReferenceImpl(edge: Edge) : EdgeReference {
     }
 
     override fun equals(other: Any?): Boolean {
-        if (other is EdgeReferenceImpl) {
-            return valid && other.valid && unstable == other.unstable
-        }
-
-        return false
+        return other is EdgeReferenceImpl && valid && other.valid && unstable == other.unstable
     }
 
     override fun hashCode(): Int = unstable.hashCode()

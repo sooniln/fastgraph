@@ -12,9 +12,8 @@ import io.github.sooniln.fastgraph.internal.PropertyGraphCopy
 import io.github.sooniln.fastgraph.internal.TransposedGraph
 import io.github.sooniln.fastgraph.internal.VertexInducedImmutableSubgraph
 import io.github.sooniln.fastgraph.internal.VertexInducedSubgraph
-import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap
-import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap
-import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap
+import io.github.sooniln.fastgraph.primitives.collections.GraphInt2IntHashMap
+import io.github.sooniln.fastgraph.primitives.collections.GraphLong2LongHashMap
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -388,13 +387,7 @@ inline fun <reified T> Graph.createEdgeProperty(initializer: EdgeInitializer<T>)
  * Further, [IndexedVertexGraph.vertices] must iterate vertices in index order.
  */
 interface IndexedVertexGraph : Graph {
-    /**
-     * See [Graph.vertices].
-     *
-     * In addition, this container MUST iterate vertices in index order, and MUST implement `indexOf()` to return the
-     * correct index of a vertex in (amortized) constant time.
-     */
-    override val vertices: VertexSetList
+    override val vertices: IndexedVertexSet
 }
 
 /**
@@ -408,14 +401,7 @@ interface VertexIndexedVertexGraph : IndexedVertexGraph
  * (see [vertices] for details).
  */
 interface MutableIndexedVertexGraph : MutableGraph, IndexedVertexGraph {
-    /**
-     * See [IndexedVertexGraph.vertices].
-     *
-     * In addition, this container guarantees that vertex removal in backwards index order (starting from the highest
-     * index and progressing to the lowest index) will never be slower than vertex removal in forwards index order, and
-     * may in fact be faster.
-     */
-    override val vertices: MutableVertexSetList
+    override val vertices: MutableIndexedVertexSet
 }
 
 /**
@@ -431,13 +417,7 @@ interface EdgeIndexedEdgeGraph : IndexedEdgeGraph
  * must iterate edges in index order.
  */
 interface IndexedEdgeGraph : Graph {
-    /**
-     * See [Graph.edges].
-     *
-     * In addition, this container MUST iterate edges in index order, and MUST implement `indexOf()` to return the
-     * correct index of an edge in (amortized) constant time.
-     */
-    override val edges: EdgeSetList
+    override val edges: IndexedEdgeSet
 }
 
 /**
@@ -445,14 +425,7 @@ interface IndexedEdgeGraph : Graph {
  * [edges] for details).
  */
 interface MutableIndexedEdgeGraph : MutableGraph, IndexedEdgeGraph {
-    /**
-     * See [IndexedEdgeGraph.edges].
-     *
-     * In addition, this container guarantees that edge removal in backwards index order (starting from the highest
-     * index and progressing to the lowest index) will never be slower than edge removal in forwards index order, and
-     * may in fact be faster.
-     */
-    override val edges: MutableEdgeSetList
+    override val edges: MutableIndexedEdgeSet
 }
 
 /**
@@ -901,13 +874,13 @@ fun mutableGraph(
     val vertexMap = if (graph is IndexedVertexGraph) {
         null
     } else {
-        Int2IntOpenHashMap(graph.vertices.size)
+        GraphInt2IntHashMap(graph.vertices.size)
     }
 
     val edgeMap = if (graph is IndexedEdgeGraph && newGraph is IndexedEdgeGraph) {
         null
     } else {
-        Long2LongOpenHashMap(graph.edges.size)
+        GraphLong2LongHashMap(graph.edges.size)
     }
 
     for (vertex in graph.vertices) {
@@ -1260,6 +1233,27 @@ fun Graph.subgraph(vertices: VertexSet): Graph {
         VertexInducedSubgraph(this, vertices)
     }
 }
+
+/**
+ * Returns an immutable subgraph based a snapshot of the graph with the given filters. The snapshot will only include
+ * vertices from the original graph for which the filter returned true, and will only include edges from the original
+ * graph where the vertex filter returned true for both the edge source and target AND the edge filter returned true.
+ * The returned snapshot will use the same [Vertex] and [Edge] values as the original graph, but creates a copy rather
+ * than referencing the original graph at all.
+ */
+/*@Suppress("LEAKED_IN_PLACE_LAMBDA")
+@OptIn(ExperimentalContracts::class)
+fun Graph.subgraphSnapshot(
+    vertexFilter: (Vertex) -> Boolean,
+    edgeFilter: (Edge) -> Boolean = { true }
+): ImmutableGraph {
+    contract {
+        callsInPlace(vertexFilter, InvocationKind.UNKNOWN)
+        callsInPlace(edgeFilter, InvocationKind.UNKNOWN)
+    }
+
+    return FilteredGraph(this, vertexFilter, edgeFilter)
+}*/
 
 /**
  * Returns a live-view of a graph with every edge direction reversed (transposed).

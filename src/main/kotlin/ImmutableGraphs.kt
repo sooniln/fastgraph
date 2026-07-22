@@ -11,8 +11,8 @@ import io.github.sooniln.fastgraph.internal.ImmutableAdjacencyListNetworkBuilder
 import io.github.sooniln.fastgraph.internal.PropertyGraphCopy
 import io.github.sooniln.fastgraph.internal.emptyEdgeProperty
 import io.github.sooniln.fastgraph.internal.emptyVertexProperty
-import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap
-import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap
+import io.github.sooniln.fastgraph.primitives.collections.GraphInt2IntHashMap
+import io.github.sooniln.fastgraph.primitives.collections.GraphLong2LongHashMap
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -53,7 +53,7 @@ private class EmptyGraph(override val directed: Boolean) : ImmutableGraph, Index
     override val multiEdge: Boolean
         get() = false
 
-    override val vertices: VertexSetList
+    override val vertices: IndexedVertexSet
         get() = emptyVertexSet()
 
     @Suppress("INAPPLICABLE_JVM_NAME")
@@ -80,7 +80,7 @@ private class EmptyGraph(override val directed: Boolean) : ImmutableGraph, Index
     @JvmName("incomingEdges")
     override fun incomingEdges(vertex: Vertex): EdgeSet = throw IllegalArgumentException()
 
-    override val edges: EdgeSetList
+    override val edges: IndexedEdgeSet
         get() = emptyEdgeSet()
 
     @Suppress("INAPPLICABLE_JVM_NAME")
@@ -218,8 +218,8 @@ fun immutableGraph(
         require(supportMultiEdge) { "copying a graph with multi-edges requires multi-edge support" }
     }
 
-    val vertexMap: Int2IntOpenHashMap?
-    val edgeMap: Long2LongOpenHashMap?
+    val vertexMap: GraphInt2IntHashMap?
+    val edgeMap: GraphLong2LongHashMap?
 
     val newGraph = immutableGraph(graph.directed, supportMultiEdge, indexEdges) {
         ensureVertexCapacity(graph.vertices.size)
@@ -229,12 +229,12 @@ fun immutableGraph(
         vertexMap = if (graph is IndexedVertexGraph) {
             null
         } else {
-            Int2IntOpenHashMap(graph.vertices.size)
+            GraphInt2IntHashMap(graph.vertices.size)
         }
         edgeMap = if (graph is IndexedEdgeGraph && (supportMultiEdge || indexEdges)) {
             null
         } else {
-            Long2LongOpenHashMap(graph.edges.size)
+            GraphLong2LongHashMap(graph.edges.size)
         }
 
         // if graph is IndexedVertexGraph, we know that adding vertices in the same order will ensure that our
@@ -294,8 +294,8 @@ fun <V : VS?, VS, E : ES?, ES> immutablePropertyGraph(
     val useEdgeProperty = !propertyGraph.edgeProperty.isNothingProperty()
     if (useEdgeProperty) builder.withEdgeProperty(edgeClass, edgeInitializer)
 
-    val vertexMap: Int2IntOpenHashMap?
-    val edgeMap: Long2LongOpenHashMap?
+    val vertexMap: GraphInt2IntHashMap?
+    val edgeMap: GraphLong2LongHashMap?
 
     val newPropertyGraph = builder.buildPropertyGraph {
         ensureVertexCapacity(graph.vertices.size)
@@ -305,12 +305,12 @@ fun <V : VS?, VS, E : ES?, ES> immutablePropertyGraph(
         vertexMap = if (graph is IndexedVertexGraph) {
             null
         } else {
-            Int2IntOpenHashMap(graph.vertices.size)
+            GraphInt2IntHashMap(graph.vertices.size)
         }
         edgeMap = if (graph is IndexedEdgeGraph && (supportMultiEdge || indexEdges)) {
             null
         } else {
-            Long2LongOpenHashMap(graph.edges.size)
+            GraphLong2LongHashMap(graph.edges.size)
         }
 
         for (vertex in graph.vertices) {
