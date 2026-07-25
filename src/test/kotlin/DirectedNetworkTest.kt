@@ -41,7 +41,7 @@ class DirectedNetworkTest {
             vertexName = immutable.vertexProperty
             edgeWeight = immutable.edgeProperty
         } else {
-            val g = mutableGraph(true, supportMultiEdge = true)
+            val g = mutableGraph(true, multiEdge = true)
             graph = g
             vertexName = graph.createVertexProperty { "" }
             edgeWeight = graph.createEdgeProperty { 0f }
@@ -319,23 +319,23 @@ class DirectedNetworkTest {
     fun containsEdge(immutable: Boolean) {
         constructGraph(immutable)
 
-        assertThat(graph.containsEdge(v0, v1)).isTrue()
-        assertThat(graph.containsEdge(v1, v0)).isFalse()
-        assertThat(graph.containsEdge(v1, v2)).isTrue()
-        assertThat(graph.containsEdge(v2, v1)).isFalse()
-        assertThat(graph.containsEdge(v2, v0)).isTrue()
-        assertThat(graph.containsEdge(v0, v2)).isFalse()
-        assertThat(graph.containsEdge(v0, v0)).isTrue()
-        assertThat(graph.containsEdge(v0, v3)).isFalse()
-        assertThat(graph.containsEdge(v1, v3)).isFalse()
-        assertThat(graph.containsEdge(v2, v3)).isFalse()
-        assertThat(graph.containsEdge(v3, v0)).isFalse()
-        assertThat(graph.containsEdge(v3, v1)).isFalse()
-        assertThat(graph.containsEdge(v3, v2)).isFalse()
-        assertThat(graph.containsEdge(v3, v3)).isFalse()
+        assertThat(graph.hasEdge(v0, v1)).isTrue()
+        assertThat(graph.hasEdge(v1, v0)).isFalse()
+        assertThat(graph.hasEdge(v1, v2)).isTrue()
+        assertThat(graph.hasEdge(v2, v1)).isFalse()
+        assertThat(graph.hasEdge(v2, v0)).isTrue()
+        assertThat(graph.hasEdge(v0, v2)).isFalse()
+        assertThat(graph.hasEdge(v0, v0)).isTrue()
+        assertThat(graph.hasEdge(v0, v3)).isFalse()
+        assertThat(graph.hasEdge(v1, v3)).isFalse()
+        assertThat(graph.hasEdge(v2, v3)).isFalse()
+        assertThat(graph.hasEdge(v3, v0)).isFalse()
+        assertThat(graph.hasEdge(v3, v1)).isFalse()
+        assertThat(graph.hasEdge(v3, v2)).isFalse()
+        assertThat(graph.hasEdge(v3, v3)).isFalse()
 
-        assertThrows<IllegalArgumentException> { graph.containsEdge(v0, Vertex(99)) }
-        assertThrows<IllegalArgumentException> { graph.containsEdge(Vertex(99), v0) }
+        assertThrows<IllegalArgumentException> { graph.hasEdge(v0, Vertex(99)) }
+        assertThrows<IllegalArgumentException> { graph.hasEdge(Vertex(99), v0) }
     }
 
     @ParameterizedTest(name = "immutable={0}")
@@ -343,23 +343,23 @@ class DirectedNetworkTest {
     fun getEdge(immutable: Boolean) {
         constructGraph(immutable)
 
-        assertThat(graph.getEdge(v0, v1)).isEqualTo(e0)
-        assertThrows<NoSuchElementException> { graph.getEdge(v1, v0) }
-        assertThat(graph.getEdge(v1, v2)).isEqualTo(e1)
-        assertThrows<NoSuchElementException> { graph.getEdge(v2, v1) }
-        assertThat(graph.getEdge(v2, v0)).isEqualTo(e2)
-        assertThrows<NoSuchElementException> { graph.getEdge(v0, v2) }
-        assertThat(graph.getEdge(v0, v0)).satisfiesAnyOf(
+        assertThat(graph.edge(v0, v1)).isEqualTo(e0)
+        assertThrows<NoSuchElementException> { graph.edge(v1, v0) }
+        assertThat(graph.edge(v1, v2)).isEqualTo(e1)
+        assertThrows<NoSuchElementException> { graph.edge(v2, v1) }
+        assertThat(graph.edge(v2, v0)).isEqualTo(e2)
+        assertThrows<NoSuchElementException> { graph.edge(v0, v2) }
+        assertThat(graph.edge(v0, v0)).satisfiesAnyOf(
             { assertThat(it).isEqualTo(e3) },
             { assertThat(it).isEqualTo(e4) },
         )
-        assertThrows<NoSuchElementException> { graph.getEdge(v0, v3) }
-        assertThrows<NoSuchElementException> { graph.getEdge(v1, v3) }
-        assertThrows<NoSuchElementException> { graph.getEdge(v2, v3) }
-        assertThrows<NoSuchElementException> { graph.getEdge(v3, v3) }
+        assertThrows<NoSuchElementException> { graph.edge(v0, v3) }
+        assertThrows<NoSuchElementException> { graph.edge(v1, v3) }
+        assertThrows<NoSuchElementException> { graph.edge(v2, v3) }
+        assertThrows<NoSuchElementException> { graph.edge(v3, v3) }
 
-        assertThrows<IllegalArgumentException> { graph.getEdge(v0, Vertex(99)) }
-        assertThrows<IllegalArgumentException> { graph.getEdge(Vertex(99), v0) }
+        assertThrows<IllegalArgumentException> { graph.edge(v0, Vertex(99)) }
+        assertThrows<IllegalArgumentException> { graph.edge(Vertex(99), v0) }
     }
 
     @ParameterizedTest(name = "immutable={0}")
@@ -367,84 +367,84 @@ class DirectedNetworkTest {
     fun getEdges(immutable: Boolean) {
         constructGraph(immutable)
 
-        assertThat(graph.getEdges(v0, v1)).containsExactlyInAnyOrder(e0)
-        assertThat(graph.getEdges(v0, v1).contains(e0)).isTrue
-        assertThat(graph.getEdges(v0, v1).contains(e1)).isFalse
-        assertThat(graph.getEdges(v0, v1).contains(e2)).isFalse
-        assertThat(graph.getEdges(v0, v1).contains(e3)).isFalse
-        assertThat(graph.getEdges(v0, v1).contains(e4)).isFalse
+        assertThat(graph.edges(v0, v1)).containsExactlyInAnyOrder(e0)
+        assertThat(graph.edges(v0, v1).contains(e0)).isTrue
+        assertThat(graph.edges(v0, v1).contains(e1)).isFalse
+        assertThat(graph.edges(v0, v1).contains(e2)).isFalse
+        assertThat(graph.edges(v0, v1).contains(e3)).isFalse
+        assertThat(graph.edges(v0, v1).contains(e4)).isFalse
 
-        assertThat(graph.getEdges(v1, v0)).isEmpty()
-        assertThat(graph.getEdges(v1, v0).contains(e0)).isFalse
-        assertThat(graph.getEdges(v1, v0).contains(e1)).isFalse
-        assertThat(graph.getEdges(v1, v0).contains(e2)).isFalse
-        assertThat(graph.getEdges(v1, v0).contains(e3)).isFalse
-        assertThat(graph.getEdges(v1, v0).contains(e4)).isFalse
+        assertThat(graph.edges(v1, v0)).isEmpty()
+        assertThat(graph.edges(v1, v0).contains(e0)).isFalse
+        assertThat(graph.edges(v1, v0).contains(e1)).isFalse
+        assertThat(graph.edges(v1, v0).contains(e2)).isFalse
+        assertThat(graph.edges(v1, v0).contains(e3)).isFalse
+        assertThat(graph.edges(v1, v0).contains(e4)).isFalse
 
-        assertThat(graph.getEdges(v1, v2)).containsExactlyInAnyOrder(e1)
-        assertThat(graph.getEdges(v1, v2).contains(e0)).isFalse
-        assertThat(graph.getEdges(v1, v2).contains(e1)).isTrue
-        assertThat(graph.getEdges(v1, v2).contains(e2)).isFalse
-        assertThat(graph.getEdges(v1, v2).contains(e3)).isFalse
-        assertThat(graph.getEdges(v1, v2).contains(e4)).isFalse
+        assertThat(graph.edges(v1, v2)).containsExactlyInAnyOrder(e1)
+        assertThat(graph.edges(v1, v2).contains(e0)).isFalse
+        assertThat(graph.edges(v1, v2).contains(e1)).isTrue
+        assertThat(graph.edges(v1, v2).contains(e2)).isFalse
+        assertThat(graph.edges(v1, v2).contains(e3)).isFalse
+        assertThat(graph.edges(v1, v2).contains(e4)).isFalse
 
-        assertThat(graph.getEdges(v2, v1)).isEmpty()
-        assertThat(graph.getEdges(v2, v1).contains(e0)).isFalse
-        assertThat(graph.getEdges(v2, v1).contains(e1)).isFalse
-        assertThat(graph.getEdges(v2, v1).contains(e2)).isFalse
-        assertThat(graph.getEdges(v2, v1).contains(e3)).isFalse
-        assertThat(graph.getEdges(v2, v1).contains(e4)).isFalse
+        assertThat(graph.edges(v2, v1)).isEmpty()
+        assertThat(graph.edges(v2, v1).contains(e0)).isFalse
+        assertThat(graph.edges(v2, v1).contains(e1)).isFalse
+        assertThat(graph.edges(v2, v1).contains(e2)).isFalse
+        assertThat(graph.edges(v2, v1).contains(e3)).isFalse
+        assertThat(graph.edges(v2, v1).contains(e4)).isFalse
 
-        assertThat(graph.getEdges(v2, v0)).containsExactlyInAnyOrder(e2)
-        assertThat(graph.getEdges(v2, v0).contains(e0)).isFalse
-        assertThat(graph.getEdges(v2, v0).contains(e1)).isFalse
-        assertThat(graph.getEdges(v2, v0).contains(e2)).isTrue
-        assertThat(graph.getEdges(v2, v0).contains(e3)).isFalse
-        assertThat(graph.getEdges(v2, v0).contains(e4)).isFalse
+        assertThat(graph.edges(v2, v0)).containsExactlyInAnyOrder(e2)
+        assertThat(graph.edges(v2, v0).contains(e0)).isFalse
+        assertThat(graph.edges(v2, v0).contains(e1)).isFalse
+        assertThat(graph.edges(v2, v0).contains(e2)).isTrue
+        assertThat(graph.edges(v2, v0).contains(e3)).isFalse
+        assertThat(graph.edges(v2, v0).contains(e4)).isFalse
 
-        assertThat(graph.getEdges(v0, v2)).isEmpty()
-        assertThat(graph.getEdges(v0, v2).contains(e0)).isFalse
-        assertThat(graph.getEdges(v0, v2).contains(e1)).isFalse
-        assertThat(graph.getEdges(v0, v2).contains(e2)).isFalse
-        assertThat(graph.getEdges(v0, v2).contains(e3)).isFalse
-        assertThat(graph.getEdges(v0, v2).contains(e4)).isFalse
+        assertThat(graph.edges(v0, v2)).isEmpty()
+        assertThat(graph.edges(v0, v2).contains(e0)).isFalse
+        assertThat(graph.edges(v0, v2).contains(e1)).isFalse
+        assertThat(graph.edges(v0, v2).contains(e2)).isFalse
+        assertThat(graph.edges(v0, v2).contains(e3)).isFalse
+        assertThat(graph.edges(v0, v2).contains(e4)).isFalse
 
-        assertThat(graph.getEdges(v0, v0)).containsExactlyInAnyOrder(e3, e4)
-        assertThat(graph.getEdges(v0, v0).contains(e0)).isFalse
-        assertThat(graph.getEdges(v0, v0).contains(e1)).isFalse
-        assertThat(graph.getEdges(v0, v0).contains(e2)).isFalse
-        assertThat(graph.getEdges(v0, v0).contains(e3)).isTrue
-        assertThat(graph.getEdges(v0, v0).contains(e4)).isTrue
+        assertThat(graph.edges(v0, v0)).containsExactlyInAnyOrder(e3, e4)
+        assertThat(graph.edges(v0, v0).contains(e0)).isFalse
+        assertThat(graph.edges(v0, v0).contains(e1)).isFalse
+        assertThat(graph.edges(v0, v0).contains(e2)).isFalse
+        assertThat(graph.edges(v0, v0).contains(e3)).isTrue
+        assertThat(graph.edges(v0, v0).contains(e4)).isTrue
 
-        assertThat(graph.getEdges(v0, v3)).isEmpty()
-        assertThat(graph.getEdges(v0, v3).contains(e0)).isFalse
-        assertThat(graph.getEdges(v0, v3).contains(e1)).isFalse
-        assertThat(graph.getEdges(v0, v3).contains(e2)).isFalse
-        assertThat(graph.getEdges(v0, v3).contains(e3)).isFalse
-        assertThat(graph.getEdges(v0, v3).contains(e4)).isFalse
+        assertThat(graph.edges(v0, v3)).isEmpty()
+        assertThat(graph.edges(v0, v3).contains(e0)).isFalse
+        assertThat(graph.edges(v0, v3).contains(e1)).isFalse
+        assertThat(graph.edges(v0, v3).contains(e2)).isFalse
+        assertThat(graph.edges(v0, v3).contains(e3)).isFalse
+        assertThat(graph.edges(v0, v3).contains(e4)).isFalse
 
-        assertThat(graph.getEdges(v1, v3)).isEmpty()
-        assertThat(graph.getEdges(v1, v3).contains(e0)).isFalse
-        assertThat(graph.getEdges(v1, v3).contains(e1)).isFalse
-        assertThat(graph.getEdges(v1, v3).contains(e2)).isFalse
-        assertThat(graph.getEdges(v1, v3).contains(e3)).isFalse
-        assertThat(graph.getEdges(v1, v3).contains(e4)).isFalse
+        assertThat(graph.edges(v1, v3)).isEmpty()
+        assertThat(graph.edges(v1, v3).contains(e0)).isFalse
+        assertThat(graph.edges(v1, v3).contains(e1)).isFalse
+        assertThat(graph.edges(v1, v3).contains(e2)).isFalse
+        assertThat(graph.edges(v1, v3).contains(e3)).isFalse
+        assertThat(graph.edges(v1, v3).contains(e4)).isFalse
 
-        assertThat(graph.getEdges(v2, v3)).isEmpty()
-        assertThat(graph.getEdges(v2, v3).contains(e0)).isFalse
-        assertThat(graph.getEdges(v2, v3).contains(e1)).isFalse
-        assertThat(graph.getEdges(v2, v3).contains(e2)).isFalse
-        assertThat(graph.getEdges(v2, v3).contains(e3)).isFalse
-        assertThat(graph.getEdges(v2, v3).contains(e4)).isFalse
+        assertThat(graph.edges(v2, v3)).isEmpty()
+        assertThat(graph.edges(v2, v3).contains(e0)).isFalse
+        assertThat(graph.edges(v2, v3).contains(e1)).isFalse
+        assertThat(graph.edges(v2, v3).contains(e2)).isFalse
+        assertThat(graph.edges(v2, v3).contains(e3)).isFalse
+        assertThat(graph.edges(v2, v3).contains(e4)).isFalse
 
-        assertThat(graph.getEdges(v3, v3)).isEmpty()
-        assertThat(graph.getEdges(v3, v3).contains(e0)).isFalse
-        assertThat(graph.getEdges(v3, v3).contains(e1)).isFalse
-        assertThat(graph.getEdges(v3, v3).contains(e2)).isFalse
-        assertThat(graph.getEdges(v3, v3).contains(e3)).isFalse
-        assertThat(graph.getEdges(v3, v3).contains(e4)).isFalse
+        assertThat(graph.edges(v3, v3)).isEmpty()
+        assertThat(graph.edges(v3, v3).contains(e0)).isFalse
+        assertThat(graph.edges(v3, v3).contains(e1)).isFalse
+        assertThat(graph.edges(v3, v3).contains(e2)).isFalse
+        assertThat(graph.edges(v3, v3).contains(e3)).isFalse
+        assertThat(graph.edges(v3, v3).contains(e4)).isFalse
 
-        assertThrows<IllegalArgumentException> { graph.getEdges(v0, Vertex(99)) }
-        assertThrows<IllegalArgumentException> { graph.getEdges(Vertex(99), v0) }
+        assertThrows<IllegalArgumentException> { graph.edges(v0, Vertex(99)) }
+        assertThrows<IllegalArgumentException> { graph.edges(Vertex(99), v0) }
     }
 }

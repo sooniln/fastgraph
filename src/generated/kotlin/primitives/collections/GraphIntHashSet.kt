@@ -1,23 +1,21 @@
 package io.github.sooniln.fastgraph.primitives.collections
 
 import io.github.sooniln.fastcollect.ints.AbstractMutableIntSet
-import io.github.sooniln.fastcollect.ints.IntCollection
 import io.github.sooniln.fastcollect.ints.MutableIntIterator
+import io.github.sooniln.fastcollect.ints.IntCollection
+import io.github.sooniln.fastcollect.ints.IntConsumer
 import io.github.sooniln.fastgraph.primitives.ArrayUtils
+import kotlin.jvm.JvmOverloads
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.random.Random
 
 internal class GraphIntHashSet @JvmOverloads constructor(
     capacity: Int = 0,
 ) : AbstractMutableIntSet() {
 
-    constructor(elements: IntCollection) : this() {
-        addAll(elements)
-    }
-
-    constructor(elements: Collection<Int>) : this() {
-        addAll(elements)
-    }
+    public constructor(elements: IntCollection): this() { addAll(elements) }
+    public constructor(elements: Collection<Int>): this() { addAll(elements) }
 
     private var keysArr = EMPTY_ARRAY
 
@@ -36,7 +34,7 @@ internal class GraphIntHashSet @JvmOverloads constructor(
      * Ensures that the set can hold at least given number of elements without any further resizing of the backing
      * array.
      */
-    fun ensureCapacity(capacity: Int) {
+    public fun ensureCapacity(capacity: Int) {
         require(capacity >= 0) { "The expected number of elements must be nonnegative" }
         if (keysArr === EMPTY_ARRAY) {
             threshold = min(threshold, capacity.inv())
@@ -48,7 +46,7 @@ internal class GraphIntHashSet @JvmOverloads constructor(
     /**
      * Reduces the size of the backing array to the minimum required to hold the current number of elements.
      */
-    fun trimToSize() {
+    public fun trimToSize() {
         rehash(size)
     }
 
@@ -200,7 +198,7 @@ internal class GraphIntHashSet @JvmOverloads constructor(
         }
 
         // for small capacities we force loadFactor to 1.0 to save memory (small array scans are likely to be fast)
-        val actualLoadFactor = if (capacity <= FORCE_LOAD_FACTOR_MAX) 1.0 else 7.0 / 8.0
+        val actualLoadFactor = if (capacity <= FORCE_LOAD_FACTOR_MAX) 1.0 else 7.0/8.0
 
         val newLength = arraySize(capacity, actualLoadFactor)
         if (keysArr.size == newLength) return
@@ -234,10 +232,10 @@ internal class GraphIntHashSet @JvmOverloads constructor(
 
     override fun iterator(): MutableIntIterator = Iterator()
 
-    override fun fastForEach(action: (Int) -> Unit) {
+    override fun foreach(action: IntConsumer) {
         for (key in keysArr) {
             if (key != EMPTY_KEY) {
-                action(key)
+                action.accept(key)
             }
         }
     }
@@ -291,7 +289,7 @@ internal class GraphIntHashSet @JvmOverloads constructor(
     private companion object {
         // the value of a field in an uninitialized primitive array
         @Suppress("REDUNDANT_CALL_OF_CONVERSION_METHOD")
-        private const val EMPTY_KEY: Int = -1.toInt()
+        private const val EMPTY_KEY: Int = (-1).toInt()
 
         private val EMPTY_ARRAY = intArrayOf(EMPTY_KEY)
 

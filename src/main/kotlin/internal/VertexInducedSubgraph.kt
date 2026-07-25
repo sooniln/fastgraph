@@ -1,5 +1,7 @@
 package io.github.sooniln.fastgraph.internal
 
+import io.github.sooniln.fastcollect.ints.Int2AnyHashMap
+import io.github.sooniln.fastcollect.ints.IntHashSet
 import io.github.sooniln.fastgraph.AbstractEdgeCollection
 import io.github.sooniln.fastgraph.AbstractVertexCollection
 import io.github.sooniln.fastgraph.Edge
@@ -15,8 +17,6 @@ import io.github.sooniln.fastgraph.VertexIterator
 import io.github.sooniln.fastgraph.VertexProperty
 import io.github.sooniln.fastgraph.VertexReference
 import io.github.sooniln.fastgraph.VertexSet
-import io.github.sooniln.fastgraph.primitives.IntHashSet
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
 
 internal class VertexInducedSubgraph(private val graph: Graph, override val vertices: VertexSet) : Graph {
 
@@ -39,7 +39,7 @@ internal class VertexInducedSubgraph(private val graph: Graph, override val vert
     override val multiEdge: Boolean
         get() {
             if (!graph.multiEdge) return false
-            val incidences = Int2ObjectOpenHashMap<IntHashSet>()
+            val incidences = Int2AnyHashMap<IntHashSet>()
             for (edge in edges) {
                 val sourceIntValue = edgeSource(edge).intValue
                 var vertexIncidences = incidences.get(sourceIntValue)
@@ -55,6 +55,9 @@ internal class VertexInducedSubgraph(private val graph: Graph, override val vert
             }
             return false
         }
+
+    override val vertexCount: Int
+        get() = vertices.size
 
     override fun outDegree(vertex: Vertex): Int {
         return outgoingEdges(vertex).size
@@ -80,18 +83,25 @@ internal class VertexInducedSubgraph(private val graph: Graph, override val vert
         return FilteringEdgeSet(graph.incomingEdges(validateVertex(vertex)))
     }
 
+    override val edgeCount: Int
+        get() {
+            var size = 0
+            graph.edges.foreach { if (isEdgeInduced(it)) ++size }
+            return size
+        }
+
     override val edges: EdgeSet = FilteringEdgeSet(graph.edges)
 
     override fun edgeSource(edge: Edge): Vertex = graph.edgeSource(edge)
 
     override fun edgeTarget(edge: Edge): Vertex = graph.edgeTarget(edge)
 
-    override fun containsEdge(source: Vertex, target: Vertex): Boolean {
-        return graph.containsEdge(validateVertex(source), validateVertex(target))
+    override fun hasEdge(source: Vertex, target: Vertex): Boolean {
+        return graph.hasEdge(validateVertex(source), validateVertex(target))
     }
 
-    override fun getEdges(source: Vertex, target: Vertex): EdgeSet {
-        return graph.getEdges(validateVertex(source), validateVertex(target))
+    override fun edges(source: Vertex, target: Vertex): EdgeSet {
+        return graph.edges(validateVertex(source), validateVertex(target))
     }
 
     override fun <T : S?, S> createVertexProperty(
@@ -176,9 +186,7 @@ internal class VertexInducedSubgraph(private val graph: Graph, override val vert
         override val size: Int
             get() {
                 var size = 0
-                for (e in edgeSet) {
-                    if (isEdgeInduced(e)) ++size
-                }
+                edgeSet.foreach { if (isEdgeInduced(it)) ++size }
                 return size
             }
 

@@ -384,46 +384,46 @@ class SnapshotGraphTest {
     }
 
     @Test
-    fun containsEdgeDirected() {
+    fun hasEdgeDirected() {
         constructGraph(true)
 
-        assertThat(snapshot.containsEdge(v0, v1)).isTrue
-        assertThat(snapshot.containsEdge(v1, v0)).isFalse
-        assertThat(snapshot.containsEdge(v1, v2)).isTrue
-        assertThat(snapshot.containsEdge(v2, v1)).isFalse
-        assertThat(snapshot.containsEdge(v2, v0)).isTrue
-        assertThat(snapshot.containsEdge(v0, v2)).isFalse
-        assertThat(snapshot.containsEdge(v0, v0)).isTrue
-        assertThat(snapshot.containsEdge(v0, v3)).isFalse
-        assertThat(snapshot.containsEdge(v1, v3)).isFalse
-        assertThat(snapshot.containsEdge(v2, v3)).isFalse
-        assertThat(snapshot.containsEdge(v3, v0)).isFalse
-        assertThat(snapshot.containsEdge(v3, v1)).isFalse
-        assertThat(snapshot.containsEdge(v3, v2)).isFalse
-        assertThat(snapshot.containsEdge(v3, v3)).isFalse
+        assertThat(snapshot.hasEdge(v0, v1)).isTrue
+        assertThat(snapshot.hasEdge(v1, v0)).isFalse
+        assertThat(snapshot.hasEdge(v1, v2)).isTrue
+        assertThat(snapshot.hasEdge(v2, v1)).isFalse
+        assertThat(snapshot.hasEdge(v2, v0)).isTrue
+        assertThat(snapshot.hasEdge(v0, v2)).isFalse
+        assertThat(snapshot.hasEdge(v0, v0)).isTrue
+        assertThat(snapshot.hasEdge(v0, v3)).isFalse
+        assertThat(snapshot.hasEdge(v1, v3)).isFalse
+        assertThat(snapshot.hasEdge(v2, v3)).isFalse
+        assertThat(snapshot.hasEdge(v3, v0)).isFalse
+        assertThat(snapshot.hasEdge(v3, v1)).isFalse
+        assertThat(snapshot.hasEdge(v3, v2)).isFalse
+        assertThat(snapshot.hasEdge(v3, v3)).isFalse
 
-        assertThrows<IllegalArgumentException> { snapshot.containsEdge(v0, Vertex(99)) }
-        assertThrows<IllegalArgumentException> { snapshot.containsEdge(Vertex(99), v0) }
+        assertThrows<IllegalArgumentException> { snapshot.hasEdge(v0, Vertex(99)) }
+        assertThrows<IllegalArgumentException> { snapshot.hasEdge(Vertex(99), v0) }
     }
 
     @Test
-    fun containsEdgeUndirected() {
+    fun hasEdgeUndirected() {
         constructGraph(false)
 
         // For undirected, edges are symmetric
-        assertThat(snapshot.containsEdge(v0, v1)).isTrue
-        assertThat(snapshot.containsEdge(v1, v0)).isTrue
-        assertThat(snapshot.containsEdge(v1, v2)).isTrue
-        assertThat(snapshot.containsEdge(v2, v1)).isTrue
-        assertThat(snapshot.containsEdge(v2, v0)).isTrue
-        assertThat(snapshot.containsEdge(v0, v2)).isTrue
-        assertThat(snapshot.containsEdge(v0, v0)).isTrue
-        assertThat(snapshot.containsEdge(v0, v3)).isFalse
-        assertThat(snapshot.containsEdge(v3, v0)).isFalse
-        assertThat(snapshot.containsEdge(v3, v3)).isFalse
+        assertThat(snapshot.hasEdge(v0, v1)).isTrue
+        assertThat(snapshot.hasEdge(v1, v0)).isTrue
+        assertThat(snapshot.hasEdge(v1, v2)).isTrue
+        assertThat(snapshot.hasEdge(v2, v1)).isTrue
+        assertThat(snapshot.hasEdge(v2, v0)).isTrue
+        assertThat(snapshot.hasEdge(v0, v2)).isTrue
+        assertThat(snapshot.hasEdge(v0, v0)).isTrue
+        assertThat(snapshot.hasEdge(v0, v3)).isFalse
+        assertThat(snapshot.hasEdge(v3, v0)).isFalse
+        assertThat(snapshot.hasEdge(v3, v3)).isFalse
 
-        assertThrows<IllegalArgumentException> { snapshot.containsEdge(v0, Vertex(99)) }
-        assertThrows<IllegalArgumentException> { snapshot.containsEdge(Vertex(99), v0) }
+        assertThrows<IllegalArgumentException> { snapshot.hasEdge(v0, Vertex(99)) }
+        assertThrows<IllegalArgumentException> { snapshot.hasEdge(Vertex(99), v0) }
     }
 
     @ParameterizedTest

@@ -157,7 +157,7 @@ internal class ImmutableAdjacencyListNetwork(
         @Suppress("INAPPLICABLE_JVM_NAME")
         @JvmName("contains")
         override fun contains(element: Edge): Boolean {
-            return containsEdge(edgeSource(element), edgeTarget(element))
+            return hasEdge(edgeSource(element), edgeTarget(element))
         }
 
         @Suppress("INAPPLICABLE_JVM_NAME")
@@ -175,20 +175,20 @@ internal class ImmutableAdjacencyListNetwork(
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("containsEdge")
-    override fun containsEdge(source: Vertex, target: Vertex): Boolean {
+    override fun hasEdge(source: Vertex, target: Vertex): Boolean {
         return successors[validateVertex(source).intValue].contains(validateVertex(target))
     }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("getEdge")
-    override fun getEdge(source: Vertex, target: Vertex): Edge {
+    override fun edge(source: Vertex, target: Vertex): Edge {
         val adjacency = successors[validateVertex(source).intValue].firstAdjacency(validateVertex(target))
         return canonicalEdge(directed, source, adjacency.vertex, adjacency.edgeId)
     }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("getEdges")
-    override fun getEdges(source: Vertex, target: Vertex): EdgeSet {
+    override fun edges(source: Vertex, target: Vertex): EdgeSet {
         return IncidentEdgeSet(true, validateVertex(source), successors[source.intValue].subset(validateVertex(target)))
     }
 

@@ -93,15 +93,15 @@ private class EmptyGraph(override val directed: Boolean) : ImmutableGraph, Index
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("containsEdge")
-    override fun containsEdge(source: Vertex, target: Vertex): Boolean = throw IllegalArgumentException()
+    override fun hasEdge(source: Vertex, target: Vertex): Boolean = throw IllegalArgumentException()
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("getEdge")
-    override fun getEdge(source: Vertex, target: Vertex): Edge = throw IllegalArgumentException()
+    override fun edge(source: Vertex, target: Vertex): Edge = throw IllegalArgumentException()
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("getEdges")
-    override fun getEdges(source: Vertex, target: Vertex): EdgeSet = throw IllegalArgumentException()
+    override fun edges(source: Vertex, target: Vertex): EdgeSet = throw IllegalArgumentException()
 
     override fun <T : S?, S> createVertexProperty(
         clazz: Class<S>,

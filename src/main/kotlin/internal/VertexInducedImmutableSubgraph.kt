@@ -6,9 +6,9 @@ import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexSet
 
-internal class VertexInducedImmutableSubgraph(
+internal class VertexInducedImmutableSubgraph<G>(
     private val subgraph: VertexInducedSubgraph
-) : AbstractImmutableGraph(), Graph by subgraph {
+) : AbstractImmutableGraph(), Graph by subgraph  {
 
     constructor(graph: Graph, vertices: VertexSet) : this(VertexInducedSubgraph(graph, vertices))
 
@@ -30,8 +30,8 @@ internal class VertexInducedImmutableSubgraph(
         return ImmutableFilteringEdgeSet(subgraph.incomingEdges(vertex))
     }
 
-    override fun getEdges(source: Vertex, target: Vertex): EdgeSet {
-        return ImmutableFilteringEdgeSet(subgraph.getEdges(source, target))
+    override fun edges(source: Vertex, target: Vertex): EdgeSet {
+        return ImmutableFilteringEdgeSet(subgraph.edges(source, target))
     }
 
     private class ImmutableFilteringVertexSet(private val vertexSet: VertexSet) : VertexSet by vertexSet {

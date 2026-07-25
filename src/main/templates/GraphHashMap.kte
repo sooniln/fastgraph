@@ -9,11 +9,15 @@ import io.github.sooniln.fastcollect.${keySubpackage}.${Name}Map
 import io.github.sooniln.fastcollect.${keySubpackage}.Mutable${Name}Map
 import io.github.sooniln.fastcollect.${keySubpackage}.Mutable${KeyType}Iterator
 import io.github.sooniln.fastcollect.${keySubpackage}.Mutable${KeyType}Set
+import io.github.sooniln.fastcollect.${keySubpackage}.${KeyType}Consumer
 <% if (!isReferenceValue) { %>
+import io.github.sooniln.fastcollect.${keySubpackage}.${KeyType}${ValueType}Consumer
 import io.github.sooniln.fastcollect.${valueSubpackage}.Mutable${ValueType}Collection
 <% if (KeyType != ValueType) { %>
 import io.github.sooniln.fastcollect.${valueSubpackage}.Mutable${ValueType}Iterator
 <% } %>
+<% } else { %>
+import io.github.sooniln.fastcollect.${keySubpackage}.${KeyType}AnyConsumer
 <% } %>
 import io.github.sooniln.fastgraph.primitives.ArrayUtils
 import kotlin.jvm.JvmOverloads
@@ -254,7 +258,7 @@ internal class Graph${Name}HashMap${Generics} @JvmOverloads constructor(
                 override fun add(element: ${KeyType}): Boolean = throw UnsupportedOperationException()
                 override fun remove(element: ${KeyType}): Boolean = throw UnsupportedOperationException()
                 override fun iterator(): Mutable${KeyType}Iterator = KeyIterator()
-                override fun fastForEach(action: (${KeyType}) -> Unit) = fastForEachKey { key -> action(key) }
+                override fun foreach(action: ${KeyType}Consumer) = foreachKey(action)
                 override fun clear() = throw UnsupportedOperationException()
             }
             .also { _keys = it }
@@ -274,7 +278,7 @@ internal class Graph${Name}HashMap${Generics} @JvmOverloads constructor(
                 override fun remove(element: ${ValueType}): Boolean = throw UnsupportedOperationException()
                 override fun iterator(): Mutable${ValueIteratorType}${Generics} = ValueIterator()
 <% if (!isReferenceValue) { %>
-                override fun fastForEach(action: (${ValueType}) -> Unit) = fastForEach { _, value -> action(value) }
+                override fun foreach(action: ${ValueType}Consumer) = this@Graph${Name}HashMap.foreach { _, value -> action.accept(value) }
 <% } %>
                 override fun clear() = throw UnsupportedOperationException()
             }
@@ -351,7 +355,11 @@ internal class Graph${Name}HashMap${Generics} @JvmOverloads constructor(
 
     override operator fun iterator(): MutableFastIterator<Mutable${Name}Map.MutableEntry${Generics}> = FastEntryIterator()
 
-    override fun fastForEach(action: (${KeyType}, ${ValueType}) -> Unit) {
+<% if (!isReferenceValue) { %>
+    override fun foreach(action: ${KeyType}${ValueType}Consumer) {
+<% } else { %>
+    override fun foreach(action: ${KeyType}AnyConsumer${Generics}) {
+<% } %>
         val keysArr = keysArr
         val valuesArr = valuesArr
 
@@ -359,18 +367,18 @@ internal class Graph${Name}HashMap${Generics} @JvmOverloads constructor(
             val key = keysArr[slot]
             if (key != EMPTY_KEY) {
                 @Suppress("UNCHECKED_CAST", "USELESS_CAST")
-                action(key, valuesArr[slot] as ${ValueType})
+                action.accept(key, valuesArr[slot] as ${ValueType})
             }
         }
     }
 
-    override fun fastForEachKey(action: (${KeyType}) -> Unit) {
+    override fun foreachKey(action: ${KeyType}Consumer) {
         val keysArr = keysArr
 
         for (slot in keysArr.indices) {
             val key = keysArr[slot]
             if (key != EMPTY_KEY) {
-                action(key)
+                action.accept(key)
             }
         }
     }
@@ -488,7 +496,7 @@ internal class Graph${Name}HashMap${Generics} @JvmOverloads constructor(
     private companion object {
         // the value of a field in an uninitialized primitive array
         @Suppress("REDUNDANT_CALL_OF_CONVERSION_METHOD")
-        private const val EMPTY_KEY = -1.to${KeyType}()
+        private const val EMPTY_KEY = (-1).to${KeyType}()
 
         private val EMPTY_KEY_ARRAY = ${lowerKeyType}ArrayOf(EMPTY_KEY)
 <% if (!isReferenceValue) { %>

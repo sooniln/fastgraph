@@ -57,11 +57,16 @@ interface Graph {
     val directed: Boolean
 
     /**
-     * Returns true if this graph currently contains multi-edges (multiple edges connecting the same vertices in the
-     * same direction). This value does not reflect whether a graph is capable of supporting multi-edges, only whether
-     * it currently contains multi-edges. Guaranteed to return false if the implementation does not support multi-edges.
+     * Returns true if this graph supports multi-edges (multiple edges connecting the same vertices in the same
+     * direction). If false, this graph does not contain any multi-edges, and will throw [IllegalArgumentException] if
+     * an attempt is made to add a multi-edge to this graph. If true, the graph may contain multi-edges.
      */
     val multiEdge: Boolean
+
+    /**
+     * Number of vertices in this graph. Guaranteed to be equivalent (but perhaps cheaper to invoke) to `vertices.size`.
+     */
+    val vertexCount: Int
 
     /**
      * Returns the set of vertices in this graph. The returned value is a live view that reflects changes to the
@@ -72,12 +77,13 @@ interface Graph {
     /**
      * Returns true if this graph is empty (no vertices and thus no edges).
      */
-    fun isEmpty(): Boolean = vertices.isEmpty()
+    fun isEmpty(): Boolean = vertexCount == 0
 
     /**
      * Returns the number of outgoing edges from the given vertex. Equivalent to `outgoingEdges(vertex).size()`, but is
      * likely to be cheaper (as [outgoingEdges] may return a new collection on every invocation). In an undirected graph
-     * all edges connected to this vertex are considered outgoing.
+     * all edges connected to this vertex are considered outgoing. Throws [IllegalArgumentException] if passed a vertex
+     * that is not in this graph.
      */
     // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
     //   overrides of this method
@@ -88,7 +94,8 @@ interface Graph {
     /**
      * Returns the number of edges incoming to the given vertex. Equivalent to `incomingEdges(vertex).size()`, but is
      * likely to be cheaper (as [incomingEdges] may return a new collection on every invocation). In an undirected graph
-     * all edges connected to this vertex are considered incoming.
+     * all edges connected to this vertex are considered incoming. Throws [IllegalArgumentException] if passed a vertex
+     * that is not in this graph.
      */
     // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
     //   overrides of this method
@@ -100,7 +107,8 @@ interface Graph {
      * Returns the set of vertices that can be reached from the given node by traversing outgoing edges. In an
      * undirected graph all edges connected to this vertex are considered outgoing. The returned value is a live view
      * that reflects changes to the underlying topology. If the vertex the collection is based on is removed from the
-     * graph the behavior of the collection is undefined (and may throw exceptions).
+     * graph the behavior of the collection is undefined (and may throw exceptions). Throws [IllegalArgumentException]
+     * if passed a vertex that is not in this graph.
      */
     // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
     //   overrides of this method
@@ -112,7 +120,8 @@ interface Graph {
      * Returns the set of vertices that can be reached from the given node by traversing incoming edges. In an
      * undirected graph all edges connected to this vertex are considered incoming. The returned value is a live view
      * that reflects changes to the underlying topology. If the vertex the collection is based on is removed from the
-     * graph the behavior of the collection is undefined (and may throw exceptions).
+     * graph the behavior of the collection is undefined (and may throw exceptions). Throws [IllegalArgumentException]
+     * if passed a vertex that is not in this graph.
      */
     // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
     //   overrides of this method
@@ -124,7 +133,8 @@ interface Graph {
      * Returns the set of edges that are outgoing from this vertex. In an undirected graph all edges connected to this
      * vertex are considered outgoing. The returned value is a live view that reflects changes to the underlying
      * topology. If the vertex the collection is based on is removed from the graph the behavior of the collection is
-     * undefined (and may throw exceptions).
+     * undefined (and may throw exceptions). Throws [IllegalArgumentException] if passed a vertex that is not in this
+     * graph.
      */
     // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
     //   overrides of this method
@@ -136,13 +146,19 @@ interface Graph {
      * Returns the set of edges that are incoming to this vertex. In an undirected graph all edges connected to this
      * vertex are considered incoming. The returned value is a live view that reflects changes to the underlying
      * topology. If the vertex the collection is based on is removed from the graph the behavior of the collection is
-     * undefined (and may throw exceptions).
+     * undefined (and may throw exceptions). Throws [IllegalArgumentException] if passed a vertex that is not in this
+     * graph.
      */
     // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
     //   overrides of this method
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("incomingEdges")
     fun incomingEdges(vertex: Vertex): EdgeSet
+
+    /**
+     * Number of edges in this graph. Guaranteed to be equivalent (but perhaps cheaper to invoke) to `edge.size`.
+     */
+    val edgeCount: Int
 
     /**
      * Returns the set of all edges in this graph. The returned value is a live view that reflects changes to the
@@ -154,7 +170,8 @@ interface Graph {
      * Returns source vertex of the given edge. Note that for undirected edges there is no guarantee that the returned
      * vertex is the same as the provided source vertex when the edge was constructed (it may be reversed). It is
      * guaranteed that the vertex returned as the source will be consistent and unchanging over time. With undirected
-     * edges it may be more convenient to use [edgeOpposite] sometimes.
+     * edges it may be more convenient to use [edgeOpposite] sometimes. **There is NO guarantee an exception will be
+     * thrown if the given edge does not belong to this graph.**
      */
     // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
     //   overrides of this method
@@ -166,7 +183,8 @@ interface Graph {
      * Returns target vertex of the given edge. Note that for undirected edges there is no guarantee that the returned
      * vertex is the same as the provided target vertex when the edge was constructed (it may be reversed). It is
      * guaranteed that the vertex returned as the target will be consistent and unchanging over time. With undirected
-     * edges it may be more convenient to use [edgeOpposite] sometimes.
+     * edges it may be more convenient to use [edgeOpposite] sometimes. **There is NO guarantee an exception will be
+     * thrown if the given edge does not belong to this graph.**
      */
     // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
     //   overrides of this method
@@ -177,32 +195,34 @@ interface Graph {
     /**
      * Returns true if the graph contains an edge with the given source and target. Note that for undirected edges
      * either can serve as the source or target - for example it is possible that `containsEdge(a, b) == true` and also
-     * `edgeSource(edge) == b && edgeTarget(edge) == a` for an undirected edge.
+     * `edgeSource(edge) == b && edgeTarget(edge) == a` for an undirected edge. Throws [IllegalArgumentException] if
+     * passed a source or target vertex that is not in this graph.
      */
     // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
     //   overrides of this method
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("containsEdge")
-    fun containsEdge(source: Vertex, target: Vertex): Boolean
+    fun hasEdge(source: Vertex, target: Vertex): Boolean
 
     /**
-     * Returns an edge with the given source and target (see undirected edge caveats discussed in [containsEdge]), or
+     * Returns an edge with the given source and target (see undirected edge caveats discussed in [hasEdge]), or
      * throws [NoSuchElementException] if there is no such edge. If there are multiple edges with the given source and
-     * target, there are no guarantees on which will be returned.
+     * target, there are no guarantees on which will be returned. Throws [IllegalArgumentException] if passed a source
+     * or target vertex that is not in this graph.
      */
     // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
     //   overrides of this method
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("getEdge")
-    fun getEdge(source: Vertex, target: Vertex): Edge {
-        val edges = getEdges(source, target)
+    fun edge(source: Vertex, target: Vertex): Edge {
+        val edges = edges(source, target)
         if (edges.isEmpty()) throw NoSuchElementException()
         return edges.iterator().next()
     }
 
     /**
      * Returns the set of edges from the given source to the given target. Will return an empty set if there are no such
-     * edges.The returned value is a live view that reflects changes to the underlying topology. If a vertex the
+     * edges. The returned value is a live view that reflects changes to the underlying topology. If a vertex the
      * collection is based on is removed from the graph the behavior of the collection is undefined (and may throw
      * exceptions).
      */
@@ -210,19 +230,20 @@ interface Graph {
     //   overrides of this method
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("getEdges")
-    fun getEdges(source: Vertex, target: Vertex): EdgeSet
+    fun edges(source: Vertex, target: Vertex): EdgeSet
 
     /**
      * [Graph] represents only a topology, not any data associated with the vertices and edges of the topology. In order
      * to associate data with vertices in this graph, this method returns a new [VertexProperty] instance which can
      * associate some type of data with vertices in this graph. The returned property is guaranteed to remain in sync
      * with the graph, such that vertices added to the graph will appear in the property and vertices removed from the
-     * graph will be removed from the property. Properties also assume that a value is associated with every vertex in
-     * the graph and allocate memory accordingly - if sparse storage of data for only a subset of vertices in the graph
-     * is required, a [VertexProperty] may not be a good fit.
-     *
-     * The given initializer may be stored by the vertex property to initialize values for future vertices. Since the
-     * initializer may be retained for the lifetime of the vertex property, be careful not to leak memory through it.
+     * graph will be removed from the property. A sparse [VertexProperty] only stores data for vertices that have been
+     * explicitly read or written to for the property. It also holds a reference to the initializer indefinitely
+     * (beware that this does not leak memory). A non-sparse [VertexProperty] always stores data for all vertices, and
+     * does not reference the initializer after it is complete with its own initialization. If clients only reference a
+     * property for a sparse number of vertices within the entire graph, a sparse [VertexProperty] likely makes sense;
+     * if clients a property for most/all vertices within the entire graph, a non-sparse [VertexProperty likely makes
+     * sense].
      *
      * This method accepts two generic parameters (T and S), and it should almost always be the case that T == S. The
      * only reason for the unfortunate complication of two parameters instead of one is to support use cases where the
@@ -232,20 +253,17 @@ interface Graph {
      * The extension method of the same name allows for not passing in the [Class] parameter explicitly - this should be
      * simpler to use where possible.
      */
-    // migration to KClass blocked by KT-58747 (fixed in Kotlin 2.4)
-    fun <T : S?, S> createVertexProperty(clazz: Class<S>, initializer: VertexInitializer<T>): VertexProperty<T>
+    fun <T, C : T> createVertexProperty(clazz: Class<C>, sparse: Boolean, initializer: VertexInitializer<T>): MutableVertexProperty<T>
 
     /**
      * [Graph] represents only a topology, not any data associated with the vertices and edges of the topology. In order
      * to associate data with edges in this graph, this method returns a new [EdgeProperty] instance which can associate
      * some type of data with edges in this graph. The returned property is guaranteed to remain in sync with the graph,
      * such that edges added to the graph will appear in the property and edges removed from the graph will be removed
-     * from the property. Properties also assume that a value is associated with every edge in the graph and allocate
-     * memory accordingly - if sparse storage of data for only a subset of edges in the graph is required, an
-     * [EdgeProperty] may not be a good fit.
-     *
-     * The given initializer may be stored by the edge property to initialize values for future edges. Since the
-     * initializer may be retained for the lifetime of the edge property, be careful not to leak memory through it.
+     * from the property. A sparse [EdgeProperty] only stores data for edges that have been explicitly read or written
+     * to for the property, and only invokes the initializer when a property is first read/written for a given vertex. A
+     * non-sparse [EdgeProperty] always stores data for all edges, and invokes the initializer once for every vertex
+     * when constructor, and thereafter only when a new vertex is added to the graph.
      *
      * This method accepts two generic parameters (T and S), and it should almost always be the case that T == S. The
      * only reason for the unfortunate complication of two parameters instead of one is to support use cases where the
@@ -255,8 +273,7 @@ interface Graph {
      * The extension method of the same name allows for not passing in the [Class] parameter explicitly - this should be
      * simpler to use where possible.
      */
-    // migration to KClass blocked by KT-58747 (fixed in Kotlin 2.4)
-    fun <T : S?, S> createEdgeProperty(clazz: Class<S>, initializer: EdgeInitializer<T>): EdgeProperty<T>
+    fun <T, C : T> createEdgeProperty(clazz: Class<C>, sparse: Boolean, initializer: EdgeInitializer<T>): MutableEdgeProperty<T>
 
     /**
      * Returns a stable reference to the given vertex. For more information about vertices and stable references to
@@ -350,34 +367,69 @@ fun Graph.edgeOpposite(edge: Edge, other: Vertex): Vertex {
 fun Graph.edgeOpposite(edge: Edge, other: VertexReference): Vertex = edgeOpposite(edge, other.unstable)
 
 /**
+ * The concrete [VertexProperty] initializer type.
+ */
+fun interface VertexInitializer<T> {
+    fun initialize(vertex: Vertex): T
+}
+
+/**
+ * The concrete [EdgeProperty] initializer type.
+ */
+fun interface EdgeInitializer<T> {
+    fun initialize(edge: Edge): T
+}
+
+/**
  * A convenient extension method for [Graph.createVertexProperty] that creates a [VertexProperty] with every value
  * initialized to null.
  */
-inline fun <reified T> Graph.createVertexProperty(): VertexProperty<T?> {
-    return createVertexProperty(T::class.java) { null }
+@JvmOverloads
+inline fun <reified T> Graph.createVertexProperty(sparse: Boolean = false): VertexProperty<T?> {
+    return createVertexProperty(T::class.java, sparse) { null }
 }
 
 /**
  * A convenient extension method for [Graph.createEdgeProperty] that creates a [EdgeProperty] with every value
  * initialized to null.
  */
-inline fun <reified T> Graph.createEdgeProperty(): EdgeProperty<T?> {
-    return createEdgeProperty(T::class.java) { null }
+@JvmOverloads
+inline fun <reified T> Graph.createEdgeProperty(sparse: Boolean = false): EdgeProperty<T?> {
+    return createEdgeProperty(T::class.java, sparse) { null }
 }
 
 /**
  * A convenient extension method for [Graph.createVertexProperty] that does not require explicitly providing the
  * [Class].
  */
-inline fun <reified T> Graph.createVertexProperty(initializer: VertexInitializer<T>): VertexProperty<T> {
-    return createVertexProperty(T::class.java, initializer)
+@JvmOverloads
+inline fun <reified T> Graph.createVertexProperty(sparse: Boolean = false, initializer: VertexInitializer<T>): VertexProperty<T> {
+    return createVertexProperty(T::class.java, sparse, initializer)
 }
 
 /**
  * A convenient extension method for [Graph.createEdgeProperty] that does not require explicitly providing the [Class].
  */
-inline fun <reified T> Graph.createEdgeProperty(initializer: EdgeInitializer<T>): EdgeProperty<T> {
-    return createEdgeProperty(T::class.java, initializer)
+@JvmOverloads
+inline fun <reified T> Graph.createEdgeProperty(sparse: Boolean = false, initializer: EdgeInitializer<T>): EdgeProperty<T> {
+    return createEdgeProperty(T::class.java, sparse, initializer)
+}
+
+/**
+ * A convenient extension method for [Graph.createVertexProperty] that does not require explicitly providing the
+ * [Class].
+ */
+@JvmOverloads
+inline fun <reified T> Graph.createVertexProperty(sparse: Boolean = false, defaultValue: T): VertexProperty<T> {
+    return createVertexProperty(T::class.java, sparse) { defaultValue }
+}
+
+/**
+ * A convenient extension method for [Graph.createEdgeProperty] that does not require explicitly providing the [Class].
+ */
+@JvmOverloads
+inline fun <reified T> Graph.createEdgeProperty(sparse: Boolean = false, defaultValue: T): EdgeProperty<T> {
+    return createEdgeProperty(T::class.java, sparse) { defaultValue }
 }
 
 /**
@@ -392,16 +444,26 @@ interface IndexedVertexGraph : Graph {
 
 /**
  * A marker interface which indicates that a vertex's index is always the same as its [Vertex.intValue]. This can allow
- * some optimizations by using `vertex.intValue` instead of `graph.vertices.indexOf(vertex)`.
+ * optimizations by using `vertex.intValue` instead of `graph.vertices.indexOf(vertex)`.
  */
 interface VertexIndexedVertexGraph : IndexedVertexGraph
 
 /**
- * A mutable version of [IndexedVertexGraph]. This allows for vertex removal in backwards order via the vertex iterator
- * (see [vertices] for details).
+ * A mutable version of [IndexedVertexGraph]. This also implies that removing the vertex at some index will maintain the
+ * 0..N index guarantee by changing the index of the last vertex to the index of the removed vertex.
  */
 interface MutableIndexedVertexGraph : MutableGraph, IndexedVertexGraph {
     override val vertices: MutableIndexedVertexSet
+}
+
+/**
+ * A graph which guarantees that all edges in the graph can be associated with an index in [0..edges.size). This makes
+ * edges accessible by index, and an index can be retrieved for each edge (via `edges.indexOf(edge)`). The
+ * `edges.indexOf()` call is guaranteed to take amortized constant time or better. Further, [IndexedEdgeGraph.edges]
+ * must iterate edges in index order.
+ */
+interface IndexedEdgeGraph : Graph {
+    override val edges: IndexedEdgeSet
 }
 
 /**
@@ -411,18 +473,8 @@ interface MutableIndexedVertexGraph : MutableGraph, IndexedVertexGraph {
 interface EdgeIndexedEdgeGraph : IndexedEdgeGraph
 
 /**
- * A graph which guarantees that all edges in the graph can be associated with an index from `0` to `edges.size() - 1`.
- * This makes edges accessible by index, and an index can be retrieved for each edge (via `edges.indexOf(edge)`).
- * The `edges.indexOf()` call is guaranteed to take amortized constant time or better. Further, [IndexedEdgeGraph.edges]
- * must iterate edges in index order.
- */
-interface IndexedEdgeGraph : Graph {
-    override val edges: IndexedEdgeSet
-}
-
-/**
- * A mutable version of [IndexedEdgeGraph]. This allows for edge removal in backwards order via the edge iterator (see
- * [edges] for details).
+ * A mutable version of [IndexedEdgeGraph]. This also implies that removing the edge at some index will maintain the
+ * 0..N ordering guarantee by changing the index of the last vertex to the index of the removed vertex.
  */
 interface MutableIndexedEdgeGraph : MutableGraph, IndexedEdgeGraph {
     override val edges: MutableIndexedEdgeSet
@@ -458,7 +510,7 @@ interface MutableGraph : Graph {
     fun removeVertex(vertex: Vertex)
 
     /**
-     * Adds a new edge connecting the given source and target vertex. See [Graph.containsEdge] for caveats on how
+     * Adds a new edge connecting the given source and target vertex. See [Graph.hasEdge] for caveats on how
      * source/target are treated in undirected graphs. In a [MutableGraph] implementation that does not support
      * multi-edges, this method will throw [IllegalArgumentException] if there already exists an edge connecting those
      * vertices in the same direction.
@@ -504,137 +556,6 @@ fun MutableGraph.addEdge(source: VertexReference, target: VertexReference): Edge
  * See [MutableGraph.removeEdge].
  */
 fun MutableGraph.removeEdge(edgeReference: EdgeReference) = removeEdge(edgeReference.unstable)
-
-/**
- * The concrete [VertexProperty] initializer type.
- */
-fun interface VertexInitializer<T> {
-    fun initialize(vertex: Vertex): T
-}
-
-/**
- * A store of property values for vertices. Conceptually this functions a map - mapping vertices to values. Every vertex
- * property is associated with a particular graph, and stores a value for every vertex in the graph. Vertex properties
- * are required to remain in sync with their respective graphs.
- */
-interface VertexProperty<V> {
-    /**
-     * The graph this property is associated with.
-     */
-    val graph: Graph
-
-    /**
-     * Retrieves the value associated with the given vertex.
-     */
-    // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
-    //   overrides of this method
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("get")
-    operator fun get(vertex: Vertex): V
-
-    /**
-     * Sets the value associated with the given vertex.
-     */
-    // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
-    //   overrides of this method
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("set")
-    operator fun set(vertex: Vertex, value: V)
-}
-
-/**
- * See [VertexProperty.get].
- */
-operator fun <V> VertexProperty<V>.get(vertexReference: VertexReference): V = get(vertexReference.unstable)
-
-/**
- * See [VertexProperty.set].
- */
-operator fun <V> VertexProperty<V>.set(vertexReference: VertexReference, value: V) =
-    set(vertexReference.unstable, value)
-
-/**
- * Returns an unusable [VertexProperty].
- */
-@Suppress("UNCHECKED_CAST")
-fun <T> nothingVertexProperty(graph: Graph): VertexProperty<T> = NothingVertexProperty(graph) as VertexProperty<T>
-
-private class NothingVertexProperty(override val graph: Graph) : VertexProperty<Nothing> {
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("get")
-    override fun get(vertex: Vertex): Nothing = throw IllegalStateException()
-
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("set")
-    override fun set(vertex: Vertex, value: Nothing) = throw IllegalStateException()
-}
-
-internal fun VertexProperty<*>.isNothingProperty() = this is NothingVertexProperty
-
-/**
- * The concrete [EdgeProperty] initializer type.
- */
-fun interface EdgeInitializer<T> {
-    fun initialize(edge: Edge): T
-}
-
-/**
- * A store of property values for edges. Conceptually this functions a map - mapping edges to values. Every edge
- * property is associated with a particular graph, and stores a value for every edge in the graph. Edge properties are
- * required to remain in sync with their respective graphs.
- */
-interface EdgeProperty<E> {
-    /**
-     * The graph this property is associated with.
-     */
-    val graph: Graph
-
-    /**
-     * Retrieves the value associated with the given edge.
-     */
-    // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
-    //   overrides of this method
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("get")
-    operator fun get(edge: Edge): E
-
-    /**
-     * Sets the value associated with the given edge.
-     */
-    // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
-    //   overrides of this method
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("set")
-    operator fun set(edge: Edge, value: E)
-}
-
-/**
- * See [EdgeProperty.get].
- */
-operator fun <E> EdgeProperty<E>.get(edgeReference: EdgeReference): E = get(edgeReference.unstable)
-
-/**
- * See [EdgeProperty.set].
- */
-operator fun <E> EdgeProperty<E>.set(edgeReference: EdgeReference, value: E) = set(edgeReference.unstable, value)
-
-/**
- * Returns an unusable [EdgeProperty].
- */
-@Suppress("UNCHECKED_CAST")
-fun <T> nothingEdgeProperty(graph: Graph): EdgeProperty<T> = NothingEdgeProperty(graph) as EdgeProperty<T>
-
-private class NothingEdgeProperty(override val graph: Graph) : EdgeProperty<Nothing> {
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("get")
-    override fun get(edge: Edge): Nothing = throw IllegalStateException()
-
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("set")
-    override fun set(edge: Edge, value: Nothing) = throw IllegalStateException()
-}
-
-internal fun EdgeProperty<*>.isNothingProperty() = this is NothingEdgeProperty
 
 /**
  * A uni-directional mapping from one set of vertices and edges to another. This mapping represents a relation, but the
@@ -683,10 +604,15 @@ fun <G : Graph, V, E> PropertyGraph(
     graph: G,
     vertexProperty: VertexProperty<V>,
     edgeProperty: EdgeProperty<E>
-): PropertyGraph<G, V, E> = object : PropertyGraph<G, V, E> {
-    override val graph: G = graph
-    override val vertexProperty: VertexProperty<V> = vertexProperty
-    override val edgeProperty: EdgeProperty<E> = edgeProperty
+): PropertyGraph<G, V, E> {
+    require(vertexProperty.graph === graph)
+    require(edgeProperty.graph === graph)
+
+    return object : PropertyGraph<G, V, E> {
+        override val graph: G = graph
+        override val vertexProperty: VertexProperty<V> = vertexProperty
+        override val edgeProperty: EdgeProperty<E> = edgeProperty
+    }
 }
 
 /**
@@ -697,76 +623,6 @@ interface GraphCopy<G : Graph> : GraphMapping {
     val originalGraph: Graph
     val graph: G
 }
-
-/**
- * Creates a new [VertexProperty] initialized as a copy of the input [VertexProperty].
- */
-fun <G : Graph, T : S?, S> GraphCopy<G>.copyVertexProperty(
-    property: VertexProperty<T>,
-    clazz: Class<S>,
-    initializer: VertexInitializer<T>
-): VertexProperty<T> {
-    require(property.graph == originalGraph)
-    if (property.isNothingProperty()) {
-        return nothingVertexProperty(graph)
-    }
-
-    val newProperty = graph.createVertexProperty(clazz, initializer)
-    for (vertex in originalGraph.vertices) {
-        newProperty[getCorrespondingVertex(vertex)] = property[vertex]
-    }
-    return newProperty
-}
-
-/**
- * Creates a new [VertexProperty] initialized as a copy of the input [VertexProperty].
- */
-inline fun <G : Graph, reified T> GraphCopy<G>.copyVertexProperty(
-    property: VertexProperty<T>,
-    initializer: VertexInitializer<T>
-): VertexProperty<T> = copyVertexProperty(property, T::class.java, initializer)
-
-/**
- * Creates a new [VertexProperty] initialized as a copy of the input [VertexProperty].
- */
-inline fun <G : Graph, reified T> GraphCopy<G>.copyVertexProperty(
-    property: VertexProperty<T?>
-): VertexProperty<T?> = copyVertexProperty(property, T::class.java) { null }
-
-/**
- * Creates a new [EdgeProperty] initialized as a copy of the input [EdgeProperty].
- */
-fun <G : Graph, T : S?, S> GraphCopy<G>.copyEdgeProperty(
-    property: EdgeProperty<T>,
-    clazz: Class<S>,
-    initializer: EdgeInitializer<T>
-): EdgeProperty<T> {
-    require(property.graph == originalGraph)
-    if (property.isNothingProperty()) {
-        return nothingEdgeProperty(graph)
-    }
-
-    val newProperty = graph.createEdgeProperty(clazz, initializer)
-    for (edge in originalGraph.edges) {
-        newProperty[getCorrespondingEdge(edge)] = property[edge]
-    }
-    return newProperty
-}
-
-/**
- * Creates a new [EdgeProperty] initialized as a copy of the input [EdgeProperty].
- */
-inline fun <G : Graph, reified T> GraphCopy<G>.copyEdgeProperty(
-    property: EdgeProperty<T>,
-    initializer: EdgeInitializer<T>
-): EdgeProperty<T> = copyEdgeProperty(property, T::class.java, initializer)
-
-/**
- * Creates a new [EdgeProperty] initialized as a copy of the input [EdgeProperty].
- */
-inline fun <G : Graph, reified T> GraphCopy<G>.copyEdgeProperty(
-    property: EdgeProperty<T?>
-): EdgeProperty<T?> = copyEdgeProperty(property, T::class.java) { null }
 
 /**
  * A copy of a [PropertyGraph], which includes a graph isomorphism via [GraphMapping] so that each vertex/edge of the
@@ -803,9 +659,9 @@ fun emptyGraph(directed: Boolean): Graph = emptyImmutableGraph(directed)
  * through subtractive mutations to the topology, use [Graph.createVertexReference] and [Graph.createEdgeReference] to
  * obtain a stable reference.
  */
-fun mutableGraph(directed: Boolean, supportMultiEdge: Boolean = false, indexEdges: Boolean = false): MutableGraph {
-    return if (supportMultiEdge || indexEdges) {
-        AdjacencyListNetwork(directed, supportMultiEdge)
+fun mutableGraph(directed: Boolean, multiEdge: Boolean = false, indexEdges: Boolean = false): MutableGraph {
+    return if (multiEdge || indexEdges) {
+        AdjacencyListNetwork(directed, multiEdge)
     } else {
         AdjacencyListGraph(directed)
     }
@@ -849,23 +705,17 @@ inline fun <reified V, reified E> mutablePropertyGraph(
  * If the input graph implements [IndexedVertexGraph], the returned graph guarantees to use the same indices for the
  * same vertex in the topology, and if the input graph implements [IndexedEdgeGraph] and `indexEdges` is true, the
  * returned graph guarantees to use the same indices for the same edges in the topology.
- *
- * If the above holds true AND the input graph was also created via [mutableGraph] or [immutableGraph] then it is also
- * guaranteed that a [Vertex] reference from the input graph also works as a reference to the topologically equivalent
- * vertex in the returned graph (as long as vertex references remain stable in the input graph), and it is guaranteed
- * that an [Edge] reference from the input graph also works as a reference to the topologically equivalent edge in the
- * returned graph (as long as edge references remain stable in the input graph).
  */
 fun mutableGraph(
     graph: Graph,
-    supportMultiEdge: Boolean = graph.multiEdge,
+    multiEdge: Boolean = graph.multiEdge,
     indexEdges: Boolean = graph is IndexedEdgeGraph,
 ): GraphCopy<MutableGraph> {
     if (graph.multiEdge) {
-        require(supportMultiEdge) { "copying a graph with multi-edges requires multi-edge support" }
+        require(multiEdge) { "copying a graph with multi-edges requires multi-edge support" }
     }
 
-    val newGraph = mutableGraph(graph.directed, supportMultiEdge, indexEdges)
+    val newGraph = mutableGraph(graph.directed, multiEdge, indexEdges)
 
     newGraph.ensureVertexCapacity(graph.vertices.size)
     newGraph.ensureEdgeCapacity(graph.edges.size)
@@ -1266,4 +1116,90 @@ fun Graph.transpose(): Graph {
     } else {
         TransposedGraph(this)
     }
+}
+
+public abstract class AbstractGraph(override val directed: Boolean) : Graph {
+
+    /** Should be implemented to throw [IllegalArgumentException] if `vertex` does not belong to this graph. */
+    protected abstract fun validateVertex(vertex: Vertex): Vertex
+
+    /** Should be implemented to throw [IllegalArgumentException] if `edge` does not belong to this graph. */
+    protected abstract fun validateEdge(edge: Edge): Edge
+
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("outDegree")
+    override fun outDegree(vertex: Vertex): Int = getOutDegree(validateVertex(vertex))
+
+    /** Will only ever be invoked if `vertex` is valid. */
+    protected abstract fun getOutDegree(vertex: Vertex): Int
+
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("inDegree")
+    override fun inDegree(vertex: Vertex): Int {
+        return if (!directed) outDegree(vertex) else getInDegree(validateVertex(vertex))
+    }
+
+    /** Will only ever be invoked if `vertex` is valid and `directed` is true. */
+    protected abstract fun getInDegree(vertex: Vertex): Int
+
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("successors")
+    override fun successors(vertex: Vertex): VertexSet = getSuccessors(validateVertex(vertex))
+
+    /** Will only ever be invoked if `vertex` is valid. */
+    protected abstract fun getSuccessors(vertex: Vertex): VertexSet
+
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("predecessors")
+    override fun predecessors(vertex: Vertex): VertexSet {
+        return if (!directed) successors(vertex) else getPredecessors(validateVertex(vertex))
+    }
+
+    /** Will only ever be invoked if `vertex` is valid and `directed` is true. */
+    protected abstract fun getPredecessors(vertex: Vertex): VertexSet
+
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("outgoingEdges")
+    override fun outgoingEdges(vertex: Vertex): EdgeSet = getOutgoingEdges(validateVertex(vertex))
+
+    /** Will only ever be invoked if `vertex` is valid. */
+    protected abstract fun getOutgoingEdges(vertex: Vertex): EdgeSet
+
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("incomingEdges")
+    override fun incomingEdges(vertex: Vertex): EdgeSet {
+        return if (!directed) outgoingEdges(vertex) else getIncomingEdges(validateVertex(vertex))
+    }
+
+    /** Will only ever be invoked if `vertex` is valid and `directed` is true. */
+    protected abstract fun getIncomingEdges(vertex: Vertex): EdgeSet
+
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("hasEdge")
+    override fun hasEdge(source: Vertex, target: Vertex): Boolean {
+        return containsEdge(validateVertex(source), validateVertex(target))
+    }
+
+    /** Will only ever be invoked if `source` and `target` are valid. */
+    protected abstract fun containsEdge(source: Vertex, target: Vertex): Boolean
+
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("incomingEdges")
+    override fun edge(source: Vertex, target: Vertex): Edge {
+        return getEdge(validateVertex(source), validateVertex(target))
+    }
+
+    /** Will only ever be invoked if `source` and `target` are valid. */
+    protected open fun getEdge(source: Vertex, target: Vertex): Edge {
+        return getEdges(source, target).iterator().next()
+    }
+
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("incomingEdges")
+    override fun edges(source: Vertex, target: Vertex): EdgeSet {
+        return getEdges(validateVertex(source), validateVertex(target))
+    }
+
+    /** Will only ever be invoked if `source` and `target` are valid. */
+    protected abstract fun getEdges(source: Vertex, target: Vertex): EdgeSet
 }

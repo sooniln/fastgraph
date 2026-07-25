@@ -1,23 +1,37 @@
 package io.github.sooniln.fastgraph.internal
 
 import io.github.sooniln.fastcollect.ints.Int2IntMap
+import io.github.sooniln.fastcollect.longs.Long2AnyHashMap
 import io.github.sooniln.fastcollect.longs.Long2LongMap
 import io.github.sooniln.fastcollect.longs.LongArrayList
 import io.github.sooniln.fastcollect.longs.LongListIterator
+import io.github.sooniln.fastcollect.longs.MutableLongIterator
+import io.github.sooniln.fastcollect.longs.lastIndex
+import io.github.sooniln.fastgraph.AbstractIndexedEdgeSet
+import io.github.sooniln.fastgraph.AbstractIndexedVertexSet
 import io.github.sooniln.fastgraph.Edge
+import io.github.sooniln.fastgraph.EdgeConsumer
+import io.github.sooniln.fastgraph.EdgeIndexedEdgeGraph
+import io.github.sooniln.fastgraph.EdgeIterator
 import io.github.sooniln.fastgraph.EdgeProperty
 import io.github.sooniln.fastgraph.EdgeReference
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.GraphCopy
 import io.github.sooniln.fastgraph.GraphMapping
+import io.github.sooniln.fastgraph.MutableEdgeIterator
+import io.github.sooniln.fastgraph.MutableIndexedEdgeGraph
+import io.github.sooniln.fastgraph.MutableIndexedEdgeSet
+import io.github.sooniln.fastgraph.MutableIndexedVertexGraph
+import io.github.sooniln.fastgraph.MutableIndexedVertexSet
+import io.github.sooniln.fastgraph.MutableVertexIterator
 import io.github.sooniln.fastgraph.PropertyGraph
 import io.github.sooniln.fastgraph.PropertyGraphCopy
 import io.github.sooniln.fastgraph.Vertex
+import io.github.sooniln.fastgraph.VertexIndexedVertexGraph
 import io.github.sooniln.fastgraph.VertexProperty
 import io.github.sooniln.fastgraph.VertexReference
 import io.github.sooniln.fastgraph.VertexSet
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
+import io.github.sooniln.fastgraph.primitives.collections.GraphInt2AnyHashMap
 import java.lang.ref.ReferenceQueue
 import java.lang.ref.WeakReference
 import kotlin.math.max
@@ -107,61 +121,32 @@ internal value class EdgeValue(val longValue: Long) {
 
 @Suppress("OVERRIDE_BY_INLINE", "NOTHING_TO_INLINE")
 @JvmInline
-internal value class EdgeValueArrayList private constructor(private val arrayList: LongArrayList) :
-    MutableList<EdgeValue> {
+internal value class EdgeValueArrayList private constructor(private val arrayList: LongArrayList)  {
     constructor() : this(LongArrayList())
 
     inline fun ensureCapacity(minimumCapacity: Int) = arrayList.ensureCapacity(minimumCapacity)
-    inline fun trimToSize() = arrayList.trimToSize()
 
-    override val size: Int inline get() = arrayList.size
-    override inline fun isEmpty(): Boolean = arrayList.isEmpty()
-    override inline fun contains(element: EdgeValue): Boolean = arrayList.contains(element.longValue)
-    override inline fun containsAll(elements: Collection<EdgeValue>): Boolean = throw UnsupportedOperationException()
-    override inline fun get(index: Int): EdgeValue = EdgeValue(arrayList[index])
-    override inline fun indexOf(element: EdgeValue): Int = arrayList.indexOf(element.longValue)
-    override inline fun lastIndexOf(element: EdgeValue): Int = arrayList.lastIndexOf(element.longValue)
-
-    override inline fun iterator(): EdgeValueListIterator = EdgeValueListIterator(arrayList.iterator())
-    override inline fun listIterator(): EdgeValueListIterator = EdgeValueListIterator(arrayList.listIterator())
-    override inline fun listIterator(index: Int): EdgeValueListIterator =
-        EdgeValueListIterator(arrayList.listIterator(index))
-
-    override inline fun subList(fromIndex: Int, toIndex: Int): MutableList<EdgeValue> =
-        throw UnsupportedOperationException()
-
-    override inline fun add(element: EdgeValue): Boolean = arrayList.add(element.longValue)
-    override inline fun remove(element: EdgeValue): Boolean = arrayList.remove(element.longValue)
-    override inline fun clear() = arrayList.clear()
-    override inline fun set(index: Int, element: EdgeValue): EdgeValue =
-        EdgeValue(arrayList.set(index, element.longValue))
-
-    override inline fun add(index: Int, element: EdgeValue) = arrayList.add(index, element.longValue)
-    override inline fun removeAt(index: Int): EdgeValue = EdgeValue(arrayList.removeAt(index))
-
-    override inline fun addAll(elements: Collection<EdgeValue>): Boolean = throw UnsupportedOperationException()
-    override inline fun addAll(index: Int, elements: Collection<EdgeValue>): Boolean =
-        throw UnsupportedOperationException()
-
-    override inline fun removeAll(elements: Collection<EdgeValue>): Boolean = throw UnsupportedOperationException()
-    override inline fun retainAll(elements: Collection<EdgeValue>): Boolean = throw UnsupportedOperationException()
-
-    override fun toString(): String = joinToString(", ", "[", "]") { it.toString() }
+    val size: Int inline get() = arrayList.size
+    val lastIndex: Int inline get() = arrayList.lastIndex
+    val indices: IntRange inline get() = arrayList.indices
+    inline fun isEmpty(): Boolean = arrayList.isEmpty()
+    inline fun contains(element: EdgeValue): Boolean = arrayList.contains(element.longValue)
+    inline operator fun get(index: Int): EdgeValue = EdgeValue(arrayList[index])
+    inline operator fun set(index: Int, element: EdgeValue): EdgeValue =
+        EdgeValue(arrayList.replace(index, element.longValue))
+    inline fun add(element: EdgeValue): Boolean = arrayList.add(element.longValue)
+    inline fun removeAt(index: Int): EdgeValue = EdgeValue(arrayList.removeAt(index))
+    inline fun clear() = arrayList.clear()
+    inline fun iterator(): EdgeValueIterator = EdgeValueIterator(arrayList.iterator())
+    override fun toString(): String = iterator().asSequence().joinToString(", ", "[", "]")
 }
 
 @Suppress("OVERRIDE_BY_INLINE", "NOTHING_TO_INLINE")
 @JvmInline
-internal value class EdgeValueListIterator(private val it: LongListIterator) : MutableListIterator<EdgeValue> {
+internal value class EdgeValueIterator(private val it: MutableLongIterator) : MutableIterator<EdgeValue> {
     override inline fun hasNext(): Boolean = it.hasNext()
     override inline fun next(): EdgeValue = EdgeValue(it.nextLong())
-    override inline fun hasPrevious(): Boolean = it.hasPrevious()
-    override inline fun previous(): EdgeValue = EdgeValue(it.previousLong())
-    override inline fun nextIndex(): Int = it.nextIndex()
-    override inline fun previousIndex(): Int = it.previousIndex()
-
-    override inline fun remove() = throw UnsupportedOperationException()
-    override inline fun set(element: EdgeValue) = throw UnsupportedOperationException()
-    override inline fun add(element: EdgeValue) = throw UnsupportedOperationException()
+    override inline fun remove() = it.remove()
 }
 
 @Suppress("OVERRIDE_BY_INLINE", "NOTHING_TO_INLINE")
@@ -187,6 +172,10 @@ internal value class EdgeValueArray(private val array: LongArray) : List<EdgeVal
 @JvmInline
 internal value class EdgeAdjacency(val longValue: Long) {
 
+    constructor(vertex: Vertex, edge: Edge) : this(
+        constructLongValue(highBits = vertex.intValue, lowBits = edge.lowBits)
+    )
+
     constructor(vertex: Vertex, edgeId: Int) : this(
         constructLongValue(highBits = vertex.intValue, lowBits = edgeId)
     )
@@ -201,6 +190,9 @@ internal value class EdgeAdjacency(val longValue: Long) {
     val edgeId: Int
         inline get() = longValue.toInt()
 
+    val edge: Edge
+        inline get() = Edge(edgeId.toLong())
+
     override fun toString(): String = "EdgeAdjacency($vertex, $edgeId)"
 }
 
@@ -208,22 +200,28 @@ internal interface EdgeAdjacencyIterator : Iterator<EdgeAdjacency> {
     override fun next(): EdgeAdjacency
 }
 
-internal interface EdgeAdjacencySet : Set<EdgeAdjacency> {
-    override fun contains(element: EdgeAdjacency): Boolean
-    fun contains(vertex: Vertex): Boolean
-    fun vertices(): VertexSet
-    override fun iterator(): EdgeAdjacencyIterator
-    fun fastForEach(action: (EdgeAdjacency) -> Unit) {
+internal fun EdgeAdjacencyIterator.toEdgeIterator() : EdgeIterator = object : EdgeIterator {
+    override fun hasNext(): Boolean = this@toEdgeIterator.hasNext()
+    override fun next(): Edge = this@toEdgeIterator.next().edge
+}
+
+internal fun interface EdgeAdjacencyConsumer {
+    fun accept(value: EdgeAdjacency)
+}
+
+internal interface EdgeAdjacencySet {
+    val size: Int
+
+    val vertices: VertexSet
+
+    fun isEmpty(): Boolean = size == 0
+    fun contains(element: EdgeAdjacency): Boolean
+    fun contains(vertex: Vertex): Boolean = vertices.contains(vertex)
+    fun iterator(): EdgeAdjacencyIterator
+    fun foreach(action: EdgeAdjacencyConsumer) {
         val it = iterator()
         while (it.hasNext()) {
-            action(it.next())
-        }
-    }
-    fun edgeIdIterator(): IntIterator
-    fun fastForEachEdgeId(action: (Int) -> Unit) {
-        val it = edgeIdIterator()
-        while (it.hasNext()) {
-            action(it.next())
+            action.accept(it.next())
         }
     }
 }
@@ -285,7 +283,7 @@ internal class EdgeReferenceImpl(edge: Edge) : EdgeReference {
 }
 
 internal class VertexReferenceHolder {
-    private val refs = Int2ObjectOpenHashMap<VertexWeakReference>()
+    private val refs = GraphInt2AnyHashMap<VertexWeakReference>()
     private val refQueue = ReferenceQueue<VertexReferenceImpl>()
 
     private fun cleanup() {
@@ -332,7 +330,7 @@ internal class VertexReferenceHolder {
 }
 
 internal class IntEdgeReferenceHolder {
-    private val refs = Int2ObjectOpenHashMap<EdgeWeakReference>()
+    private val refs = GraphInt2AnyHashMap<EdgeWeakReference>()
     private val refQueue = ReferenceQueue<EdgeReferenceImpl>()
 
     private fun cleanup() {
@@ -383,7 +381,7 @@ internal class IntEdgeReferenceHolder {
 }
 
 internal class LongEdgeReferenceHolder {
-    private val refs = Long2ObjectOpenHashMap<EdgeWeakReference>()
+    private val refs = Long2AnyHashMap<EdgeWeakReference>()
     private val refQueue = ReferenceQueue<EdgeReferenceImpl>()
 
     private fun cleanup() {
@@ -407,7 +405,7 @@ internal class LongEdgeReferenceHolder {
         return ref
     }
 
-    fun swapAndRemove(removeEdge: Edge, swapEdge: Edge) {
+    fun swapAndRemove(removeEdge: Edge, swapEdge: Edge = removeEdge) {
         cleanup()
 
         val weakRef = refs.remove(removeEdge.longValue)
@@ -490,7 +488,7 @@ internal class EdgePropertiesHolder {
      * Set `swapEdge` property to `removeEdge` property and remove `removeEdge` property. Edges may be the same, in
      * which case they can simply be removed.
      */
-    fun swapAndRemove(removeEdge: Edge, swapEdge: Edge) = forEach { it.swapAndRemove(removeEdge, swapEdge) }
+    fun swapAndRemove(removeEdge: Edge, swapEdge: Edge = removeEdge) = forEach { it.swapAndRemove(removeEdge, swapEdge) }
 
     fun ensureCapacity(capacity: Int) = forEach { it.ensureCapacity(capacity) }
 
@@ -505,6 +503,82 @@ internal class EdgePropertiesHolder {
                 propertyAction.invoke(property)
                 ++i
             }
+        }
+    }
+}
+
+internal class MutableVertexIndexedVertexSet<G>(private val graph: G) : MutableIndexedVertexSet, AbstractIndexedVertexSet() where G : VertexIndexedVertexGraph, G: MutableIndexedVertexGraph {
+
+    override val size: Int
+        get() = graph.vertexCount
+
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("contains")
+    override fun contains(element: Vertex): Boolean {
+        require(element.intValue in indices)
+        return true
+    }
+
+    override fun get(index: Int): Vertex {
+        if (index !in indices) throw IndexOutOfBoundsException()
+        return Vertex(index)
+    }
+
+    override fun indexOf(element: Vertex): Int {
+        val index = element.intValue
+        require(index in indices)
+        return index
+    }
+
+    override fun iterator(): MutableVertexIterator = object : MutableVertexIterator {
+        private var index = 0
+        private var previous = -1
+
+        override fun hasNext(): Boolean = index < graph.edges.size
+        override fun next(): Vertex = Vertex(index++)
+        override fun remove() {
+            if (previous == -1) throw IllegalStateException()
+            graph.removeVertex(Vertex(previous))
+            index = previous
+            previous = -1
+        }
+    }
+}
+
+internal class MutableEdgeIndexedEdgeSet<G>(private val graph: G) : MutableIndexedEdgeSet, AbstractIndexedEdgeSet() where G : EdgeIndexedEdgeGraph, G: MutableIndexedEdgeGraph  {
+
+    override val size: Int
+        get() = graph.edgeCount
+
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("contains")
+    override fun contains(element: Edge): Boolean {
+        require(element.lowBits in indices)
+        return true
+    }
+
+    override fun get(index: Int): Edge {
+        if (index !in indices) throw IndexOutOfBoundsException()
+        return Edge(index.toLong())
+    }
+
+    override fun indexOf(element: Edge): Int {
+        val index = element.lowBits
+        require(index in indices)
+        return index
+    }
+
+    override fun iterator(): MutableEdgeIterator = object : MutableEdgeIterator {
+        private var index = 0
+        private var previous = -1
+
+        override fun hasNext(): Boolean = index < graph.edges.size
+        override fun next(): Edge = Edge(index++.toLong())
+        override fun remove() {
+            if (previous == -1) throw IllegalStateException()
+            graph.removeEdge(Edge(previous.toLong()))
+            index = previous
+            previous = -1
         }
     }
 }

@@ -41,13 +41,13 @@ internal class TransposedGraph(val graph: Graph) : Graph by graph {
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("containsEdge")
-    override fun containsEdge(source: Vertex, target: Vertex): Boolean = graph.containsEdge(target, source)
+    override fun hasEdge(source: Vertex, target: Vertex): Boolean = graph.hasEdge(target, source)
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("getEdge")
-    override fun getEdge(source: Vertex, target: Vertex): Edge = graph.getEdge(target, source)
+    override fun edge(source: Vertex, target: Vertex): Edge = graph.edge(target, source)
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("getEdges")
-    override fun getEdges(source: Vertex, target: Vertex): EdgeSet = graph.getEdges(target, source)
+    override fun edges(source: Vertex, target: Vertex): EdgeSet = graph.edges(target, source)
 }

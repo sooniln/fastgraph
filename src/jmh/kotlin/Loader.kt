@@ -191,7 +191,7 @@ object Loader {
     }
 
     fun loadMutableNetwork(): PropertyGraph<MutableGraph, Int, Float> = load { numVertices, numEdges, lineSequence ->
-        val graph = mutableGraph(false, supportMultiEdge = true)
+        val graph = mutableGraph(false, multiEdge = true)
         val vertexProperty = graph.createVertexProperty<Int> { 0 }
         val edgeProperty = graph.createEdgeProperty<Float> { 0f }
         buildGraph(graph, vertexProperty, edgeProperty) {

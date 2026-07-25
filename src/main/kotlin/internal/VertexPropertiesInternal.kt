@@ -1,14 +1,12 @@
 package io.github.sooniln.fastgraph.internal
 
+import io.github.sooniln.fastcollect.ints.IntArrayList
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexIndexedVertexGraph
 import io.github.sooniln.fastgraph.VertexInitializer
 import io.github.sooniln.fastgraph.VertexProperty
-import it.unimi.dsi.fastutil.booleans.BooleanArrays
-import it.unimi.dsi.fastutil.ints.IntArrays
-import it.unimi.dsi.fastutil.longs.LongArrays
 
 @Suppress("UNCHECKED_CAST")
 internal fun <T> emptyVertexProperty(graph: Graph): VertexProperty<T> = EmptyVertexProperty(graph) as VertexProperty<T>
@@ -236,8 +234,6 @@ private class MutableArrayListBooleanVertexProperty(
     private val initializer: VertexInitializer<Boolean>
 ) : MutableVertexProperty<Boolean> {
 
-    // we don't use BooleanArrayList because it doesn't properly implement ensureCapacity as we'd expect (it expands to
-    // the exact size given, rather than allowing for larger expansions to save future effort)
     private var property = BooleanArray(0)
     private var propertySize = 0
 
@@ -278,9 +274,9 @@ private class MutableArrayListBooleanVertexProperty(
 
     override fun swapAndRemove(removeVertex: Vertex, swapVertex: Vertex) {
         val oldIndex = removeVertex.intValue
-        require(oldIndex in 0..<graph.vertices.size) { "$removeVertex not found in graph" }
+        require(oldIndex in graph.vertices.indices) { "$removeVertex not found in graph" }
         val newIndex = swapVertex.intValue
-        require(newIndex in 0..<graph.vertices.size) { "$swapVertex not found in graph" }
+        require(newIndex in graph.vertices.indices) { "$swapVertex not found in graph" }
 
         assert(oldIndex == graph.vertices.lastIndex)
         if (oldIndex != newIndex && newIndex < propertySize) {
@@ -310,7 +306,7 @@ private inline fun <T> MutableArrayList4ByteVertexProperty(
     // we don't use LongArrayList because it doesn't properly implement ensureCapacity as we'd expect (it expands to the
     // exact size given, rather than allowing for larger expansions to save future effort)
     override val graph: Graph get() = graph
-    private var property = IntArray(0)
+    private var property = IntArrayList(0)
     private var propertySize = 0
 
     private fun expand(size: Int) {

@@ -154,7 +154,7 @@ internal class ImmutableAdjacencyListGraph(
         @Suppress("INAPPLICABLE_JVM_NAME")
         @JvmName("contains")
         override fun contains(element: Edge): Boolean {
-            return containsEdge(edgeSource(element), edgeTarget(element))
+            return hasEdge(edgeSource(element), edgeTarget(element))
         }
 
         override fun iterator(): EdgeIterator = object : EdgeIterator {
@@ -211,21 +211,21 @@ internal class ImmutableAdjacencyListGraph(
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("containsEdge")
-    override fun containsEdge(source: Vertex, target: Vertex): Boolean {
+    override fun hasEdge(source: Vertex, target: Vertex): Boolean {
         return successors[validateVertex(source).intValue].binarySearch(validateVertex(target).intValue) >= 0
     }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("getEdge")
-    override fun getEdge(source: Vertex, target: Vertex): Edge {
-        if (!containsEdge(source, target)) throw NoSuchElementException()
+    override fun edge(source: Vertex, target: Vertex): Edge {
+        if (!hasEdge(source, target)) throw NoSuchElementException()
         return canonicalEdge(directed, source, target)
     }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("getEdges")
-    override fun getEdges(source: Vertex, target: Vertex): EdgeSet {
-        return if (!containsEdge(source, target)) emptyEdgeSet() else edgeSetOf(canonicalEdge(directed, source, target))
+    override fun edges(source: Vertex, target: Vertex): EdgeSet {
+        return if (!hasEdge(source, target)) emptyEdgeSet() else edgeSetOf(canonicalEdge(directed, source, target))
     }
 
     @Suppress("UNCHECKED_CAST", "PLATFORM_CLASS_MAPPED_TO_KOTLIN")

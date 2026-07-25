@@ -6,6 +6,8 @@ import io.github.sooniln.fastcollect.${keySubpackage}.${Name}Map
 import io.github.sooniln.fastcollect.${keySubpackage}.Mutable${Name}Map
 import io.github.sooniln.fastcollect.${keySubpackage}.Mutable${KeyType}Set
 import io.github.sooniln.fastcollect.${keySubpackage}.Mutable${NonFPName}Map
+import io.github.sooniln.fastcollect.${keySubpackage}.${KeyType}Consumer
+import io.github.sooniln.fastcollect.${keySubpackage}.${KeyType}${ValueType}Consumer
 import io.github.sooniln.fastcollect.${valueSubpackage}.${ValueType}Collection
 import io.github.sooniln.fastcollect.${valueSubpackage}.Inline${ValueType}Collection
 import kotlin.jvm.JvmInline
@@ -62,7 +64,8 @@ internal value class Graph${Name}HashMap private constructor(@PublishedApi inter
 
     override fun iterator(): EntryIterator = EntryIterator(map.iterator())
 
-    override fun fastForEach(action: (${KeyType}, ${ValueType}) -> Unit) = map.fastForEach { key, value -> action(key, ${ValueType}.fromBits(value)) }
+    override fun foreach(action: ${KeyType}${ValueType}Consumer) = map.foreach { key, value -> action.accept(key, ${ValueType}.fromBits(value)) }
+    override fun foreachKey(action: ${KeyType}Consumer) = map.foreachKey(action)
 
     override fun toString(): String {
         return Iterable { iterator() }.joinToString(", ", "{", "}")

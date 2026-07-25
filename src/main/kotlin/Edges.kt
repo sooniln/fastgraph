@@ -222,9 +222,17 @@ interface EdgeIterable : Iterable<Edge> {
 }
 
 /**
+ * A functional interface for receiving edges.
+ */
+fun interface EdgeConsumer {
+    fun accept(edge: Edge)
+}
+
+/**
  * A read-only collection of edges. Note that this interface is distinct from [Collection<Edge>][Collection] in order to
  * avoid Edge boxing/unboxing, and associated performance penalties. Prefer to use this interface whenever possible for
- * those reasons.
+ * those reasons. An [EdgeCollection] is not re-entrancy safe for writing - attempting to modify the collection while
+ * any other method is ongoing leads to undefined behavior.
  */
 interface EdgeCollection : Collection<Edge>, EdgeIterable {
 
@@ -232,10 +240,13 @@ interface EdgeCollection : Collection<Edge>, EdgeIterable {
         return size == 0
     }
 
-    fun fastForEach(action: (Edge) -> Unit) {
+    /**
+     * A method for iteration guaranteed to be as fast or faster than [iterator].
+     */
+    fun foreach(action: EdgeConsumer) {
         val it = iterator()
         while (it.hasNext()) {
-            action(it.next())
+            action.accept(it.next())
         }
     }
 
@@ -322,7 +333,7 @@ interface IndexedEdgeSet : EdgeSet {
 
     override fun containsAll(elements: Collection<Edge>): Boolean = super.containsAll(elements)
 
-    fun get(index: Int): Edge
+    operator fun get(index: Int): Edge
 
     @Deprecated("For JVM usage only", level = DeprecationLevel.ERROR)
     fun getEdge(index: Int): Long = get(index).longValue
@@ -341,10 +352,10 @@ interface IndexedEdgeSet : EdgeSet {
         override fun next(): Edge = edges.get(index++)
     }
 
-    override fun fastForEach(action: (Edge) -> Unit) {
+    override fun foreach(action: EdgeConsumer) {
         var index = 0
         while (index < size) {
-            action(get(index))
+            action.accept(get(index))
             index++
         }
     }
@@ -398,7 +409,7 @@ private object EmptyEdgeSet : IndexedEdgeSet {
 
     override fun containsAll(elements: Collection<Edge>): Boolean = elements.isEmpty()
     override fun iterator(): EdgeIterator = emptyEdgeIterator()
-    override fun fastForEach(action: (Edge) -> Unit) {}
+    override fun foreach(action: EdgeConsumer) {}
 
     override fun get(index: Int): Edge = throw IndexOutOfBoundsException()
     override fun indexOf(element: Edge): Int = -1
@@ -447,10 +458,10 @@ abstract class AbstractIndexedEdgeSet : IndexedEdgeSet, AbstractSet<Edge>(), Edg
 
     override fun iterator(): EdgeIterator = super.iterator()
 
-    override fun fastForEach(action: (Edge) -> Unit) {
+    override fun foreach(action: EdgeConsumer) {
         var index = 0
         while (index < size) {
-            action(get(index++))
+            action.accept(get(index++))
         }
     }
 
@@ -483,7 +494,7 @@ private class SingletonEdgeSet(private val edge: Edge) : AbstractIndexedEdgeSet(
         return if (element == edge) 0 else -1
     }
 
-    override fun fastForEach(action: (Edge) -> Unit) = action(edge)
+    override fun foreach(action: EdgeConsumer) = action.accept(edge)
 }
 
 internal fun LongIterator.asEdgeIterator(): EdgeIterator = EdgeIteratorWrapper(this)
@@ -506,7 +517,7 @@ private class EdgeSetWrapper(private val edges: LongSet) : AbstractEdgeSet() {
     @JvmName("contains")
     override fun contains(element: Edge): Boolean = edges.contains(element.longValue)
     override fun iterator(): EdgeIterator = EdgeIteratorWrapper(edges.iterator())
-    override fun fastForEach(action: (Edge) -> Unit) = edges.fastForEach { edge -> action(Edge(edge)) }
+    override fun foreach(action: EdgeConsumer) = edges.foreach { edge -> action.accept(Edge(edge)) }
 
     override fun toLongArray(): LongArray = edges.toLongArray()
 }

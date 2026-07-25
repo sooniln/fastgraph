@@ -1,0 +1,25 @@
+class ImmutableIndexed${Type}VertexProperty<T> implements VertexProperty{
+
+    override val graph: Graph get() = graph
+    private val property: IntArray = IntArray(graph.vertices.size) { write(initializer.initialize(Vertex(it))) }
+
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("get")
+    override fun get(vertex: Vertex): T {
+        try {
+            return read(property[vertex.intValue])
+        } catch (e: ArrayIndexOutOfBoundsException) {
+            throw IllegalArgumentException("$vertex not found in property", e)
+        }
+    }
+
+    @Suppress("INAPPLICABLE_JVM_NAME")
+    @JvmName("set")
+    override fun set(vertex: Vertex, value: T) {
+        try {
+            property[vertex.intValue] = write(value)
+        } catch (e: ArrayIndexOutOfBoundsException) {
+            throw IllegalArgumentException("$vertex not found in property", e)
+        }
+    }
+}

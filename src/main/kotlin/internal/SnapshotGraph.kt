@@ -161,7 +161,7 @@ internal class SnapshotGraph(graph: Graph) : AbstractImmutableGraph() {
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("containsEdge")
-    override fun containsEdge(source: Vertex, target: Vertex): Boolean {
+    override fun hasEdge(source: Vertex, target: Vertex): Boolean {
         validateVertex(target)
         for (e in outgoingEdges.getValue(validateVertex(source).intValue)) {
             val edge = Edge(e)
@@ -173,13 +173,13 @@ internal class SnapshotGraph(graph: Graph) : AbstractImmutableGraph() {
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("getEdge")
-    override fun getEdge(source: Vertex, target: Vertex): Edge {
+    override fun edge(source: Vertex, target: Vertex): Edge {
         TODO()
     }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("getEdges")
-    override fun getEdges(source: Vertex, target: Vertex): EdgeSet {
+    override fun edges(source: Vertex, target: Vertex): EdgeSet {
         TODO()
     }
 

@@ -3,6 +3,7 @@ package io.github.sooniln.fastgraph.primitives.collections
 import io.github.sooniln.fastcollect.${subpackage}.AbstractMutable${Type}Set
 import io.github.sooniln.fastcollect.${subpackage}.Mutable${Type}Iterator
 import io.github.sooniln.fastcollect.${subpackage}.${Type}Collection
+import io.github.sooniln.fastcollect.${subpackage}.${Type}Consumer
 import io.github.sooniln.fastgraph.primitives.ArrayUtils
 import kotlin.jvm.JvmOverloads
 import kotlin.math.max
@@ -231,10 +232,10 @@ internal class Graph${Type}HashSet @JvmOverloads constructor(
 
     override fun iterator(): Mutable${Type}Iterator = Iterator()
 
-    override fun fastForEach(action: (${Type}) -> Unit) {
+    override fun foreach(action: ${Type}Consumer) {
         for (key in keysArr) {
             if (key != EMPTY_KEY) {
-                action(key)
+                action.accept(key)
             }
         }
     }
@@ -288,7 +289,7 @@ internal class Graph${Type}HashSet @JvmOverloads constructor(
     private companion object {
         // the value of a field in an uninitialized primitive array
         @Suppress("REDUNDANT_CALL_OF_CONVERSION_METHOD")
-        private const val EMPTY_KEY: ${Type} = -1.to${Type}()
+        private const val EMPTY_KEY: ${Type} = (-1).to${Type}()
 
         private val EMPTY_ARRAY = ${lowerType}ArrayOf(EMPTY_KEY)
 

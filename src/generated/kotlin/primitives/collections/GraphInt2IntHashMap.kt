@@ -2,16 +2,24 @@
 
 package io.github.sooniln.fastgraph.primitives.collections
 
-
+import io.github.sooniln.fastcollect.FastIterator
+import io.github.sooniln.fastcollect.Hash
 import io.github.sooniln.fastcollect.MutableFastIterator
 import io.github.sooniln.fastcollect.ints.Int2IntMap
 import io.github.sooniln.fastcollect.ints.MutableInt2IntMap
-import io.github.sooniln.fastcollect.ints.MutableIntCollection
 import io.github.sooniln.fastcollect.ints.MutableIntIterator
 import io.github.sooniln.fastcollect.ints.MutableIntSet
+import io.github.sooniln.fastcollect.ints.IntConsumer
+
+import io.github.sooniln.fastcollect.ints.IntIntConsumer
+import io.github.sooniln.fastcollect.ints.MutableIntCollection
+
+
 import io.github.sooniln.fastgraph.primitives.ArrayUtils
+import kotlin.jvm.JvmOverloads
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.random.Random
 
 internal class GraphInt2IntHashMap @JvmOverloads constructor(
     capacity: Int = 0,
@@ -19,15 +27,10 @@ internal class GraphInt2IntHashMap @JvmOverloads constructor(
     /** The default value should be the value that is ideally least likely to occur in the map. */
     private val defaultValue: Int = Int.MIN_VALUE,
 
-    ) : MutableInt2IntMap {
+) : MutableInt2IntMap {
 
-    constructor(map: Int2IntMap) : this() {
-        putAll(map)
-    }
-
-    constructor(map: Map<Int, Int>) : this() {
-        putAll(map)
-    }
+    public constructor(map: Int2IntMap): this() { putAll(map) }
+    public constructor(map: Map<Int, Int>): this() { putAll(map) }
 
     private var keysArr = EMPTY_KEY_ARRAY
 
@@ -51,7 +54,7 @@ internal class GraphInt2IntHashMap @JvmOverloads constructor(
      * Ensures that the map can hold at least given number of key/value pairs without any further resizing of the
      * backing array.
      */
-    fun ensureCapacity(capacity: Int) {
+    public fun ensureCapacity(capacity: Int) {
         require(capacity >= 0) { "Capacity must be >= 0" }
         if (keysArr === EMPTY_KEY_ARRAY) {
             threshold = min(threshold, capacity.inv())
@@ -63,7 +66,7 @@ internal class GraphInt2IntHashMap @JvmOverloads constructor(
     /**
      * Reduces the size of the backing array to the minimum required to hold the current number of elements.
      */
-    fun trimToSize() {
+    public fun trimToSize() {
         rehash(size)
     }
 
@@ -81,12 +84,10 @@ internal class GraphInt2IntHashMap @JvmOverloads constructor(
     override fun get(key: Int): Int = findSlot(key, { slot -> valuesArr[slot] }, { defaultValue })
 
     @Suppress("UNCHECKED_CAST", "USELESS_CAST")
-    override fun getValue(key: Int): Int =
-        findSlot(key, { slot -> valuesArr[slot] as Int }, { throw NoSuchElementException() })
+    override fun getValue(key: Int): Int = findSlot(key, { slot -> valuesArr[slot] as Int }, { throw NoSuchElementException() })
 
     @Suppress("UNCHECKED_CAST", "USELESS_CAST")
-    override fun getOrDefault(key: Int, defaultValue: Int): Int =
-        findSlot(key, { slot -> valuesArr[slot] as Int }, { defaultValue })
+    override fun getOrDefault(key: Int, defaultValue: Int): Int = findSlot(key, { slot -> valuesArr[slot] as Int }, { defaultValue })
 
     override fun put(key: Int, value: Int): Int {
         var returnValue = defaultValue
@@ -99,7 +100,7 @@ internal class GraphInt2IntHashMap @JvmOverloads constructor(
         return returnValue
     }
 
-    fun putIfAbsent(key: Int, value: Int): Int {
+    public fun putIfAbsent(key: Int, value: Int): Int {
         set(key, { value }, { slot -> return valuesArr[slot] })
         return defaultValue
     }
@@ -236,24 +237,25 @@ internal class GraphInt2IntHashMap @JvmOverloads constructor(
     }
 
     private var _keys: MutableIntSet? = null
-    override val keys: MutableIntSet
-        get() {
-            return _keys ?: object : MutableIntSet {
+    override val keys: MutableIntSet get() {
+        return _keys ?:
+            object : MutableIntSet {
                 override val size: Int get() = this@GraphInt2IntHashMap.size
                 override fun contains(element: Int): Boolean = containsKey(element)
                 override fun add(element: Int): Boolean = throw UnsupportedOperationException()
                 override fun remove(element: Int): Boolean = throw UnsupportedOperationException()
                 override fun iterator(): MutableIntIterator = KeyIterator()
-                override fun fastForEach(action: (Int) -> Unit) = fastForEachKey { key -> action(key) }
+                override fun foreach(action: IntConsumer) = foreachKey(action)
                 override fun clear() = throw UnsupportedOperationException()
             }
-                .also { _keys = it }
-        }
+            .also { _keys = it }
+    }
 
     private var _values: MutableIntCollection? = null
-    override val values: MutableIntCollection
-        get() {
-            return _values ?: object : MutableIntCollection {
+    override val values: MutableIntCollection get() {
+        return _values ?:
+
+            object : MutableIntCollection {
 
                 override val size: Int get() = this@GraphInt2IntHashMap.size
                 override fun contains(element: Int): Boolean = containsValue(element)
@@ -261,12 +263,12 @@ internal class GraphInt2IntHashMap @JvmOverloads constructor(
                 override fun remove(element: Int): Boolean = throw UnsupportedOperationException()
                 override fun iterator(): MutableIntIterator = ValueIterator()
 
-                override fun fastForEach(action: (Int) -> Unit) = fastForEach { _, value -> action(value) }
+                override fun foreach(action: IntConsumer) = this@GraphInt2IntHashMap.foreach { _, value -> action.accept(value) }
 
                 override fun clear() = throw UnsupportedOperationException()
             }
-                .also { _values = it }
-        }
+            .also { _values = it }
+    }
 
     private fun increaseCapacity() {
         check(threshold <= 0)
@@ -332,7 +334,9 @@ internal class GraphInt2IntHashMap @JvmOverloads constructor(
 
     override operator fun iterator(): MutableFastIterator<MutableInt2IntMap.MutableEntry> = FastEntryIterator()
 
-    override fun fastForEach(action: (Int, Int) -> Unit) {
+
+    override fun foreach(action: IntIntConsumer) {
+
         val keysArr = keysArr
         val valuesArr = valuesArr
 
@@ -340,18 +344,18 @@ internal class GraphInt2IntHashMap @JvmOverloads constructor(
             val key = keysArr[slot]
             if (key != EMPTY_KEY) {
                 @Suppress("UNCHECKED_CAST", "USELESS_CAST")
-                action(key, valuesArr[slot] as Int)
+                action.accept(key, valuesArr[slot] as Int)
             }
         }
     }
 
-    override fun fastForEachKey(action: (Int) -> Unit) {
+    override fun foreachKey(action: IntConsumer) {
         val keysArr = keysArr
 
         for (slot in keysArr.indices) {
             val key = keysArr[slot]
             if (key != EMPTY_KEY) {
-                action(key)
+                action.accept(key)
             }
         }
     }
@@ -380,7 +384,6 @@ internal class GraphInt2IntHashMap @JvmOverloads constructor(
         }
 
         fun key(): Int = keysArr[previousSlot]
-
         @Suppress("UNCHECKED_CAST", "USELESS_CAST")
         fun value(): Int = valuesArr[previousSlot] as Int
 
@@ -441,8 +444,7 @@ internal class GraphInt2IntHashMap @JvmOverloads constructor(
         override fun remove() = it.remove()
     }
 
-    private inner class FastEntryIterator : SlotIterator(), MutableFastIterator<MutableInt2IntMap.MutableEntry>,
-        MutableInt2IntMap.MutableEntry {
+    private inner class FastEntryIterator: SlotIterator(), MutableFastIterator<MutableInt2IntMap.MutableEntry>, MutableInt2IntMap.MutableEntry {
 
         override val key: Int get() = key()
         override var value: Int
@@ -467,7 +469,7 @@ internal class GraphInt2IntHashMap @JvmOverloads constructor(
     private companion object {
         // the value of a field in an uninitialized primitive array
         @Suppress("REDUNDANT_CALL_OF_CONVERSION_METHOD")
-        private const val EMPTY_KEY = -1.toInt()
+        private const val EMPTY_KEY = (-1).toInt()
 
         private val EMPTY_KEY_ARRAY = intArrayOf(EMPTY_KEY)
 
