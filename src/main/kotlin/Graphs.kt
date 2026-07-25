@@ -64,11 +64,6 @@ interface Graph {
     val multiEdge: Boolean
 
     /**
-     * Number of vertices in this graph. Guaranteed to be equivalent (but perhaps cheaper to invoke) to `vertices.size`.
-     */
-    val vertexCount: Int
-
-    /**
      * Returns the set of vertices in this graph. The returned value is a live view that reflects changes to the
      * underlying topology.
      */
@@ -77,7 +72,7 @@ interface Graph {
     /**
      * Returns true if this graph is empty (no vertices and thus no edges).
      */
-    fun isEmpty(): Boolean = vertexCount == 0
+    fun isEmpty(): Boolean = vertices.size == 0
 
     /**
      * Returns the number of outgoing edges from the given vertex. Equivalent to `outgoingEdges(vertex).size()`, but is
@@ -154,11 +149,6 @@ interface Graph {
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("incomingEdges")
     fun incomingEdges(vertex: Vertex): EdgeSet
-
-    /**
-     * Number of edges in this graph. Guaranteed to be equivalent (but perhaps cheaper to invoke) to `edge.size`.
-     */
-    val edgeCount: Int
 
     /**
      * Returns the set of all edges in this graph. The returned value is a live view that reflects changes to the

@@ -45,6 +45,7 @@ internal class AdjacencyListGraph(directed: Boolean) : MutableIndexedVertexGraph
 
     private val successors: ArrayList<IntHashSet> = ArrayList()
     private val predecessors: ArrayList<IntHashSet> by _predecessors
+    private var edgeCount = 0
 
     private val vertexRefs = VertexReferenceHolder()
     private val edgeRefs = LongEdgeReferenceHolder()
@@ -252,8 +253,6 @@ internal class AdjacencyListGraph(directed: Boolean) : MutableIndexedVertexGraph
         return edge
     }
 
-    override val vertexCount: Int get() = successors.size
-
     override val vertices: MutableIndexedVertexSet = MutableVertexIndexedVertexSet(this@AdjacencyListGraph)
 
     override fun getOutDegree(vertex: Vertex): Int = successors[vertex.intValue].size
@@ -262,9 +261,6 @@ internal class AdjacencyListGraph(directed: Boolean) : MutableIndexedVertexGraph
     override fun getPredecessors(vertex: Vertex): VertexSet = predecessors[vertex.intValue].asVertexSet()
     override fun getOutgoingEdges(vertex: Vertex): EdgeSet = OutgoingEdgeSet(vertex)
     override fun getIncomingEdges(vertex: Vertex): EdgeSet = IncomingEdgeSet(vertex)
-
-    override var edgeCount = 0
-        private set
 
     override val edges: MutableEdgeSet = object : MutableEdgeSet, AbstractEdgeSet() {
         override val size: Int get() = edgeCount

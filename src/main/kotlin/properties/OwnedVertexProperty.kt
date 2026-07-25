@@ -5,6 +5,8 @@ import io.github.sooniln.fastgraph.Vertex
 abstract class OwnedVertexProperty<V> : VertexProperty<V> {
     abstract fun onVertexAdded(vertex: Vertex)
     abstract fun onVertexRemoved(vertexId: Int)
+    abstract fun ensureCapacity(capacity: Int)
+    abstract fun trimToSize()
 }
 
 abstract class OwnedIndexedVertexProperty<V> : OwnedVertexProperty<V>() {
