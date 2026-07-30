@@ -35,8 +35,7 @@ import kotlin.contracts.contract
  */
 sealed interface ImmutableGraph : Graph
 
-// exists purely to allow implementations in different packages
-internal abstract class AbstractImmutableGraph : ImmutableGraph
+internal abstract class AbstractImmutableGraph(directed: Boolean) : ImmutableGraph, AbstractGraph(directed)
 
 /**
  * Returns an immutable empty graph with the given directedness.

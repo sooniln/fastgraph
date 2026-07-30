@@ -2,27 +2,29 @@ package io.github.sooniln.fastgraph
 
 import com.google.common.graph.Network
 import com.google.common.graph.ValueGraph
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
-import it.unimi.dsi.fastutil.ints.IntHeapPriorityQueue
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet
+import io.github.sooniln.fastcollect.ints.AbstractIntPriorityQueue
+import io.github.sooniln.fastcollect.ints.Int2FloatHashMap
+import io.github.sooniln.fastcollect.ints.Int2FloatMap
+import io.github.sooniln.fastcollect.ints.IntHashSet
 import org.jgrapht.Graphs
 
 internal object Utils {
 
     fun dijkstras(graph: Graph, weights: EdgeProperty<Float>, start: Vertex): VertexProperty<Float> {
-        val visited = graph.createVertexProperty { false }
-        val distance = graph.createVertexProperty { Float.MAX_VALUE }
+        val visited = graph.createVertexProperty(false)
+        val distance = graph.createVertexProperty(Float.MAX_VALUE)
 
-        val q = IntHeapPriorityQueue(graph.vertices.size) { v1, v2 ->
-            distance[Vertex(v1)].compareTo(distance[Vertex(v2)])
+        val q = object : AbstractIntPriorityQueue(graph.vertices.size) {
+            override fun isHigherPriority(element1: Int, element2: Int): Boolean {
+                return distance[Vertex(element1)] > distance[Vertex(element2)]
+            }
         }
 
         distance[start] = 0f
-        q.enqueue(start.intValue)
+        q.add(start.intValue)
 
-        while (!q.isEmpty) {
-            val v = Vertex(q.dequeueInt())
+        while (!q.isEmpty()) {
+            val v = Vertex(q.removeFirst())
             if (visited[v]) continue
             visited[v] = true
 
@@ -32,7 +34,7 @@ internal object Utils {
                 val newDistance = curDistance + weights[edge]
                 if (newDistance < distance[n]) {
                     distance[n] = newDistance
-                    q.enqueue(n.intValue)
+                    q.add(n.intValue)
                 }
             }
         }
@@ -40,20 +42,21 @@ internal object Utils {
         return distance
     }
 
-    fun dijkstrasJGraphT(graph: org.jgrapht.Graph<Int, Loader.JGraphWeightedEdge>, start: Int): Int2ObjectMap<Float> {
-        val visited = IntOpenHashSet(graph.vertexSet().size)
-        val distance = Int2ObjectOpenHashMap<Float>(graph.vertexSet().size)
-        distance.defaultReturnValue(Float.MAX_VALUE)
+    fun dijkstrasJGraphT(graph: org.jgrapht.Graph<Int, Loader.JGraphWeightedEdge>, start: Int): Int2FloatMap<Float> {
+        val visited = IntHashSet(graph.vertexSet().size)
+        val distance = Int2FloatHashMap(graph.vertexSet().size, Float.MAX_VALUE)
 
-        val q = IntHeapPriorityQueue(graph.vertexSet().size) { v1, v2 ->
-            distance[v1].compareTo(distance[v2])
+        val q = object : AbstractIntPriorityQueue(graph.vertexSet().size) {
+            override fun isHigherPriority(element1: Int, element2: Int): Boolean {
+                return distance[element1] > distance[element2]
+            }
         }
 
         distance[start] = 0f
-        q.enqueue(start)
+        q.add(start)
 
-        while (!q.isEmpty) {
-            val v = q.dequeueInt()
+        while (!q.isEmpty()) {
+            val v = q.removeFirst()
             if (visited.contains(v)) continue
             visited.add(v)
 
@@ -63,7 +66,7 @@ internal object Utils {
                 val newDistance = curDistance + edge.weight
                 if (newDistance < distance[n]) {
                     distance[n] = newDistance
-                    q.enqueue(n)
+                    q.add(n)
                 }
             }
         }
@@ -71,20 +74,21 @@ internal object Utils {
         return distance
     }
 
-    fun dijkstrasGuava(graph: ValueGraph<Int, Float>, start: Int): Int2ObjectMap<Float> {
-        val visited = IntOpenHashSet(graph.nodes().size)
-        val distance = Int2ObjectOpenHashMap<Float>(graph.nodes().size)
-        distance.defaultReturnValue(Float.MAX_VALUE)
+    fun dijkstrasGuava(graph: ValueGraph<Int, Float>, start: Int): Int2FloatMap {
+        val visited = IntHashSet(graph.nodes().size)
+        val distance = Int2FloatHashMap(graph.nodes().size, Float.MAX_VALUE)
 
-        val q = IntHeapPriorityQueue(graph.nodes().size) { v1, v2 ->
-            distance[v1].compareTo(distance[v2])
+        val q = object : AbstractIntPriorityQueue(graph.nodes().size) {
+            override fun isHigherPriority(element1: Int, element2: Int): Boolean {
+                return distance[element1] > distance[element2]
+            }
         }
 
         distance[start] = 0f
-        q.enqueue(start)
+        q.add(start)
 
-        while (!q.isEmpty) {
-            val v = q.dequeueInt()
+        while (!q.isEmpty()) {
+            val v = q.removeFirst()
             if (visited.contains(v)) continue
             visited.add(v)
 
@@ -95,7 +99,7 @@ internal object Utils {
                 val newDistance = curDistance + graph.edgeValue(edge).get()
                 if (newDistance < distance[n]) {
                     distance[n] = newDistance
-                    q.enqueue(n)
+                    q.add(n)
                 }
             }
         }
@@ -103,20 +107,21 @@ internal object Utils {
         return distance
     }
 
-    fun dijkstrasGuava(graph: Network<Int, Loader.GuavaWeightedEdge>, start: Int): Int2ObjectMap<Float> {
-        val visited = IntOpenHashSet(graph.nodes().size)
-        val distance = Int2ObjectOpenHashMap<Float>(graph.nodes().size)
-        distance.defaultReturnValue(Float.MAX_VALUE)
+    fun dijkstrasGuava(graph: Network<Int, Loader.GuavaWeightedEdge>, start: Int): Int2FloatMap {
+        val visited = IntHashSet(graph.nodes().size)
+        val distance = Int2FloatHashMap<Float>(graph.nodes().size, Float.MAX_VALUE)
 
-        val q = IntHeapPriorityQueue(graph.nodes().size) { v1, v2 ->
-            distance[v1].compareTo(distance[v2])
+        val q = object : AbstractIntPriorityQueue(graph.nodes().size) {
+            override fun isHigherPriority(element1: Int, element2: Int): Boolean {
+                return distance[element1] > distance[element2]
+            }
         }
 
         distance[start] = 0f
-        q.enqueue(start)
+        q.add(start)
 
-        while (!q.isEmpty) {
-            val v = q.dequeueInt()
+        while (!q.isEmpty()) {
+            val v = q.removeFirst()
             if (visited.contains(v)) continue
             visited.add(v)
 
@@ -127,7 +132,7 @@ internal object Utils {
                     val newDistance = curDistance + edge.weight
                     if (newDistance < distance[n]) {
                         distance[n] = newDistance
-                        q.enqueue(n)
+                        q.add(n)
                     }
                 }
             }

@@ -1,7 +1,6 @@
 package io.github.sooniln.fastgraph
 
-import it.unimi.dsi.fastutil.ints.IntArrayFIFOQueue
-import it.unimi.dsi.fastutil.ints.IntArrayList
+import io.github.sooniln.fastcollect.ints.IntArrayDeque
 
 object Traversal {
     /**
@@ -52,24 +51,24 @@ object Traversal {
     private class BFIterator(private val graph: Graph, startVertices: VertexSet) : VertexIterator {
 
         private val visited = graph.createVertexProperty { false }
-        private val queue = IntArrayFIFOQueue(startVertices.size)
+        private val queue = IntArrayDeque(startVertices.size)
 
         init {
             require(startVertices.isNotEmpty())
             for (vertex in startVertices) {
                 require(graph.vertices.contains(vertex))
-                queue.enqueue(vertex.intValue)
+                queue.addLast(vertex.intValue)
                 visited[vertex] = true
             }
         }
 
-        override fun hasNext(): Boolean = !queue.isEmpty
+        override fun hasNext(): Boolean = !queue.isEmpty()
 
         override fun next(): Vertex {
-            val next = Vertex(queue.dequeueInt())
+            val next = Vertex(queue.removeFirst())
             for (vertex in graph.successors(next)) {
                 if (!visited[vertex]) {
-                    queue.enqueue(vertex.intValue)
+                    queue.addLast(vertex.intValue)
                     visited[vertex] = true
                 }
             }
@@ -80,13 +79,13 @@ object Traversal {
     private class DFPreOrderIterator(private val graph: Graph, startVertices: VertexSet) : VertexIterator {
 
         private val visited = graph.createVertexProperty { false }
-        private val queue = IntArrayList(startVertices.size)
+        private val queue = IntArrayDeque(startVertices.size)
 
         init {
             require(startVertices.isNotEmpty())
             for (vertex in startVertices) {
                 require(graph.vertices.contains(vertex))
-                queue.add(vertex.intValue)
+                queue.addLast(vertex.intValue)
             }
         }
 
@@ -95,7 +94,7 @@ object Traversal {
             visited[next] = true
             for (vertex in graph.successors(next)) {
                 if (!visited[vertex]) {
-                    queue.add(vertex.intValue)
+                    queue.addLast(vertex.intValue)
                 }
             }
 
@@ -103,14 +102,14 @@ object Traversal {
             return next
         }
 
-        override fun hasNext(): Boolean = !queue.isEmpty
+        override fun hasNext(): Boolean = !queue.isEmpty()
 
         private fun drain() {
             var size = queue.size
-            var trash = Vertex(if (size <= 0) 0 else queue.getInt(size - 1))
+            var trash = Vertex(if (size <= 0) 0 else queue[size - 1])
             while (size > 0 && visited[trash]) {
-                queue.removeInt(--size)
-                trash = Vertex(if (size <= 0) 0 else queue.getInt(size - 1))
+                queue.removeAt(--size)
+                trash = Vertex(if (size <= 0) 0 else queue[size - 1])
             }
         }
     }

@@ -6,39 +6,41 @@ import io.github.sooniln.fastcollect.ints.IntArrayList
 import io.github.sooniln.fastgraph.AbstractEdgeCollection
 import io.github.sooniln.fastgraph.AbstractEdgeSet
 import io.github.sooniln.fastgraph.AbstractImmutableGraph
-import io.github.sooniln.fastgraph.AbstractIndexedVertexSet
+import io.github.sooniln.fastgraph.AbstractVertexSet
 import io.github.sooniln.fastgraph.Edge
+import io.github.sooniln.fastgraph.EdgeConsumer
 import io.github.sooniln.fastgraph.EdgeInitializer
 import io.github.sooniln.fastgraph.EdgeIterator
-import io.github.sooniln.fastgraph.EdgeProperty
 import io.github.sooniln.fastgraph.EdgeReference
 import io.github.sooniln.fastgraph.EdgeSet
-import io.github.sooniln.fastgraph.GraphMutator
-import io.github.sooniln.fastgraph.ImmutableGraph
-import io.github.sooniln.fastgraph.ImmutableGraphBuilder
+import io.github.sooniln.fastgraph.IndexedVertexGraph
 import io.github.sooniln.fastgraph.IndexedVertexSet
-import io.github.sooniln.fastgraph.PropertyGraph
+import io.github.sooniln.fastgraph.MutableEdgeProperty
+import io.github.sooniln.fastgraph.MutableVertexProperty
 import io.github.sooniln.fastgraph.Vertex
-import io.github.sooniln.fastgraph.VertexIndexedVertexGraph
+import io.github.sooniln.fastgraph.VertexConsumer
 import io.github.sooniln.fastgraph.VertexInitializer
 import io.github.sooniln.fastgraph.VertexIterator
-import io.github.sooniln.fastgraph.VertexProperty
 import io.github.sooniln.fastgraph.VertexReference
+import io.github.sooniln.fastgraph.VertexSet
+import io.github.sooniln.fastgraph.asVertexIterator
+import io.github.sooniln.fastgraph.compareTo
 import io.github.sooniln.fastgraph.edgeSetOf
 import io.github.sooniln.fastgraph.emptyEdgeSet
-import io.github.sooniln.fastgraph.nothingEdgeProperty
-import io.github.sooniln.fastgraph.nothingVertexProperty
-import io.github.sooniln.fastgraph.primitives.collections.GraphIntHashSet
-import io.github.sooniln.fastgraph.primitives.collections.GraphLong2AnyHashMap
+import io.github.sooniln.fastgraph.inc
+import io.github.sooniln.fastgraph.properties.createImmutableGraphEdgeProperty
+import io.github.sooniln.fastgraph.properties.createImmutableGraphVertexProperty
+import io.github.sooniln.fastgraph.references.ImmutableEdgeReference
+import io.github.sooniln.fastgraph.references.ImmutableVertexReference
 import kotlin.math.max
 import kotlin.math.min
 
 internal class ImmutableAdjacencyListGraph(
-    override val directed: Boolean,
+    directed: Boolean,
     private val successors: Array<IntArray>,
     _predecessors: Array<IntArray>?,
     private val numEdges: Int
-) : AbstractImmutableGraph(), VertexIndexedVertexGraph {
+) : AbstractImmutableGraph(directed), IndexedVertexGraph {
 
     private val predecessors: Array<IntArray> by lazy {
         check(directed)
@@ -58,7 +60,7 @@ internal class ImmutableAdjacencyListGraph(
                 pds[successor.intValue].add(vertexIntValue)
             }
         }
-        return@lazy Array(pds.size) { pds[it].toIntArray() }
+        return@lazy Array(pds.size) { pds[it].toIntArray().apply { sort() } }
     }
 
     init {
@@ -71,82 +73,31 @@ internal class ImmutableAdjacencyListGraph(
     override val multiEdge: Boolean
         get() = false
 
-    private fun validateVertex(vertex: Vertex): Vertex {
-        if (vertex.intValue !in successors.indices) {
-            throw IllegalArgumentException("$vertex not found in graph")
-        }
+    override fun validateVertex(vertex: Vertex): Vertex {
+        if (vertex.intValue !in successors.indices) throwIllegalVertex(vertex)
         return vertex
     }
 
-    private fun validateEdge(edge: Edge): Edge {
+    override fun validateEdge(edge: Edge): Edge {
         try {
             validateVertex(edgeSource(edge))
             validateVertex(edgeTarget(edge))
         } catch (e: IllegalArgumentException) {
-            throw IllegalArgumentException("$edge (${edgeSource(edge)} -> ${edgeTarget(edge)}) not found in graph", e)
+            throwIllegalEdge(edge, e)
         }
         return edge
     }
 
-    override val vertices: IndexedVertexSet = object : AbstractIndexedVertexSet() {
+    override val vertices: IndexedVertexSet = object : AbstractVertexIndexedVertexSet() {
         override val size: Int get() = successors.size
-        override fun get(index: Int): Vertex = Vertex(index)
-
-        @Suppress("INAPPLICABLE_JVM_NAME")
-        @JvmName("contains")
-        override fun contains(element: Vertex): Boolean {
-            validateVertex(element)
-            return true
-        }
-
-        @Suppress("INAPPLICABLE_JVM_NAME")
-        @JvmName("indexOf")
-        override fun indexOf(element: Vertex): Int = validateVertex(element).intValue
     }
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("outDegree")
-    override fun outDegree(vertex: Vertex): Int = successors[validateVertex(vertex).intValue].size
-
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("inDegree")
-    override fun inDegree(vertex: Vertex): Int {
-        if (!directed) {
-            return outDegree(vertex)
-        }
-
-        return predecessors[validateVertex(vertex).intValue].size
-    }
-
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("successors")
-    override fun successors(vertex: Vertex): IndexedVertexSet =
-        VertexNeighbors(successors[validateVertex(vertex).intValue])
-
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("predecessors")
-    override fun predecessors(vertex: Vertex): IndexedVertexSet {
-        if (!directed) {
-            return successors(vertex)
-        }
-
-        return VertexNeighbors(predecessors[validateVertex(vertex).intValue])
-    }
-
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("outgoingEdges")
-    override fun outgoingEdges(vertex: Vertex): EdgeSet =
-        IncidentEdgeSet(true, vertex, successors[validateVertex(vertex).intValue])
-
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("incomingEdges")
-    override fun incomingEdges(vertex: Vertex): EdgeSet {
-        if (!directed) {
-            return outgoingEdges(vertex)
-        }
-
-        return IncidentEdgeSet(false, vertex, predecessors[validateVertex(vertex).intValue])
-    }
+    override fun getOutDegree(vertex: Vertex): Int = successors[vertex].size
+    override fun getInDegree(vertex: Vertex): Int = predecessors[vertex].size
+    override fun getSuccessors(vertex: Vertex): VertexSet = VertexNeighbors(successors[vertex])
+    override fun getPredecessors(vertex: Vertex): VertexSet = VertexNeighbors(predecessors[vertex])
+    override fun getOutgoingEdges(vertex: Vertex): EdgeSet = OutgoingIncidentEdgeSet(vertex, successors[vertex])
+    override fun getIncomingEdges(vertex: Vertex): EdgeSet = IncomingIncidentEdgeSet(vertex, predecessors[vertex])
 
     override val edges: EdgeSet = object : AbstractEdgeSet() {
         override val size: Int get() = numEdges
@@ -158,43 +109,49 @@ internal class ImmutableAdjacencyListGraph(
         }
 
         override fun iterator(): EdgeIterator = object : EdgeIterator {
-            private var sourceVertex = 0
-            private var targetSuccessorIndex = -1
-            private var targetVertex = -1
+            private var source = INVALID_VERTEX
+            private var successor = intArrayOf()
+            private var successorIndex = 0
+            private var target = INVALID_VERTEX
 
             init {
                 increment()
             }
 
-            override fun hasNext(): Boolean = sourceVertex < successors.size
+            override fun hasNext(): Boolean = source < successors.size
             override fun next(): Edge {
-                if (sourceVertex >= successors.size) throw NoSuchElementException()
-                val edge = canonicalEdge(directed, sourceVertex, targetVertex)
+                if (source >= successors.size) throw NoSuchElementException()
+                val edge = canonicalSortedEdge(source, target)
                 increment()
                 return edge
             }
 
             private fun increment() {
-                ++targetSuccessorIndex
-                while (true) {
-                    if (sourceVertex >= successors.size) {
-                        break
-                    } else {
-                        val successors = successors[sourceVertex]
-                        if (targetSuccessorIndex == successors.size) {
-                            ++sourceVertex
-                            targetSuccessorIndex = 0
-                        } else {
-                            targetVertex = successors[targetSuccessorIndex]
-                            if (!directed && sourceVertex > targetVertex) {
-                                // don't report reverse edges (since we know we're iterating over all edges here it's
-                                // safe to not follow the reverse entry as we can assume we'll encounter the canonical
-                                // entry at some point).
-                                ++targetSuccessorIndex
-                            } else {
-                                break
-                            }
-                        }
+                do {
+                    while (successorIndex == successor.size && ++source < successors.size) {
+                        successor = successors[source]
+                        successorIndex = 0
+                    }
+                    if (successorIndex == successor.size) return
+
+                    target = Vertex(successor[successorIndex++])
+
+                    // don't report the same edge twice in undirected graphs - we only report an edge when we see a
+                    // source less than or equal to the target. this works because we know we'll encounter every
+                    // undirected edge twice since we're iterating over all vertices.
+                } while (!directed && source > target)
+            }
+        }
+
+        override fun foreach(action: EdgeConsumer) {
+            for (index in successors.indices) {
+                val source = Vertex(index)
+                successors[source].foreachVertex { target ->
+                    // don't report the same edge twice in undirected graphs - we only report an edge when we see a
+                    // source less than or equal to the target. this works because we know we'll encounter every
+                    // undirected edge twice since we're iterating over all vertices.
+                    if (directed || source <= target) {
+                        action.accept(canonicalSortedEdge(source, target))
                     }
                 }
             }
@@ -209,72 +166,58 @@ internal class ImmutableAdjacencyListGraph(
     @JvmName("edgeTarget")
     override fun edgeTarget(edge: Edge): Vertex = Vertex(edge.lowBits)
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("containsEdge")
-    override fun hasEdge(source: Vertex, target: Vertex): Boolean {
-        return successors[validateVertex(source).intValue].binarySearch(validateVertex(target).intValue) >= 0
-    }
+    override fun containsEdge(source: Vertex, target: Vertex): Boolean = successors[source].binarySearch(target) >= 0
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("getEdge")
-    override fun edge(source: Vertex, target: Vertex): Edge {
-        if (!hasEdge(source, target)) throw NoSuchElementException()
+    override fun getEdge(source: Vertex, target: Vertex): Edge {
+        if (!containsEdge(source, target)) throw NoSuchElementException()
         return canonicalEdge(directed, source, target)
     }
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("getEdges")
-    override fun edges(source: Vertex, target: Vertex): EdgeSet {
-        return if (!hasEdge(source, target)) emptyEdgeSet() else edgeSetOf(canonicalEdge(directed, source, target))
+    override fun getEdges(source: Vertex, target: Vertex): EdgeSet {
+        return if (!containsEdge(source, target)) emptyEdgeSet() else edgeSetOf(canonicalEdge(directed, source, target))
     }
 
-    @Suppress("UNCHECKED_CAST", "PLATFORM_CLASS_MAPPED_TO_KOTLIN")
-    override fun <T : S?, S> createVertexProperty(
-        clazz: Class<S>,
+    override fun <T, C : T> createVertexProperty(
+        clazz: Class<C>,
         initializer: VertexInitializer<T>
-    ): VertexProperty<T> {
-        return immutableArrayVertexProperty(this, clazz, initializer)
+    ): MutableVertexProperty<T> {
+        return createImmutableGraphVertexProperty(this, initializer)
     }
 
-    override fun <T : S?, S> createEdgeProperty(clazz: Class<S>, initializer: EdgeInitializer<T>): EdgeProperty<T> {
-        return immutableMapEdgeProperty(this, clazz, initializer)
+    override fun <T, C : T> createEdgeProperty(
+        clazz: Class<C>,
+        initializer: EdgeInitializer<T>
+    ): MutableEdgeProperty<T> {
+        return createImmutableGraphEdgeProperty(this, initializer)
     }
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("createVertexReference")
-    override fun createVertexReference(vertex: Vertex): VertexReference = VertexReferenceImpl(validateVertex(vertex))
+    override fun createVertexReference(vertex: Vertex): VertexReference =
+        ImmutableVertexReference(validateVertex(vertex))
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("createEdgeReference")
-    override fun createEdgeReference(edge: Edge): EdgeReference = EdgeReferenceImpl(validateEdge(edge))
+    override fun createEdgeReference(edge: Edge): EdgeReference = ImmutableEdgeReference(validateEdge(edge))
 
-    private class VertexNeighbors(private val sortedNeighbors: IntArray) : AbstractIndexedVertexSet() {
-        override val size: Int
-            get() = sortedNeighbors.size
+    private class VertexNeighbors(private val sortedNeighbors: IntArray) : AbstractVertexSet() {
+        override val size: Int get() = sortedNeighbors.size
 
         @Suppress("INAPPLICABLE_JVM_NAME")
         @JvmName("contains")
         override fun contains(element: Vertex): Boolean = sortedNeighbors.binarySearch(element.intValue) >= 0
-        override fun get(index: Int): Vertex = Vertex(sortedNeighbors[index])
-        override fun indexOf(element: Vertex): Int {
-            TODO("Not yet implemented")
-        }
 
-        // override superclass implementation for substantial speed gains, likely by changing the JVM profile point and
-        // thus enabling additional optimizations?
-        override fun iterator(): VertexIterator = object : VertexIterator {
-            private var i = 0
-
-            override fun hasNext(): Boolean = i < sortedNeighbors.size
-            override fun next(): Vertex {
-                if (i >= sortedNeighbors.size) throw NoSuchElementException()
-                return Vertex(sortedNeighbors[i++])
+        override fun iterator(): VertexIterator = sortedNeighbors.iterator().asVertexIterator()
+        override fun foreach(action: VertexConsumer) {
+            for (neighbor in sortedNeighbors) {
+                action.accept(Vertex(neighbor))
             }
         }
+
+        override fun toIntArray(): IntArray = sortedNeighbors.copyOf()
     }
 
-    private inner class IncidentEdgeSet(
-        private val outgoing: Boolean,
+    private inner class OutgoingIncidentEdgeSet(
         private val vertex: Vertex,
         private val sortedNeighbors: IntArray,
     ) : EdgeSet, AbstractEdgeCollection() {
@@ -284,16 +227,8 @@ internal class ImmutableAdjacencyListGraph(
         @JvmName("contains")
         override fun contains(element: Edge): Boolean {
             validateEdge(element)
-
-            val source: Vertex
-            val target: Vertex
-            if (outgoing) {
-                source = edgeSource(element)
-                target = edgeTarget(element)
-            } else {
-                source = edgeTarget(element)
-                target = edgeSource(element)
-            }
+            val source = edgeSource(element)
+            val target = edgeTarget(element)
 
             return if (!directed && target == vertex) {
                 sortedNeighbors.binarySearch(source.intValue) >= 0
@@ -303,34 +238,79 @@ internal class ImmutableAdjacencyListGraph(
         }
 
         override fun iterator(): EdgeIterator = object : EdgeIterator {
-            private var i = 0
-            override fun hasNext(): Boolean = i < sortedNeighbors.size
-            override fun next(): Edge {
-                if (i >= sortedNeighbors.size) throw NoSuchElementException()
-                val neighbor = sortedNeighbors[i++]
-                return if (outgoing) {
-                    canonicalEdge(directed, vertex.intValue, neighbor)
-                } else {
-                    canonicalEdge(directed, neighbor, vertex.intValue)
-                }
+            private val it = sortedNeighbors.iterator()
+            override fun hasNext(): Boolean = it.hasNext()
+            override fun next(): Edge = canonicalEdge(directed, vertex, Vertex(it.nextInt()))
+        }
+
+        override fun foreach(action: EdgeConsumer) {
+            for (neighbor in sortedNeighbors) {
+                action.accept(canonicalEdge(directed, vertex, Vertex(neighbor)))
             }
         }
     }
-}
 
-@Suppress("NOTHING_TO_INLINE")
-private inline fun canonicalEdge(directed: Boolean, source: Vertex, target: Vertex) =
-    canonicalEdge(directed, source.intValue, target.intValue)
+    private inner class IncomingIncidentEdgeSet(
+        private val vertex: Vertex,
+        private val sortedNeighbors: IntArray,
+    ) : EdgeSet, AbstractEdgeCollection() {
+        override val size: Int get() = sortedNeighbors.size
 
-@Suppress("NOTHING_TO_INLINE")
-private inline fun canonicalEdge(directed: Boolean, sourceIntValue: Int, targetIntValue: Int): Edge {
-    return if (!directed) {
-        Edge(highBits = min(sourceIntValue, targetIntValue), lowBits = max(sourceIntValue, targetIntValue))
-    } else {
-        Edge(highBits = sourceIntValue, lowBits = targetIntValue)
+        @Suppress("INAPPLICABLE_JVM_NAME")
+        @JvmName("contains")
+        override fun contains(element: Edge): Boolean {
+            validateEdge(element)
+            val source = edgeTarget(element)
+            val target = edgeSource(element)
+
+            return if (!directed && target == vertex) {
+                sortedNeighbors.binarySearch(source.intValue) >= 0
+            } else {
+                vertex == source && sortedNeighbors.binarySearch(target.intValue) >= 0
+            }
+        }
+
+        override fun iterator(): EdgeIterator = object : EdgeIterator {
+            private val it = sortedNeighbors.iterator()
+            override fun hasNext(): Boolean = it.hasNext()
+            override fun next(): Edge = canonicalEdge(directed, Vertex(it.nextInt()), vertex)
+        }
+
+        override fun foreach(action: EdgeConsumer) {
+            for (neighbor in sortedNeighbors) {
+                action.accept(canonicalEdge(directed, Vertex(neighbor), vertex))
+            }
+        }
+    }
+
+    private operator fun Array<IntArray>.get(vertex: Vertex) = get(vertex.intValue)
+    private fun IntArray.binarySearch(vertex: Vertex) = binarySearch(vertex.intValue)
+    private inline fun IntArray.foreachVertex(crossinline action: (Vertex) -> Unit) {
+        for (value in this) {
+            action(Vertex(value))
+        }
+    }
+
+    private fun canonicalEdge(directed: Boolean, source: Vertex, target: Vertex): Edge {
+        return if (!directed) {
+            Edge(highBits = min(source.intValue, target.intValue), lowBits = max(source.intValue, target.intValue))
+        } else {
+            Edge(highBits = source.intValue, lowBits = target.intValue)
+        }
+    }
+
+    // only use if you know source <= target
+    private fun canonicalSortedEdge(source: Vertex, target: Vertex): Edge {
+        assert(source <= target)
+        return Edge(highBits = source.intValue, lowBits = target.intValue)
+    }
+
+    private companion object {
+        private val INVALID_VERTEX = Vertex(-1)
     }
 }
 
+/*
 // TODO: use graph internally
 internal class ImmutableAdjacencyListGraphBuilder<V, E>(
     private val directed: Boolean,
@@ -496,3 +476,4 @@ internal class ImmutableAdjacencyListGraphBuilder<V, E>(
         return PropertyGraph(graph, vertexProperty, edgeProperty)
     }
 }
+*/

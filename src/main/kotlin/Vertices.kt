@@ -100,114 +100,24 @@ value class Vertex(val intValue: Int) {
     fun incomingEdges(): EdgeSet = graph.incomingEdges(this)
 
     /**
-     * Accesses the property value of a vertex. Equivalent to accessing the property value through the [VertexProperty]
-     * itself.
-     */
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @get:JvmSynthetic
-    @set:JvmSynthetic
-    @get:JvmName("#getProperty")
-    @set:JvmName("#setProperty")
-    context(property: VertexProperty<T>)
-    var <T> property: T
-        inline get() = property[this]
-        inline set(value) {
-            property[this] = value
-        }
-
-    /**
      * Returns the index of this vertex in [IndexedVertexGraph.vertices].
      */
     @Suppress("INAPPLICABLE_JVM_NAME")
     @get:JvmSynthetic
     @get:JvmName("#index")
-    context(graph: IndexedEdgeGraph)
+    context(graph: IndexedVertexGraph)
     val Vertex.index: Int inline get() = graph.vertices.indexOf(this)
 
     override fun toString(): String = "Vertex(${intValue.toHexString(VERTEX_HEX_FORMAT)})"
 }
 
-/**
- * A *stable* reference to a vertex. This reference is guaranteed to never be invalidated when mutations are made to the
- * graph topology. A stable reference can be obtained through [Graph.createVertexReference]. [VertexReference] is
- * generally a less efficient representation than [Vertex], in terms of both memory and CPU. Prefer [Vertex] unless
- * reference stability across mutations is a requirement.
- */
-interface VertexReference {
-
-    /**
-     * An unstable [Vertex] reference corresponding to this stable reference.
-     */
-    // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
-    //   overrides of this method
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @get:JvmName("unstable")
-    val unstable: Vertex
-}
-
-/**
- * Accesses the property value of a vertex. Equivalent to accessing the property value through the [VertexProperty]
- * itself.
- */
-context(property: VertexProperty<T>)
-var <T> VertexReference.property: T
-    @JvmSynthetic @JvmName("#VertexReference_property_get") inline get() = property[unstable]
-    @JvmSynthetic @JvmName("#VertexReference_property_set") inline set(value) {
-        property[unstable] = value
-    }
-
-/**
- * See [Graph.outDegree].
- */
-context(graph: Graph)
-val VertexReference.outDegree: Int
-    @JvmSynthetic @JvmName("#VertexReference_outDegree") inline get() = graph.outDegree(unstable)
-
-/**
- * See [Graph.inDegree].
- */
-context(graph: Graph)
-val VertexReference.inDegree
-    @JvmSynthetic @JvmName("#VertexReference_inDegree") inline get() = graph.inDegree(unstable)
-
-/**
- * See [Graph.successors].
- */
-@JvmSynthetic
-@JvmName("#VertexReference_successors")
-context(graph: Graph)
-fun VertexReference.successors() = graph.successors(unstable)
-
-/**
- * See [Graph.predecessors].
- */
-@JvmSynthetic
-@JvmName("#VertexReference_predecessors")
-context(graph: Graph)
-fun VertexReference.predecessors() = graph.predecessors(unstable)
-
-/**
- * See [Graph.outgoingEdges].
- */
-@JvmSynthetic
-@JvmName("#VertexReference_outgoingEdges")
-context(graph: Graph)
-fun VertexReference.outgoingEdges() = graph.outgoingEdges(unstable)
-
-/**
- * See [Graph.incomingEdges].
- */
-@JvmSynthetic
-@JvmName("#VertexReference_incomingEdges")
-context(graph: Graph)
-fun VertexReference.incomingEdges() = graph.incomingEdges(unstable)
-
-/**
- * Returns the index of this vertex in [IndexedVertexGraph.vertices].
- */
-context(graph: IndexedEdgeGraph)
-val VertexReference.index: Int
-    @JvmSynthetic @JvmName("#VertexReference_index") inline get() = graph.vertices.indexOf(unstable)
+internal operator fun Vertex.compareTo(other: Vertex): Int = intValue.compareTo(other.intValue)
+internal operator fun Vertex.compareTo(other: Int): Int = intValue.compareTo(other)
+internal operator fun Int.compareTo(other: Vertex): Int = this.compareTo(other.intValue)
+internal operator fun Vertex.plus(other: Int): Vertex = Vertex(intValue + other)
+internal operator fun Vertex.minus(other: Int): Vertex = Vertex(intValue - other)
+internal operator fun Vertex.inc(): Vertex = Vertex(intValue + 1)
+internal operator fun Vertex.dec(): Vertex = Vertex(intValue - 1)
 
 /**
  * An iterator over vertices. Note that this interface is distinct from [Iterator<Vertex>][Iterator] in order to avoid
@@ -215,6 +125,7 @@ val VertexReference.index: Int
  * those reasons.
  */
 interface VertexIterator : Iterator<Vertex> {
+    @JvmSynthetic
     override fun next(): Vertex
 
     @Deprecated("For JVM usage only", level = DeprecationLevel.ERROR)
@@ -355,7 +266,7 @@ interface IndexedVertexSet : VertexSet {
     operator fun get(index: Int): Vertex
 
     @Deprecated("For JVM usage only", level = DeprecationLevel.ERROR)
-    fun getEdge(index: Int): Int = get(index).intValue
+    fun getVertex(index: Int): Int = get(index).intValue
 
     /**
      * Returns the index of the given vertex in this collection, or -1 if the vertex is not in this set.
@@ -368,7 +279,7 @@ interface IndexedVertexSet : VertexSet {
         private var index = 0
 
         override fun hasNext(): Boolean = index < vertices.size
-        override fun next(): Vertex = vertices.get(index++)
+        override fun next(): Vertex = vertices[index++]
     }
 
     override fun foreach(action: VertexConsumer) {
@@ -515,7 +426,7 @@ private class VertexSetWrapper(private val vertices: IntSet) : AbstractVertexSet
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("contains")
     override fun contains(element: Vertex): Boolean = vertices.contains(element.intValue)
-    override fun iterator(): VertexIterator = VertexIteratorWrapper(vertices.iterator())
+    override fun iterator(): VertexIterator = vertices.iterator().asVertexIterator()
     override fun foreach(action: VertexConsumer) = vertices.foreach { vertex -> action.accept(Vertex(vertex)) }
 
     override fun toIntArray(): IntArray = vertices.toIntArray()

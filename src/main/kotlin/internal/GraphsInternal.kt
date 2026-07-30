@@ -1,41 +1,44 @@
 package io.github.sooniln.fastgraph.internal
 
 import io.github.sooniln.fastcollect.ints.Int2IntMap
-import io.github.sooniln.fastcollect.longs.Long2AnyHashMap
 import io.github.sooniln.fastcollect.longs.Long2LongMap
 import io.github.sooniln.fastcollect.longs.LongArrayList
-import io.github.sooniln.fastcollect.longs.LongListIterator
 import io.github.sooniln.fastcollect.longs.MutableLongIterator
 import io.github.sooniln.fastcollect.longs.lastIndex
 import io.github.sooniln.fastgraph.AbstractIndexedEdgeSet
 import io.github.sooniln.fastgraph.AbstractIndexedVertexSet
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeConsumer
-import io.github.sooniln.fastgraph.EdgeIndexedEdgeGraph
 import io.github.sooniln.fastgraph.EdgeIterator
-import io.github.sooniln.fastgraph.EdgeProperty
-import io.github.sooniln.fastgraph.EdgeReference
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.GraphCopy
 import io.github.sooniln.fastgraph.GraphMapping
+import io.github.sooniln.fastgraph.IndexedEdgeSet
+import io.github.sooniln.fastgraph.IndexedVertexSet
 import io.github.sooniln.fastgraph.MutableEdgeIterator
-import io.github.sooniln.fastgraph.MutableIndexedEdgeGraph
+import io.github.sooniln.fastgraph.MutableEdgeProperty
+import io.github.sooniln.fastgraph.MutableGraph
 import io.github.sooniln.fastgraph.MutableIndexedEdgeSet
-import io.github.sooniln.fastgraph.MutableIndexedVertexGraph
 import io.github.sooniln.fastgraph.MutableIndexedVertexSet
 import io.github.sooniln.fastgraph.MutableVertexIterator
+import io.github.sooniln.fastgraph.MutableVertexProperty
 import io.github.sooniln.fastgraph.PropertyGraph
 import io.github.sooniln.fastgraph.PropertyGraphCopy
 import io.github.sooniln.fastgraph.Vertex
-import io.github.sooniln.fastgraph.VertexIndexedVertexGraph
-import io.github.sooniln.fastgraph.VertexProperty
-import io.github.sooniln.fastgraph.VertexReference
+import io.github.sooniln.fastgraph.VertexConsumer
+import io.github.sooniln.fastgraph.VertexIterator
 import io.github.sooniln.fastgraph.VertexSet
-import io.github.sooniln.fastgraph.primitives.collections.GraphInt2AnyHashMap
-import java.lang.ref.ReferenceQueue
-import java.lang.ref.WeakReference
 import kotlin.math.max
 import kotlin.math.min
+
+internal fun throwIllegalVertex(vertex: Vertex, cause: Throwable? = null): Nothing =
+    throw IllegalArgumentException("$vertex not found in graph", cause)
+
+context(graph: Graph)
+internal fun throwIllegalEdge(edge: Edge, cause: Throwable? = null): Nothing = throw IllegalArgumentException(
+    "$edge (${graph.edgeSource(edge)} -> ${graph.edgeTarget(edge)}) not found in graph",
+    cause
+)
 
 internal fun <G : Graph> GraphCopy(
     originalGraph: Graph,
@@ -52,13 +55,13 @@ internal fun <G : Graph> GraphCopy(
 internal fun <G : Graph, V, E> PropertyGraphCopy(
     originalPropertyGraph: PropertyGraph<*, V, E>,
     graph: GraphCopy<G>,
-    vertexProperty: VertexProperty<V>,
-    edgeProperty: EdgeProperty<E>,
+    vertexProperty: MutableVertexProperty<V>,
+    edgeProperty: MutableEdgeProperty<E>,
 ): PropertyGraphCopy<G, V, E> {
     return object : PropertyGraphCopy<G, V, E>, GraphCopy<G> by graph {
         override val originalPropertyGraph: PropertyGraph<*, V, E> get() = originalPropertyGraph
-        override val vertexProperty: VertexProperty<V> get() = vertexProperty
-        override val edgeProperty: EdgeProperty<E> get() = edgeProperty
+        override val vertexProperty: MutableVertexProperty<V> get() = vertexProperty
+        override val edgeProperty: MutableEdgeProperty<E> get() = edgeProperty
     }
 }
 
@@ -230,287 +233,7 @@ internal interface EdgeAdjacencySet {
 private inline fun constructLongValue(highBits: Int, lowBits: Int): Long =
     highBits.toLong().shl(32).or(lowBits.toLong().and(0xFFFFFFFF))
 
-internal class VertexReferenceImpl(vertex: Vertex) : VertexReference {
-    private var valid: Boolean = true
-
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @get:JvmName("unstable")
-    override var unstable: Vertex = vertex
-        get() {
-            require(valid) { "the vertex referenced has been removed and is no longer valid" }
-            return field
-        }
-        set(value) {
-            check(valid)
-            field = value
-        }
-
-    fun invalidate() {
-        valid = false
-    }
-
-    override fun equals(other: Any?): Boolean {
-        return other is VertexReferenceImpl && valid && other.valid && unstable == other.unstable
-    }
-
-    override fun hashCode(): Int = unstable.hashCode()
-}
-
-internal class EdgeReferenceImpl(edge: Edge) : EdgeReference {
-    private var valid: Boolean = true
-
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @get:JvmName("unstable")
-    override var unstable: Edge = edge
-        get() {
-            require(valid) { "the edge referenced has been removed and is no longer valid" }
-            return field
-        }
-        set(value) {
-            check(valid)
-            field = value
-        }
-
-    fun invalidate() {
-        valid = false
-    }
-
-    override fun equals(other: Any?): Boolean {
-        return other is EdgeReferenceImpl && valid && other.valid && unstable == other.unstable
-    }
-
-    override fun hashCode(): Int = unstable.hashCode()
-}
-
-internal class VertexReferenceHolder {
-    private val refs = GraphInt2AnyHashMap<VertexWeakReference>()
-    private val refQueue = ReferenceQueue<VertexReferenceImpl>()
-
-    private fun cleanup() {
-        var removable = refQueue.poll() as VertexWeakReference?
-        while (removable != null) {
-            refs.remove(removable.intValue)
-            removable = refQueue.poll() as VertexWeakReference?
-        }
-    }
-
-    fun ref(vertex: Vertex): VertexReference {
-        var ref = refs.get(vertex.intValue)?.get()
-        if (ref == null) {
-            ref = VertexReferenceImpl(vertex)
-            refs.put(vertex.intValue, VertexWeakReference(ref, refQueue))
-        }
-
-        cleanup()
-        return ref
-    }
-
-    fun swapAndRemove(removeVertex: Vertex, swapVertex: Vertex) {
-        cleanup()
-
-        val weakRef = refs.remove(removeVertex.intValue)
-        if (weakRef != null) {
-            val ref = weakRef.get()
-            if (ref != null) {
-                if (removeVertex != swapVertex) {
-                    ref.unstable = swapVertex
-                    weakRef.intValue = swapVertex.intValue
-                    refs.put(swapVertex.intValue, weakRef)?.get()?.invalidate()
-                } else {
-                    ref.invalidate()
-                }
-            }
-        }
-    }
-
-    private class VertexWeakReference(ref: VertexReferenceImpl, queue: ReferenceQueue<VertexReferenceImpl>) :
-        WeakReference<VertexReferenceImpl>(ref, queue) {
-        var intValue: Int = ref.unstable.intValue
-    }
-}
-
-internal class IntEdgeReferenceHolder {
-    private val refs = GraphInt2AnyHashMap<EdgeWeakReference>()
-    private val refQueue = ReferenceQueue<EdgeReferenceImpl>()
-
-    private fun cleanup() {
-        var removable = refQueue.poll() as EdgeWeakReference?
-        while (removable != null) {
-            refs.remove(removable.intValue)
-            removable = refQueue.poll() as EdgeWeakReference?
-        }
-    }
-
-    fun ref(edge: Edge): EdgeReference {
-        val edgeId = edge.lowBits
-        var ref = refs.get(edgeId)?.get()
-        if (ref == null) {
-            ref = EdgeReferenceImpl(edge)
-            refs.put(edgeId, EdgeWeakReference(ref, refQueue))
-        }
-
-        cleanup()
-        return ref
-    }
-
-    fun swapAndRemove(removeEdge: Edge, swapEdge: Edge) {
-        cleanup()
-
-        val removeEdgeIntValue = removeEdge.lowBits
-        val swapEdgeIntValue = swapEdge.lowBits
-
-        val weakRef = refs.remove(removeEdgeIntValue)
-        if (weakRef != null) {
-            val ref = weakRef.get()
-            if (ref != null) {
-                if (removeEdgeIntValue != swapEdgeIntValue) {
-                    ref.unstable = swapEdge
-                    weakRef.intValue = swapEdgeIntValue
-                    refs.put(swapEdgeIntValue, weakRef)?.get()?.invalidate()
-                } else {
-                    ref.invalidate()
-                }
-            }
-        }
-    }
-
-    private class EdgeWeakReference(ref: EdgeReferenceImpl, queue: ReferenceQueue<EdgeReferenceImpl>) :
-        WeakReference<EdgeReferenceImpl>(ref, queue) {
-        var intValue: Int = ref.unstable.lowBits
-    }
-}
-
-internal class LongEdgeReferenceHolder {
-    private val refs = Long2AnyHashMap<EdgeWeakReference>()
-    private val refQueue = ReferenceQueue<EdgeReferenceImpl>()
-
-    private fun cleanup() {
-        var removable = refQueue.poll() as EdgeWeakReference?
-        while (removable != null) {
-            refs.remove(removable.longValue)
-            removable = refQueue.poll() as EdgeWeakReference?
-        }
-    }
-
-    fun ref(edge: Edge): EdgeReference {
-        var ref = refs.get(edge.longValue)?.get()
-        if (ref == null) {
-            ref = EdgeReferenceImpl(edge)
-            refs.put(edge.longValue, EdgeWeakReference(ref, refQueue))
-        } else {
-            check(ref.unstable == edge)
-        }
-
-        cleanup()
-        return ref
-    }
-
-    fun swapAndRemove(removeEdge: Edge, swapEdge: Edge = removeEdge) {
-        cleanup()
-
-        val weakRef = refs.remove(removeEdge.longValue)
-        if (weakRef != null) {
-            val ref = weakRef.get()
-            if (ref != null) {
-                if (removeEdge != swapEdge) {
-                    ref.unstable = swapEdge
-                    weakRef.longValue = swapEdge.longValue
-                    refs.put(swapEdge.longValue, weakRef)?.get()?.invalidate()
-                } else {
-                    ref.invalidate()
-                }
-            }
-        }
-    }
-
-    private class EdgeWeakReference(ref: EdgeReferenceImpl, queue: ReferenceQueue<EdgeReferenceImpl>) :
-        WeakReference<EdgeReferenceImpl>(ref, queue) {
-        var longValue: Long = ref.unstable.longValue
-    }
-}
-
-internal class VertexPropertiesHolder {
-    private val properties = ArrayList<WeakReference<MutableVertexProperty<*>>>()
-
-    fun addProperty(property: MutableVertexProperty<*>) {
-        val ref = WeakReference(property)
-        for (i in properties.indices) {
-            val property = properties[i].get()
-            if (property == null) {
-                properties[i] = ref
-                return
-            }
-        }
-
-        properties.add(ref)
-    }
-
-    /**
-     * Set `swapVertex` property to `removeVertex` property and remove `removeVertex` property. Vertices may be the
-     * same, in which case they can simply be removed.
-     */
-    fun swapAndRemove(removeVertex: Vertex, swapVertex: Vertex) = forEach { it.swapAndRemove(removeVertex, swapVertex) }
-
-    fun ensureCapacity(capacity: Int) = forEach { it.ensureCapacity(capacity) }
-
-    private fun forEach(propertyAction: (MutableVertexProperty<*>) -> Unit) {
-        var i = 0
-        while (i < properties.size) {
-            val property = properties[i].get()
-            if (property == null) {
-                properties[i] = properties[properties.lastIndex]
-                properties.removeAt(properties.lastIndex)
-            } else {
-                propertyAction(property)
-                ++i
-            }
-        }
-    }
-}
-
-internal class EdgePropertiesHolder {
-    private val properties = ArrayList<WeakReference<MutableEdgeProperty<*>>>()
-
-    fun addProperty(property: MutableEdgeProperty<*>) {
-        val ref = WeakReference(property)
-        for (i in properties.indices) {
-            val property = properties[i].get()
-            if (property == null) {
-                properties[i] = ref
-                return
-            }
-        }
-
-        properties.add(ref)
-    }
-
-    /**
-     * Set `swapEdge` property to `removeEdge` property and remove `removeEdge` property. Edges may be the same, in
-     * which case they can simply be removed.
-     */
-    fun swapAndRemove(removeEdge: Edge, swapEdge: Edge = removeEdge) = forEach { it.swapAndRemove(removeEdge, swapEdge) }
-
-    fun ensureCapacity(capacity: Int) = forEach { it.ensureCapacity(capacity) }
-
-    private inline fun forEach(propertyAction: (MutableEdgeProperty<*>) -> Unit) {
-        var i = 0
-        while (i < properties.size) {
-            val property = properties[i].get()
-            if (property == null) {
-                properties[i] = properties[properties.lastIndex]
-                properties.removeAt(i)
-            } else {
-                propertyAction.invoke(property)
-                ++i
-            }
-        }
-    }
-}
-
-internal class MutableVertexIndexedVertexSet<G>(private val graph: G) : MutableIndexedVertexSet, AbstractIndexedVertexSet() where G : VertexIndexedVertexGraph, G: MutableIndexedVertexGraph {
-
-    override val size: Int
-        get() = graph.vertexCount
+internal abstract class AbstractVertexIndexedVertexSet : IndexedVertexSet, AbstractIndexedVertexSet() {
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("contains")
@@ -525,17 +248,36 @@ internal class MutableVertexIndexedVertexSet<G>(private val graph: G) : MutableI
     }
 
     override fun indexOf(element: Vertex): Int {
-        val index = element.intValue
-        require(index in indices)
-        return index
+        require(element.intValue in indices)
+        return element.intValue
     }
+
+    override fun iterator(): VertexIterator = object : VertexIterator {
+        private var index = 0
+        override fun hasNext(): Boolean = index < size
+        override fun next(): Vertex = Vertex(index++)
+    }
+
+    override fun foreach(action: VertexConsumer) {
+        var index = 0
+        while (index < size) {
+            action.accept(Vertex(index++))
+        }
+    }
+}
+
+internal abstract class AbstractMutableVertexIndexedVertexSet(private val graph: MutableGraph) :
+    AbstractVertexIndexedVertexSet(), MutableIndexedVertexSet {
 
     override fun iterator(): MutableVertexIterator = object : MutableVertexIterator {
         private var index = 0
         private var previous = -1
 
-        override fun hasNext(): Boolean = index < graph.edges.size
-        override fun next(): Vertex = Vertex(index++)
+        override fun hasNext(): Boolean = index < size
+        override fun next(): Vertex {
+            previous = index++
+            return Vertex(previous)
+        }
         override fun remove() {
             if (previous == -1) throw IllegalStateException()
             graph.removeVertex(Vertex(previous))
@@ -545,10 +287,7 @@ internal class MutableVertexIndexedVertexSet<G>(private val graph: G) : MutableI
     }
 }
 
-internal class MutableEdgeIndexedEdgeSet<G>(private val graph: G) : MutableIndexedEdgeSet, AbstractIndexedEdgeSet() where G : EdgeIndexedEdgeGraph, G: MutableIndexedEdgeGraph  {
-
-    override val size: Int
-        get() = graph.edgeCount
+internal abstract class AbstractEdgeIndexedEdgeSet : IndexedEdgeSet, AbstractIndexedEdgeSet() {
 
     @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("contains")
@@ -563,17 +302,36 @@ internal class MutableEdgeIndexedEdgeSet<G>(private val graph: G) : MutableIndex
     }
 
     override fun indexOf(element: Edge): Int {
-        val index = element.lowBits
-        require(index in indices)
-        return index
+        require(element.lowBits in indices)
+        return element.lowBits
     }
+
+    override fun iterator(): EdgeIterator = object : EdgeIterator {
+        private var index = 0
+        override fun hasNext(): Boolean = index < size
+        override fun next(): Edge = Edge(index++.toLong())
+    }
+
+    override fun foreach(action: EdgeConsumer) {
+        var index = 0
+        while (index < size) {
+            action.accept(Edge(index++.toLong()))
+        }
+    }
+}
+
+internal abstract class AbstractMutableEdgeIndexedEdgeSet(private val graph: MutableGraph) : MutableIndexedEdgeSet,
+    AbstractEdgeIndexedEdgeSet() {
 
     override fun iterator(): MutableEdgeIterator = object : MutableEdgeIterator {
         private var index = 0
         private var previous = -1
 
         override fun hasNext(): Boolean = index < graph.edges.size
-        override fun next(): Edge = Edge(index++.toLong())
+        override fun next(): Edge {
+            previous = index++
+            return Edge(previous.toLong())
+        }
         override fun remove() {
             if (previous == -1) throw IllegalStateException()
             graph.removeEdge(Edge(previous.toLong()))

@@ -12,8 +12,6 @@ import io.github.sooniln.fastgraph.internal.PropertyGraphCopy
 import io.github.sooniln.fastgraph.internal.TransposedGraph
 import io.github.sooniln.fastgraph.internal.VertexInducedImmutableSubgraph
 import io.github.sooniln.fastgraph.internal.VertexInducedSubgraph
-import io.github.sooniln.fastgraph.primitives.collections.GraphInt2IntHashMap
-import io.github.sooniln.fastgraph.primitives.collections.GraphLong2LongHashMap
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -227,13 +225,9 @@ interface Graph {
      * to associate data with vertices in this graph, this method returns a new [VertexProperty] instance which can
      * associate some type of data with vertices in this graph. The returned property is guaranteed to remain in sync
      * with the graph, such that vertices added to the graph will appear in the property and vertices removed from the
-     * graph will be removed from the property. A sparse [VertexProperty] only stores data for vertices that have been
-     * explicitly read or written to for the property. It also holds a reference to the initializer indefinitely
-     * (beware that this does not leak memory). A non-sparse [VertexProperty] always stores data for all vertices, and
-     * does not reference the initializer after it is complete with its own initialization. If clients only reference a
-     * property for a sparse number of vertices within the entire graph, a sparse [VertexProperty] likely makes sense;
-     * if clients a property for most/all vertices within the entire graph, a non-sparse [VertexProperty likely makes
-     * sense].
+     * graph will be removed from the property.  If the returned property is associated with a mutable graph, the given
+     * initializer may be retained indefinitely (to initialize the property for added edges) - be careful not to leak
+     * memory through the initializer.
      *
      * This method accepts two generic parameters (T and S), and it should almost always be the case that T == S. The
      * only reason for the unfortunate complication of two parameters instead of one is to support use cases where the
@@ -243,17 +237,16 @@ interface Graph {
      * The extension method of the same name allows for not passing in the [Class] parameter explicitly - this should be
      * simpler to use where possible.
      */
-    fun <T, C : T> createVertexProperty(clazz: Class<C>, sparse: Boolean, initializer: VertexInitializer<T>): MutableVertexProperty<T>
+    fun <T, C : T> createVertexProperty(clazz: Class<C>, initializer: VertexInitializer<T>): MutableVertexProperty<T>
 
     /**
      * [Graph] represents only a topology, not any data associated with the vertices and edges of the topology. In order
      * to associate data with edges in this graph, this method returns a new [EdgeProperty] instance which can associate
      * some type of data with edges in this graph. The returned property is guaranteed to remain in sync with the graph,
      * such that edges added to the graph will appear in the property and edges removed from the graph will be removed
-     * from the property. A sparse [EdgeProperty] only stores data for edges that have been explicitly read or written
-     * to for the property, and only invokes the initializer when a property is first read/written for a given vertex. A
-     * non-sparse [EdgeProperty] always stores data for all edges, and invokes the initializer once for every vertex
-     * when constructor, and thereafter only when a new vertex is added to the graph.
+     * from the property. If the returned property is associated with a mutable graph, the given initializer may be
+     * retained indefinitely (to initialize the property for added edges) - be careful not to leak memory through the
+     * initializer.
      *
      * This method accepts two generic parameters (T and S), and it should almost always be the case that T == S. The
      * only reason for the unfortunate complication of two parameters instead of one is to support use cases where the
@@ -263,7 +256,7 @@ interface Graph {
      * The extension method of the same name allows for not passing in the [Class] parameter explicitly - this should be
      * simpler to use where possible.
      */
-    fun <T, C : T> createEdgeProperty(clazz: Class<C>, sparse: Boolean, initializer: EdgeInitializer<T>): MutableEdgeProperty<T>
+    fun <T, C : T> createEdgeProperty(clazz: Class<C>, initializer: EdgeInitializer<T>): MutableEdgeProperty<T>
 
     /**
      * Returns a stable reference to the given vertex. For more information about vertices and stable references to
@@ -371,103 +364,74 @@ fun interface EdgeInitializer<T> {
 }
 
 /**
- * A convenient extension method for [Graph.createVertexProperty] that creates a [VertexProperty] with every value
+ * A convenient extension method for [Graph.createVertexProperty] that creates a [MutableVertexProperty] with every value
  * initialized to null.
  */
-@JvmOverloads
-inline fun <reified T> Graph.createVertexProperty(sparse: Boolean = false): VertexProperty<T?> {
-    return createVertexProperty(T::class.java, sparse) { null }
+inline fun <reified T> Graph.createVertexProperty(): MutableVertexProperty<T?> {
+    return createVertexProperty(T::class.java) { null }
 }
 
 /**
- * A convenient extension method for [Graph.createEdgeProperty] that creates a [EdgeProperty] with every value
+ * A convenient extension method for [Graph.createEdgeProperty] that creates a [MutableEdgeProperty] with every value
  * initialized to null.
  */
-@JvmOverloads
-inline fun <reified T> Graph.createEdgeProperty(sparse: Boolean = false): EdgeProperty<T?> {
-    return createEdgeProperty(T::class.java, sparse) { null }
+inline fun <reified T> Graph.createEdgeProperty(): MutableEdgeProperty<T?> {
+    return createEdgeProperty(T::class.java) { null }
 }
 
 /**
  * A convenient extension method for [Graph.createVertexProperty] that does not require explicitly providing the
  * [Class].
  */
-@JvmOverloads
-inline fun <reified T> Graph.createVertexProperty(sparse: Boolean = false, initializer: VertexInitializer<T>): VertexProperty<T> {
-    return createVertexProperty(T::class.java, sparse, initializer)
+inline fun <reified T> Graph.createVertexProperty(initializer: VertexInitializer<T>): MutableVertexProperty<T> {
+    return createVertexProperty(T::class.java, initializer)
 }
 
 /**
  * A convenient extension method for [Graph.createEdgeProperty] that does not require explicitly providing the [Class].
  */
-@JvmOverloads
-inline fun <reified T> Graph.createEdgeProperty(sparse: Boolean = false, initializer: EdgeInitializer<T>): EdgeProperty<T> {
-    return createEdgeProperty(T::class.java, sparse, initializer)
+inline fun <reified T> Graph.createEdgeProperty(initializer: EdgeInitializer<T>): MutableEdgeProperty<T> {
+    return createEdgeProperty(T::class.java, initializer)
 }
 
 /**
  * A convenient extension method for [Graph.createVertexProperty] that does not require explicitly providing the
  * [Class].
  */
-@JvmOverloads
-inline fun <reified T> Graph.createVertexProperty(sparse: Boolean = false, defaultValue: T): VertexProperty<T> {
-    return createVertexProperty(T::class.java, sparse) { defaultValue }
+inline fun <reified T> Graph.createVertexProperty(defaultValue: T): MutableVertexProperty<T> {
+    return createVertexProperty(T::class.java) { defaultValue }
 }
 
 /**
  * A convenient extension method for [Graph.createEdgeProperty] that does not require explicitly providing the [Class].
  */
-@JvmOverloads
-inline fun <reified T> Graph.createEdgeProperty(sparse: Boolean = false, defaultValue: T): EdgeProperty<T> {
-    return createEdgeProperty(T::class.java, sparse) { defaultValue }
+inline fun <reified T> Graph.createEdgeProperty(defaultValue: T): MutableEdgeProperty<T> {
+    return createEdgeProperty(T::class.java) { defaultValue }
 }
 
 /**
  * A graph which guarantees that all vertices in the graph can be associated with an index from `0` to
- * `vertices.size() - 1`. This makes vertices accessible by index, and an index can be retrieved for each vertice (via
- * `vertices.indexOf(vertex)`). The `vertices.indexOf()` call is guaranteed to take amortized constant time or better.
- * Further, [IndexedVertexGraph.vertices] must iterate vertices in index order.
+ * `vertices.size - 1`, and that [Vertex.intValue] is the same as the index. This makes vertices accessible by index,
+ * and an index can be retrieved for each vertex. In addition, [vertices] MUST iterate vertices in index order. If
+ * applied to a [MutableGraph] this implies that when a vertex is added or removed the graph must re-order vertices in
+ * order to ensure the invariants are met.
  */
 interface IndexedVertexGraph : Graph {
     override val vertices: IndexedVertexSet
 }
 
 /**
- * A marker interface which indicates that a vertex's index is always the same as its [Vertex.intValue]. This can allow
- * optimizations by using `vertex.intValue` instead of `graph.vertices.indexOf(vertex)`.
- */
-interface VertexIndexedVertexGraph : IndexedVertexGraph
-
-/**
- * A mutable version of [IndexedVertexGraph]. This also implies that removing the vertex at some index will maintain the
- * 0..N index guarantee by changing the index of the last vertex to the index of the removed vertex.
- */
-interface MutableIndexedVertexGraph : MutableGraph, IndexedVertexGraph {
-    override val vertices: MutableIndexedVertexSet
-}
-
-/**
- * A graph which guarantees that all edges in the graph can be associated with an index in [0..edges.size). This makes
- * edges accessible by index, and an index can be retrieved for each edge (via `edges.indexOf(edge)`). The
- * `edges.indexOf()` call is guaranteed to take amortized constant time or better. Further, [IndexedEdgeGraph.edges]
- * must iterate edges in index order.
+ * A graph which guarantees that all edges in the graph can be associated with an index from `0` to `edges.size - 1`,
+ * and [Edge.longValue].toInt() is the same as the index. This makes edges accessible by index, and an index can be
+ * retrieved for each edge. In addition, [edges] must iterate edges in index order. If applied to a [MutableGraph] this
+ * implies that when an edge is added or removed the graph must re-order edges in order to ensure the invariants are
+ * met.
+ *
+ * Note that you CANNOT reconstruct an Edge directly from its index - i.e. `Edge(index.toLong())` will not yield the
+ * correct edge - you must use `edges[index]`.
  */
 interface IndexedEdgeGraph : Graph {
     override val edges: IndexedEdgeSet
-}
-
-/**
- * A marker interface which indicates that an edge's index is always the same as the lower 32 bits of [Edge.longValue].
- * This can allow some optimizations by using `edge.longValue.toInt()` instead of `graph.edges.indexOf(edge)`.
- */
-interface EdgeIndexedEdgeGraph : IndexedEdgeGraph
-
-/**
- * A mutable version of [IndexedEdgeGraph]. This also implies that removing the edge at some index will maintain the
- * 0..N ordering guarantee by changing the index of the last vertex to the index of the removed vertex.
- */
-interface MutableIndexedEdgeGraph : MutableGraph, IndexedEdgeGraph {
-    override val edges: MutableIndexedEdgeSet
 }
 
 /**
@@ -571,8 +535,8 @@ interface GraphMapping {
  */
 interface PropertyGraph<G : Graph, V, E> {
     val graph: G
-    val vertexProperty: VertexProperty<V>
-    val edgeProperty: EdgeProperty<E>
+    val vertexProperty: MutableVertexProperty<V>
+    val edgeProperty: MutableEdgeProperty<E>
 }
 
 @JvmSynthetic
@@ -581,27 +545,27 @@ operator fun <G : Graph, V, E> PropertyGraph<G, V, E>.component1(): G = graph
 
 @JvmSynthetic
 @JvmName("#PropertyGraph_component2")
-operator fun <G : Graph, V, E> PropertyGraph<G, V, E>.component2(): VertexProperty<V> = vertexProperty
+operator fun <G : Graph, V, E> PropertyGraph<G, V, E>.component2(): MutableVertexProperty<V> = vertexProperty
 
 @JvmSynthetic
 @JvmName("#PropertyGraph_component3")
-operator fun <G : Graph, V, E> PropertyGraph<G, V, E>.component3(): EdgeProperty<E> = edgeProperty
+operator fun <G : Graph, V, E> PropertyGraph<G, V, E>.component3(): MutableEdgeProperty<E> = edgeProperty
 
 /**
  * Constructs a [PropertyGraph] with the given arguments.
  */
 fun <G : Graph, V, E> PropertyGraph(
     graph: G,
-    vertexProperty: VertexProperty<V>,
-    edgeProperty: EdgeProperty<E>
+    vertexProperty: MutableVertexProperty<V>,
+    edgeProperty: MutableEdgeProperty<E>
 ): PropertyGraph<G, V, E> {
     require(vertexProperty.graph === graph)
     require(edgeProperty.graph === graph)
 
     return object : PropertyGraph<G, V, E> {
         override val graph: G = graph
-        override val vertexProperty: VertexProperty<V> = vertexProperty
-        override val edgeProperty: EdgeProperty<E> = edgeProperty
+        override val vertexProperty: MutableVertexProperty<V> = vertexProperty
+        override val edgeProperty: MutableEdgeProperty<E> = edgeProperty
     }
 }
 
@@ -629,7 +593,7 @@ fun emptyGraph(directed: Boolean): Graph = emptyImmutableGraph(directed)
 
 /**
  * Constructs and returns a new empty [MutableGraph] with the given directedness. The returned mutable graph is
- * guaranteed to implement [MutableIndexedVertexGraph].
+ * guaranteed to implement [IndexedVertexGraph].
  *
  * There are several parameters that help control the specific graph implementation chosen:
  *   * `supportMultiEdge`: If set to true, ensures that the returned mutable graph supports adding multi-edges (multiple
@@ -639,7 +603,7 @@ fun emptyGraph(directed: Boolean): Graph = emptyImmutableGraph(directed)
  *   and edge property access and iteration. While this increases the amount of memory required to store edge topology,
  *   it can reduce the amount of memory needed to store edge properties, and thus in some circumstances may result in
  *   less overall memory usage for the graph topology + data. If set to true, the returned mutable graph is guaranteed
- *   to also implement [MutableIndexedEdgeGraph].
+ *   to also implement [IndexedEdgeGraph].
  *
  * The implementation returned by this method guarantees that [Vertex] and [Edge] references are stable in the case of
  * additive mutations to the topology (i.e. adding a vertex or edge will not invalidate any [Vertex]/[Edge] references),
@@ -1108,7 +1072,7 @@ fun Graph.transpose(): Graph {
     }
 }
 
-public abstract class AbstractGraph(override val directed: Boolean) : Graph {
+abstract class AbstractGraph(override val directed: Boolean) : Graph {
 
     /** Should be implemented to throw [IllegalArgumentException] if `vertex` does not belong to this graph. */
     protected abstract fun validateVertex(vertex: Vertex): Vertex
