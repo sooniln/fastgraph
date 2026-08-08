@@ -366,6 +366,7 @@ public interface VertexChangeListener {
      * Invoked after the vertex is removed from the graph. The graph is in a consistent state with the vertex not
      * present.
      */
+    // TODO: should this be invoked before the vertex is removed?
     public fun onVertexRemoved(vertex: Vertex)
 
     /**

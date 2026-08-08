@@ -33,7 +33,7 @@ class PropertyTest {
         }
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "graphType={0}")
     @EnumSource(GraphType::class)
     fun booleanVertexProperty(graphType: GraphType) {
         val graph = graphType.loadGraph()
@@ -49,7 +49,7 @@ class PropertyTest {
         }
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "graphType={0}")
     @EnumSource(GraphType::class)
     fun intVertexProperty(graphType: GraphType) {
         val graph = graphType.loadGraph()
@@ -72,7 +72,7 @@ class PropertyTest {
         }
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "graphType={0}")
     @EnumSource(GraphType::class)
     fun floatVertexProperty(graphType: GraphType) {
         val graph = graphType.loadGraph()
@@ -95,7 +95,7 @@ class PropertyTest {
         }
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "graphType={0}")
     @EnumSource(GraphType::class)
     fun longVertexProperty(graphType: GraphType) {
         val graph = graphType.loadGraph()
@@ -118,7 +118,7 @@ class PropertyTest {
         }
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "graphType={0}")
     @EnumSource(GraphType::class)
     fun doubleVertexProperty(graphType: GraphType) {
         val graph = graphType.loadGraph()
@@ -141,7 +141,7 @@ class PropertyTest {
         }
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "graphType={0}")
     @EnumSource(GraphType::class)
     fun objectVertexProperty(graphType: GraphType) {
         val graph = graphType.loadGraph()
@@ -160,7 +160,7 @@ class PropertyTest {
         }
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "graphType={0}")
     @EnumSource(GraphType::class)
     fun booleanEdgeProperty(graphType: GraphType) {
         val graph = graphType.loadGraph()
@@ -176,7 +176,7 @@ class PropertyTest {
         }
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "graphType={0}")
     @EnumSource(GraphType::class)
     fun intEdgeProperty(graphType: GraphType) {
         val graph = graphType.loadGraph()
@@ -199,7 +199,7 @@ class PropertyTest {
         }
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "graphType={0}")
     @EnumSource(GraphType::class)
     fun floatEdgeProperty(graphType: GraphType) {
         val graph = graphType.loadGraph()
@@ -222,7 +222,7 @@ class PropertyTest {
         }
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "graphType={0}")
     @EnumSource(GraphType::class)
     fun longEdgeProperty(graphType: GraphType) {
         val graph = graphType.loadGraph()
@@ -245,7 +245,7 @@ class PropertyTest {
         }
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "graphType={0}")
     @EnumSource(GraphType::class)
     fun doubleEdgeProperty(graphType: GraphType) {
         val graph = graphType.loadGraph()
@@ -268,7 +268,7 @@ class PropertyTest {
         }
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "graphType={0}")
     @EnumSource(GraphType::class)
     fun objectEdgeProperty(graphType: GraphType) {
         val graph = graphType.loadGraph()

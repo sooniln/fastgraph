@@ -196,22 +196,24 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
                 }
             }
 
-            // TODO: graph is not consistent at this point in time
-            vertexListeners.notifyVertexReassigned(lastVertex, vertex)
 
             // shift last vertex into the place of removed vertex now that all references have been updated
             successors[vertex] = successors[lastVertex]
             if (directed) {
                 predecessors[vertex.id] = predecessors[lastVertex]
             }
-        } else {
-            vertexListeners.notifyVertexRemoved(vertex)
         }
 
         // remove vertex
         successors.remove(lastVertex)
         if (directed) {
             predecessors.remove(lastVertex)
+        }
+
+        if (vertex != lastVertex) {
+            vertexListeners.notifyVertexReassigned(lastVertex, vertex)
+        } else {
+            vertexListeners.notifyVertexRemoved(vertex)
         }
     }
 

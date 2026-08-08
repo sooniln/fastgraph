@@ -18,7 +18,6 @@ import io.github.sooniln.fastgraph.asEdgeIterator
 import io.github.sooniln.fastgraph.listeners.EdgeChangeListenerManager
 import io.github.sooniln.fastgraph.references.EdgeReferenceManager
 
-// TODO: document removal behavior
 internal class InducingEdges(
     private val parent: Graph,
     private val vertices: InducingVertices,

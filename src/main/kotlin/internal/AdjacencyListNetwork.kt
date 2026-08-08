@@ -179,21 +179,22 @@ internal class AdjacencyListNetwork(
                 }
             }
 
-            // TODO: graph is not consistent at this point in time
-            vertexListeners.notifyVertexReassigned(lastVertex, vertex)
-
             successors[vertex] = successors[lastVertex]
             if (directed) {
                 predecessors[vertex] = predecessors[lastVertex]
             }
-        } else {
-            vertexListeners.notifyVertexRemoved(vertex)
         }
 
         // remove vertex
         successors.remove(lastVertex)
         if (directed) {
             predecessors.remove(lastVertex)
+        }
+
+        if (vertex != lastVertex) {
+            vertexListeners.notifyVertexReassigned(lastVertex, vertex)
+        } else {
+            vertexListeners.notifyVertexRemoved(vertex)
         }
     }
 
