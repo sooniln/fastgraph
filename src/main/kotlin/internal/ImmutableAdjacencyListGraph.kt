@@ -102,8 +102,6 @@ internal class ImmutableAdjacencyListGraph private constructor(
     override val edges: EdgeSet = object : AbstractEdgeSet() {
         override val size: Int get() = numEdges
 
-        @Suppress("INAPPLICABLE_JVM_NAME")
-        @JvmName("contains")
         override fun contains(element: Edge): Boolean {
             return hasEdge(edgeSource(element), edgeTarget(element))
         }
@@ -158,12 +156,8 @@ internal class ImmutableAdjacencyListGraph private constructor(
         }
     }
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("edgeSource")
     override fun edgeSource(edge: Edge): Vertex = Vertex(edge.highBits)
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("edgeTarget")
     override fun edgeTarget(edge: Edge): Vertex = Vertex(edge.lowBits)
 
     override fun registerVertexChangeListener(listener: VertexChangeListener) {}
@@ -196,20 +190,14 @@ internal class ImmutableAdjacencyListGraph private constructor(
         return EdgeProperties.createEdgeProperty(this, type, initializer)
     }
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("createVertexReference")
     override fun createVertexReference(vertex: Vertex): VertexReference =
         ImmutableVertexReference(validateVertex(vertex))
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("createEdgeReference")
     override fun createEdgeReference(edge: Edge): EdgeReference = ImmutableEdgeReference(validateEdge(edge))
 
     private class VertexNeighbors(private val sortedNeighbors: IntArray) : AbstractVertexSet() {
         override val size: Int get() = sortedNeighbors.size
 
-        @Suppress("INAPPLICABLE_JVM_NAME")
-        @JvmName("contains")
         override fun contains(element: Vertex): Boolean = sortedNeighbors.binarySearch(element.id) >= 0
 
         override fun iterator(): VertexIterator = sortedNeighbors.iterator().asVertexIterator()
@@ -228,8 +216,6 @@ internal class ImmutableAdjacencyListGraph private constructor(
     ) : AbstractEdgeSet() {
         override val size: Int get() = sortedNeighbors.size
 
-        @Suppress("INAPPLICABLE_JVM_NAME")
-        @JvmName("contains")
         override fun contains(element: Edge): Boolean {
             validateEdge(element)
             val source = edgeSource(element)
@@ -261,8 +247,6 @@ internal class ImmutableAdjacencyListGraph private constructor(
     ) : AbstractEdgeSet() {
         override val size: Int get() = sortedNeighbors.size
 
-        @Suppress("INAPPLICABLE_JVM_NAME")
-        @JvmName("contains")
         override fun contains(element: Edge): Boolean {
             validateEdge(element)
             val source = edgeTarget(element)

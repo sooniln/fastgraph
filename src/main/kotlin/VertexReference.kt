@@ -6,14 +6,12 @@ package io.github.sooniln.fastgraph
  * generally a less efficient representation than [Vertex], in terms of both memory and CPU. Prefer [Vertex] unless
  * reference stability across mutations is a requirement.
  */
+@Suppress("INAPPLICABLE_JVM_NAME")
 public interface VertexReference {
 
     /**
      * An unstable [Vertex] reference corresponding to this stable reference.
      */
-    // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
-    //   overrides of this method
-    @Suppress("INAPPLICABLE_JVM_NAME")
     @get:JvmName("unstable")
     public val unstable: Vertex
 }
@@ -23,20 +21,19 @@ public interface VertexReference {
  */
 context(graph: Graph)
 public val VertexReference.outDegree: Int
-    @JvmSynthetic @JvmName("#VertexReference_outDegree") inline get() = graph.outDegree(unstable)
+    @JvmSynthetic inline get() = graph.outDegree(unstable)
 
 /**
  * See [Graph.inDegree].
  */
 context(graph: Graph)
 public val VertexReference.inDegree: Int
-    @JvmSynthetic @JvmName("#VertexReference_inDegree") inline get() = graph.inDegree(unstable)
+    @JvmSynthetic inline get() = graph.inDegree(unstable)
 
 /**
  * See [Graph.successors].
  */
 @JvmSynthetic
-@JvmName("#VertexReference_successors")
 context(graph: Graph)
 public fun VertexReference.successors(): VertexSet = graph.successors(unstable)
 
@@ -44,7 +41,6 @@ public fun VertexReference.successors(): VertexSet = graph.successors(unstable)
  * See [Graph.predecessors].
  */
 @JvmSynthetic
-@JvmName("#VertexReference_predecessors")
 context(graph: Graph)
 public fun VertexReference.predecessors(): VertexSet = graph.predecessors(unstable)
 
@@ -52,7 +48,6 @@ public fun VertexReference.predecessors(): VertexSet = graph.predecessors(unstab
  * See [Graph.outgoingEdges].
  */
 @JvmSynthetic
-@JvmName("#VertexReference_outgoingEdges")
 context(graph: Graph)
 public fun VertexReference.outgoingEdges(): EdgeSet = graph.outgoingEdges(unstable)
 
@@ -60,7 +55,6 @@ public fun VertexReference.outgoingEdges(): EdgeSet = graph.outgoingEdges(unstab
  * See [Graph.incomingEdges].
  */
 @JvmSynthetic
-@JvmName("#VertexReference_incomingEdges")
 context(graph: Graph)
 public fun VertexReference.incomingEdges(): EdgeSet = graph.incomingEdges(unstable)
 
@@ -69,4 +63,4 @@ public fun VertexReference.incomingEdges(): EdgeSet = graph.incomingEdges(unstab
  */
 context(graph: IndexedEdgeGraph)
 public val VertexReference.index: Int
-    @JvmSynthetic @JvmName("#VertexReference_index") inline get() = graph.vertices.indexOf(unstable)
+    @JvmSynthetic inline get() = graph.vertices.indexOf(unstable)

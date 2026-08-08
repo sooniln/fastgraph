@@ -1,7 +1,7 @@
 /**
- * Utilities for [Edge].
+ * Methods dealing with edges.
  */
-@file:JvmMultifileClass @file:JvmName("Edges")
+@file:JvmName("Edges")
 
 package io.github.sooniln.fastgraph
 
@@ -35,6 +35,7 @@ private val EDGE_HEX_FORMAT = HexFormat {
  * unstable reference. Stable references are guaranteed to never be invalidated, but may be more expensive to maintain
  * than unstable references, and thus should be used sparingly.
  */
+@Suppress("INAPPLICABLE_JVM_NAME")
 @JvmInline
 public value class Edge(public val id: Long) {
 
@@ -88,6 +89,7 @@ public value class Edge(public val id: Long) {
     context(graph: Graph)
     public operator fun component2(): Vertex = target
 
+    @JvmName("toString")
     override fun toString(): String =
         "Edge(${highBits.toHexString(EDGE_HEX_FORMAT)}, ${lowBits.toHexString(EDGE_HEX_FORMAT)})"
 }
@@ -97,12 +99,10 @@ public value class Edge(public val id: Long) {
  * boxing/unboxing, and associated performance penalties. Prefer to use this interface whenever possible for those
  * reasons.
  */
+@Suppress("INAPPLICABLE_JVM_NAME")
 public interface EdgeIterator : Iterator<Edge> {
-    @JvmSynthetic
+    @JvmName("next")
     override fun next(): Edge
-
-    @Deprecated("For JVM usage only", level = DeprecationLevel.HIDDEN)
-    public fun nextEdge(): Long = next().id
 }
 
 /**
@@ -122,14 +122,18 @@ public interface EdgeIterable : Iterable<Edge> {
 /**
  * A functional interface for consuming edges.
  */
+@Suppress("INAPPLICABLE_JVM_NAME")
 public fun interface EdgeConsumer {
+    @JvmName("accept")
     public fun accept(edge: Edge)
 }
 
 /**
  * A function interface for reacting to edges with true/false.
  */
+@Suppress("INAPPLICABLE_JVM_NAME")
 public fun interface EdgePredicate {
+    @JvmName("test")
     public fun test(edge: Edge): Boolean
 }
 
@@ -139,6 +143,7 @@ public fun interface EdgePredicate {
  * those reasons. An [EdgeCollection] is not safe for reentrant writing - attempting to modify the collection while
  * any other method is ongoing leads to undefined behavior.
  */
+@Suppress("INAPPLICABLE_JVM_NAME")
 public interface EdgeCollection : Collection<Edge>, EdgeIterable {
 
     override fun isEmpty(): Boolean {
@@ -155,9 +160,6 @@ public interface EdgeCollection : Collection<Edge>, EdgeIterable {
         }
     }
 
-    // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
-    //   overrides of this method
-    @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("contains")
     override fun contains(element: Edge): Boolean {
         for (e in this) {
@@ -206,12 +208,10 @@ public interface MutableEdgeCollection : EdgeCollection {
  * boxing/unboxing, and associated performance penalties. Prefer to use this interface whenever possible for those
  * reasons.
  */
+@Suppress("INAPPLICABLE_JVM_NAME")
 public interface EdgeSet : EdgeCollection, Set<Edge> {
     override fun isEmpty(): Boolean = super.isEmpty()
 
-    // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
-    //   overrides of this method
-    @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("contains")
     override fun contains(element: Edge): Boolean = super.contains(element)
 
@@ -228,24 +228,21 @@ public interface MutableEdgeSet : EdgeSet, MutableEdgeCollection
  * accessible by index, and an index can be retrieved for each edge (via `indexOf(edge)`). The `indexOf()` call is
  * guaranteed to take amortized constant time or better. This collection MUST iterate edges in index order.
  */
+@Suppress("INAPPLICABLE_JVM_NAME")
 public interface IndexedEdgeSet : EdgeSet {
 
-    // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
-    //   overrides of this method
-    @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("contains")
     override fun contains(element: Edge): Boolean
 
     override fun containsAll(elements: Collection<Edge>): Boolean = super.containsAll(elements)
 
+    @JvmName("get")
     public operator fun get(index: Int): Edge
-
-    @Deprecated("For JVM usage only", level = DeprecationLevel.HIDDEN)
-    public fun getEdge(index: Int): Long = get(index).id
 
     /**
      * Returns the index of the given edge in this collection, or -1 if the edge is not in this set.
      */
+    @JvmName("indexOf")
     public fun indexOf(element: Edge): Int
 
     override fun iterator(): EdgeIterator = object : EdgeIterator {
@@ -309,10 +306,6 @@ public fun emptyEdgeSet(): IndexedEdgeSet = EmptyEdgeSet
 private object EmptyEdgeSet : IndexedEdgeSet {
     override val size: Int get() = 0
 
-    // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
-    //   overrides of this method
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("contains")
     override fun contains(element: Edge): Boolean = false
 
     override fun containsAll(elements: Collection<Edge>): Boolean = elements.isEmpty()
@@ -326,12 +319,10 @@ private object EmptyEdgeSet : IndexedEdgeSet {
 /**
  * Provides a skeletal implementation of the read-only [EdgeCollection] interface.
  */
+@Suppress("INAPPLICABLE_JVM_NAME")
 public abstract class AbstractEdgeCollection : EdgeCollection, AbstractCollection<Edge>() {
     override fun isEmpty(): Boolean = super<EdgeCollection>.isEmpty()
 
-    // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
-    //   overrides of this method
-    @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("contains")
     override fun contains(element: Edge): Boolean = super<EdgeCollection>.contains(element)
     override fun containsAll(elements: Collection<Edge>): Boolean = super<EdgeCollection>.containsAll(elements)
@@ -340,12 +331,10 @@ public abstract class AbstractEdgeCollection : EdgeCollection, AbstractCollectio
 /**
  * Provides a skeletal implementation of the read-only [EdgeSet] interface.
  */
+@Suppress("INAPPLICABLE_JVM_NAME")
 public abstract class AbstractEdgeSet : EdgeSet, AbstractSet<Edge>() {
     override fun isEmpty(): Boolean = super<EdgeSet>.isEmpty()
 
-    // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
-    //   overrides of this method
-    @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("contains")
     override fun contains(element: Edge): Boolean = super<EdgeSet>.contains(element)
     override fun containsAll(elements: Collection<Edge>): Boolean = super<EdgeSet>.containsAll(elements)
@@ -354,25 +343,30 @@ public abstract class AbstractEdgeSet : EdgeSet, AbstractSet<Edge>() {
 /**
  * Provides a skeletal implementation of the read-only [IndexedEdgeSet] interface.
  */
+@Suppress("INAPPLICABLE_JVM_NAME")
 public abstract class AbstractIndexedEdgeSet : IndexedEdgeSet, AbstractEdgeSet() {
     override fun iterator(): EdgeIterator = super.iterator()
     override fun containsAll(elements: Collection<Edge>): Boolean = super<IndexedEdgeSet>.containsAll(elements)
 
+    @JvmName("toEdgeId")
     protected abstract fun toEdgeId(edge: Edge): Int
+
+    @JvmName("toEdge")
     protected abstract fun toEdge(edgeId: Int): Edge
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("contains")
     override fun contains(element: Edge): Boolean {
         require(toEdgeId(element) in indices)
         return true
     }
 
+    @JvmName("get")
     override fun get(index: Int): Edge {
         if (index !in indices) throw IndexOutOfBoundsException()
         return toEdge(index)
     }
 
+    @JvmName("indexOf")
     override fun indexOf(element: Edge): Int {
         val index = toEdgeId(element)
         require(index in indices)
@@ -424,10 +418,6 @@ internal fun LongSet.asEdgeSet(): EdgeSet = EdgeSetWrapper(this)
 private class EdgeSetWrapper(private val edges: LongSet) : AbstractEdgeSet() {
     override val size: Int get() = edges.size
 
-    // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
-    //   overrides of this method
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("contains")
     override fun contains(element: Edge): Boolean = edges.contains(element.id)
     override fun iterator(): EdgeIterator = EdgeIteratorWrapper(edges.iterator())
     override fun foreach(action: EdgeConsumer) = edges.foreach { edge -> action.accept(Edge(edge)) }

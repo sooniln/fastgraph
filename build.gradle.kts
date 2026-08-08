@@ -1,4 +1,6 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.abi.BinariesSource
+import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
 import kotlin.text.lowercase
 import java.nio.file.Path as NioPath
 
@@ -23,6 +25,10 @@ kotlin {
         jvmTarget.set(JvmTarget.JVM_17)
     }
     explicitApi()
+    @OptIn(ExperimentalAbiValidation::class)
+    abiValidation {
+        binariesSource.set(BinariesSource.MAVEN_PUBLICATIONS)
+    }
 }
 
 java {
@@ -34,7 +40,6 @@ dependencies {
     implementation("io.github.sooniln:fastcollect-kotlin-jvm:2.0.3")
 
     testImplementation(libs.bundles.testing)
-    testImplementation(libs.guava)
     testImplementation(kotlin("reflect"))
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
@@ -218,6 +223,9 @@ dokka {
 tasks.test {
     useJUnitPlatform()
     enableAssertions = true
+
+    // some tests read the abi file for verifications
+    dependsOn("updateKotlinAbi")
 }
 
 jmh {

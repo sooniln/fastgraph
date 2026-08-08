@@ -6,7 +6,7 @@ import org.junit.jupiter.api.assertThrows
 
 class UndirectedMutableGraphTest {
 
-    private val graph = Graphs.mutableGraph(false)
+    private val graph = mutableGraph(false)
     private val vertexProperty = graph.createVertexProperty<String>()
     private val edgeProperty = graph.createEdgeProperty<String>()
 

@@ -94,8 +94,6 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
         edgeListeners.notifyEnsureCapacity(edgeCapacity)
     }
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("addVertex")
     override fun addVertex(): Vertex {
         val vertex = Vertex(successors.size)
         successors.add(IntHashSet())
@@ -107,8 +105,6 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
         return vertex
     }
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("removeVertex")
     override fun removeVertex(vertex: Vertex) {
         validateVertex(vertex)
 
@@ -217,8 +213,6 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
         }
     }
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("addEdge")
     override fun addEdge(source: Vertex, target: Vertex): Edge {
         validateVertex(source)
         validateVertex(target)
@@ -243,8 +237,6 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
         return edge
     }
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("removeEdge")
     override fun removeEdge(edge: Edge) {
         validateEdge(edge)
 
@@ -283,8 +275,6 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
     override val edges: MutableEdgeSet = object : MutableEdgeSet, AbstractEdgeSet() {
         override val size: Int get() = edgeCount
 
-        @Suppress("INAPPLICABLE_JVM_NAME")
-        @JvmName("contains")
         override fun contains(element: Edge): Boolean {
             return hasEdge(edgeSource(element), edgeTarget(element))
         }
@@ -358,12 +348,8 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
         }
     }
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("edgeSource")
     override fun edgeSource(edge: Edge): Vertex = Vertex(edge.highBits)
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("edgeTarget")
     override fun edgeTarget(edge: Edge): Vertex = Vertex(edge.lowBits)
 
     override fun registerVertexChangeListener(listener: VertexChangeListener) { vertexListeners.register(listener) }
@@ -392,13 +378,9 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
         initializer: EdgeInitializer<T>
     ): MutableEdgeProperty<T> = EdgeProperties.createEdgeProperty(this, type, initializer)
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("createVertexReference")
     override fun createVertexReference(vertex: Vertex): VertexReference =
         vertexRefs.getReference(validateVertex(vertex))
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("createEdgeReference")
     override fun createEdgeReference(edge: Edge): EdgeReference = edgeRefs.getReference(validateEdge(edge))
 
     private inner class OutgoingEdgeSet(private val vertex: Vertex) : AbstractEdgeSet() {
@@ -406,8 +388,6 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
 
         override val size: Int get() = adjacencies.size
 
-        @Suppress("INAPPLICABLE_JVM_NAME")
-        @JvmName("contains")
         override fun contains(element: Edge): Boolean {
             validateEdge(element)
             val source = edgeSource(element)
@@ -453,8 +433,6 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
 
         override val size: Int get() = adjacencies.size
 
-        @Suppress("INAPPLICABLE_JVM_NAME")
-        @JvmName("contains")
         override fun contains(element: Edge): Boolean {
             validateEdge(element)
             val source = edgeTarget(element)

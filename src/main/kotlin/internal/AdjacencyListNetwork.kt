@@ -94,8 +94,6 @@ internal class AdjacencyListNetwork(
         edgeListeners.notifyEnsureCapacity(edgeCapacity)
     }
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("addVertex")
     override fun addVertex(): Vertex {
         val vertex = Vertex(successors.size)
         successors.add(AdjacencySet())
@@ -107,8 +105,6 @@ internal class AdjacencyListNetwork(
         return vertex
     }
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("removeVertex")
     override fun removeVertex(vertex: Vertex) {
         validateVertex(vertex)
 
@@ -198,8 +194,6 @@ internal class AdjacencyListNetwork(
         }
     }
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("addEdge")
     override fun addEdge(source: Vertex, target: Vertex): Edge {
         validateVertex(source)
         validateVertex(target)
@@ -225,8 +219,6 @@ internal class AdjacencyListNetwork(
         return edge
     }
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("removeEdge")
     override fun removeEdge(edge: Edge) = removeEdgeInternal(validateEdge(edge).edgeId)
 
     private fun removeEdgeInternal(edgeId: Int) {
@@ -296,12 +288,8 @@ internal class AdjacencyListNetwork(
         override fun toEdge(edgeId: Int): Edge = canonicalEdge(edgeId)
     }
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("edgeSource")
     override fun edgeSource(edge: Edge): Vertex = edgeValues[edge.edgeId].source
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("edgeTarget")
     override fun edgeTarget(edge: Edge): Vertex = edgeValues[edge.edgeId].target
 
     override fun registerVertexChangeListener(listener: VertexChangeListener) { vertexListeners.register(listener) }
@@ -331,13 +319,9 @@ internal class AdjacencyListNetwork(
         initializer: EdgeInitializer<T>
     ): MutableEdgeProperty<T> = EdgeProperties.createEdgeProperty(this, type, initializer)
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("createVertexReference")
     override fun createVertexReference(vertex: Vertex): VertexReference =
         vertexRefs.getReference(validateVertex(vertex))
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("createEdgeReference")
     override fun createEdgeReference(edge: Edge): EdgeReference = edgeRefs.getReference(validateEdge(edge))
 
     override fun trimToSize() {
@@ -365,8 +349,6 @@ internal class AdjacencyListNetwork(
         override val size: Int
             get() = adjacencies.size
 
-        @Suppress("INAPPLICABLE_JVM_NAME")
-        @JvmName("contains")
         override fun contains(element: Edge): Boolean {
             validateEdge(element)
 

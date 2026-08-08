@@ -17,7 +17,7 @@ class ReferenceTest {
     // IndexedEdgeGraph, letting the same fixture exercise VertexReference.index/EdgeReference.index too
     private fun constructGraph(immutable: Boolean) {
         graph = if (immutable) {
-            ImmutableGraphs.buildImmutableGraph(true, multiEdge = true) {
+            buildImmutableGraph(true, multiEdge = true) {
                 v0 = addVertex()
                 v1 = addVertex()
                 v2 = addVertex()
@@ -25,7 +25,7 @@ class ReferenceTest {
                 e1 = addEdge(v1, v2)
             }
         } else {
-            Graphs.buildGraph(true, multiEdge = true) {
+            buildGraph(true, multiEdge = true) {
                 v0 = addVertex()
                 v1 = addVertex()
                 v2 = addVertex()

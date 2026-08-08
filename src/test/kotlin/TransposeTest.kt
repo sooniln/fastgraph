@@ -15,7 +15,7 @@ class TransposeTest {
 
     private fun constructGraph(directed: Boolean, immutable: Boolean) {
         graph = if (immutable) {
-            ImmutableGraphs.buildImmutableGraph(directed) {
+            buildImmutableGraph(directed) {
                 v0 = addVertex()
                 v1 = addVertex()
                 v2 = addVertex()
@@ -23,7 +23,7 @@ class TransposeTest {
                 e1 = addEdge(v1, v2)
             }
         } else {
-            Graphs.buildGraph(directed) {
+            buildGraph(directed) {
                 v0 = addVertex()
                 v1 = addVertex()
                 v2 = addVertex()
@@ -39,7 +39,7 @@ class TransposeTest {
         constructGraph(false, immutable)
 
         assertThat(graph.transpose()).isSameAs(graph)
-        assertThat(Graphs.transpose(graph)).isSameAs(graph)
+        assertThat(transpose(graph)).isSameAs(graph)
     }
 
     @ParameterizedTest(name = "immutable={0}")
@@ -76,7 +76,7 @@ class TransposeTest {
     @ParameterizedTest(name = "directed={0}")
     @ValueSource(booleans = [true, false])
     fun transposeOfEmptyImmutableGraphIsSameGraph(directed: Boolean) {
-        val empty = ImmutableGraphs.emptyImmutableGraph(directed)
+        val empty = emptyImmutableGraph(directed)
 
         assertThat(empty.transpose()).isSameAs(empty)
     }

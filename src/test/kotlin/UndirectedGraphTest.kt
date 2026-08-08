@@ -22,7 +22,7 @@ class UndirectedGraphTest {
 
     private fun constructGraph(immutable: Boolean) {
         valueGraph = if (immutable) {
-            ImmutableGraphs.buildImmutableValueGraph<String, Float>(false, { "" }, { 0f }) {
+            buildImmutableValueGraph<String, Float>(false, { "" }, { 0f }) {
                 v0 = addVertex("v0")
                 v1 = addVertex("v1")
                 v2 = addVertex("v2")
@@ -33,7 +33,7 @@ class UndirectedGraphTest {
                 e3 = addEdge("v0", "v0", 1.0f)
             }
         } else {
-            Graphs.buildValueGraph<String, Float>(false, { "" }, { 0f }) {
+            buildValueGraph<String, Float>(false, { "" }, { 0f }) {
                 v0 = addVertex("v0")
                 v1 = addVertex("v1")
                 v2 = addVertex("v2")

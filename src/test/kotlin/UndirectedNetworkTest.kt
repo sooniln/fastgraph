@@ -23,7 +23,7 @@ class UndirectedNetworkTest {
 
     private fun constructGraph(immutable: Boolean) {
         valueGraph = if (immutable) {
-            ImmutableGraphs.buildImmutableValueGraph<String, Float>(false, { "" }, { 0f }, multiEdge = true) {
+            buildImmutableValueGraph<String, Float>(false, { "" }, { 0f }, multiEdge = true) {
                 v0 = addVertex("v0")
                 v1 = addVertex("v1")
                 v2 = addVertex("v2")
@@ -35,7 +35,7 @@ class UndirectedNetworkTest {
                 e4 = addEdge("v0", "v0", 3.0f)
             }
         } else {
-            Graphs.buildValueGraph<String, Float>(false, { "" }, { 0f }, multiEdge = true) {
+            buildValueGraph<String, Float>(false, { "" }, { 0f }, multiEdge = true) {
                 v0 = addVertex("v0")
                 v1 = addVertex("v1")
                 v2 = addVertex("v2")

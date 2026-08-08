@@ -6,7 +6,7 @@ import org.junit.jupiter.api.assertThrows
 
 class DirectedMutableNetworkTest {
 
-    private val graph = Graphs.mutableGraph(true, multiEdge = true)
+    private val graph = mutableGraph(true, multiEdge = true)
     private val vertexProperty = graph.createVertexProperty<String>()
     private val edgeProperty = graph.createEdgeProperty<String>()
 

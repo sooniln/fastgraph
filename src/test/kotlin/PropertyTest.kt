@@ -8,16 +8,16 @@ class PropertyTest {
 
     enum class GraphType {
         MUTABLE_GRAPH {
-            override fun loadGraph(): Graph = Graphs.buildGraph(true, builder = build())
+            override fun loadGraph(): Graph = buildGraph(true, builder = build())
         },
         MUTABLE_NETWORK {
-            override fun loadGraph(): Graph = Graphs.buildGraph(true, multiEdge = true, builder = build())
+            override fun loadGraph(): Graph = buildGraph(true, multiEdge = true, builder = build())
         },
         IMMUTABLE_GRAPH {
-            override fun loadGraph(): Graph = ImmutableGraphs.buildImmutableGraph(true, builder = build())
+            override fun loadGraph(): Graph = buildImmutableGraph(true, builder = build())
         },
         IMMUTABLE_NETWORK {
-            override fun loadGraph(): Graph = ImmutableGraphs.buildImmutableGraph(true, multiEdge = true, builder = build())
+            override fun loadGraph(): Graph = buildImmutableGraph(true, multiEdge = true, builder = build())
         };
 
         abstract fun loadGraph(): Graph

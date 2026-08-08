@@ -10,7 +10,7 @@ class ImmutableGraphsTest {
     @ParameterizedTest(name = "directed={0}")
     @ValueSource(booleans = [true, false])
     fun emptyImmutableGraph(directed: Boolean) {
-        val graph = ImmutableGraphs.emptyImmutableGraph(directed)
+        val graph = io.github.sooniln.fastgraph.emptyImmutableGraph(directed)
 
         assertThat(graph.directed).isEqualTo(directed)
         assertThat(graph.isEmpty()).isTrue
@@ -25,7 +25,7 @@ class ImmutableGraphsTest {
     @ParameterizedTest(name = "directed={0}")
     @ValueSource(booleans = [true, false])
     fun emptyImmutableValueGraph(directed: Boolean) {
-        val graph = ImmutableGraphs.emptyImmutableValueGraph<String, Int>(directed)
+        val graph = emptyImmutableValueGraph<String, Int>(directed)
 
         assertThat(graph.directed).isEqualTo(directed)
         assertThat(graph.isEmpty()).isTrue
@@ -39,12 +39,12 @@ class ImmutableGraphsTest {
     @ParameterizedTest(name = "directed={0}")
     @ValueSource(booleans = [true, false])
     fun immutableGraphCopiesTopologyAndIsIndependentOfSource(directed: Boolean) {
-        val mutable = Graphs.mutableGraph(directed)
+        val mutable = mutableGraph(directed)
         val v0 = mutable.addVertex()
         val v1 = mutable.addVertex()
         val e0 = mutable.addEdge(v0, v1)
 
-        val immutable = ImmutableGraphs.immutableGraph(mutable)
+        val immutable = immutableGraph(mutable)
 
         assertThat(immutable).isInstanceOf(ImmutableGraph::class.java)
         assertThat(immutable.vertices).containsExactlyInAnyOrder(v0, v1)
@@ -60,18 +60,18 @@ class ImmutableGraphsTest {
     @ParameterizedTest(name = "directed={0}")
     @ValueSource(booleans = [true, false])
     fun immutableGraphOfAlreadyImmutableGraphReturnsSameInstance(directed: Boolean) {
-        val immutable = ImmutableGraphs.buildImmutableGraph(directed) {
+        val immutable = buildImmutableGraph(directed) {
             addVertex()
         }
 
-        assertThat(ImmutableGraphs.immutableGraph(immutable)).isSameAs(immutable)
+        assertThat(immutableGraph(immutable)).isSameAs(immutable)
         assertThat(immutable.toImmutableGraph()).isSameAs(immutable)
     }
 
     @ParameterizedTest(name = "directed={0}")
     @ValueSource(booleans = [true, false])
     fun toImmutableGraphExtensionMatchesFactoryMethod(directed: Boolean) {
-        val mutable = Graphs.mutableGraph(directed)
+        val mutable = mutableGraph(directed)
         mutable.addVertex()
 
         val immutable = mutable.toImmutableGraph()
@@ -83,7 +83,7 @@ class ImmutableGraphsTest {
     @ParameterizedTest(name = "directed={0}")
     @ValueSource(booleans = [true, false])
     fun immutableValueGraphCopiesPropertyValues(directed: Boolean) {
-        val valueGraph = Graphs.buildValueGraph<String, Int>(directed, { "" }, { 0 }) {
+        val valueGraph = buildValueGraph<String, Int>(directed, { "" }, { 0 }) {
             val v0 = addVertex("a")
             val v1 = addVertex("b")
             addEdge(v0, v1, 42)
@@ -108,7 +108,7 @@ class ImmutableGraphsTest {
     @ParameterizedTest(name = "directed={0}")
     @ValueSource(booleans = [true, false])
     fun buildImmutableValueGraphWithNullableDefaults(directed: Boolean) {
-        val graph = ImmutableGraphs.buildImmutableValueGraph<String, Int>(directed) {
+        val graph = buildImmutableValueGraph<String, Int>(directed) {
             val v0 = addVertex()
             val v1 = addVertex()
             addEdge(v0, v1)

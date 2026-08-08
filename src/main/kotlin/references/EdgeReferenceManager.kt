@@ -76,8 +76,6 @@ internal class EdgeReferenceManager(private val graph: Graph) : EdgeChangeListen
     private class EdgeReferenceImpl(edge: Edge) : EdgeReference {
         private var valid: Boolean = true
 
-        @Suppress("INAPPLICABLE_JVM_NAME")
-        @get:JvmName("unstable")
         override var unstable: Edge = edge
             get() {
                 require(valid) { "the edge referenced has been removed and is no longer valid" }

@@ -16,7 +16,7 @@ class TraversalTest {
 
     // v0 -> v1 -> v3, v0 -> v2 -> v3, v4 is disconnected
     private fun constructGraph(directed: Boolean) {
-        graph = Graphs.mutableGraph(directed)
+        graph = mutableGraph(directed)
         v0 = graph.addVertex()
         v1 = graph.addVertex()
         v2 = graph.addVertex()

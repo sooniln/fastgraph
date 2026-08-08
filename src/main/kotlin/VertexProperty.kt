@@ -12,6 +12,7 @@ import io.github.sooniln.fastgraph.properties.MapVertexProperty
  * you pass in a vertex that does not belong to the same graph as the property. Some implementations may throw
  * exceptions, and some implementations may silently return invalid data.
  */
+@Suppress("INAPPLICABLE_JVM_NAME")
 public interface VertexProperty<out V> {
     /** The graph this property is associated with. */
     public val graph: Graph
@@ -23,24 +24,29 @@ public interface VertexProperty<out V> {
      * Retrieves the value associated with the given vertex, but has undefined behavior if the vertex does not belong to
      * [graph].
      */
+    @JvmName("get")
     public operator fun get(vertex: Vertex): V
 }
 
 /** See [VertexProperty.get]. */
+@JvmSynthetic
 public operator fun <V> VertexProperty<V>.get(vertexReference: VertexReference): V = get(vertexReference.unstable)
 
 /** A mutable specialization of VertexProperty. */
+@Suppress("INAPPLICABLE_JVM_NAME")
 public interface MutableVertexProperty<V> : VertexProperty<V> {
     /**
      * Sets the value associated with the given vertex, but has undefined behavior if the vertex does not belong to
      * [graph].
      */
+    @JvmName("set")
     public operator fun set(vertex: Vertex, value: V)
 
     /**
      * Sets the value associated with the given vertex and returns the previous value, but has undefined behavior if
      * the vertex does not belong to [graph].
      */
+    @JvmName("put")
     public fun put(vertex: Vertex, value: V): V {
         val oldValue = get(vertex)
         set(vertex, value)
@@ -49,10 +55,12 @@ public interface MutableVertexProperty<V> : VertexProperty<V> {
 }
 
 /** See [MutableVertexProperty.set]. */
+@JvmSynthetic
 public operator fun <V> MutableVertexProperty<V>.set(vertexReference: VertexReference, value: V): Unit =
     set(vertexReference.unstable, value)
 
 /** See [MutableVertexProperty.put]. */
+@JvmSynthetic
 public fun <V> MutableVertexProperty<V>.put(vertexReference: VertexReference, value: V): V =
     put(vertexReference.unstable, value)
 
@@ -65,6 +73,7 @@ public object VertexProperties {
      * Creates a new [VertexProperty] which is a transformation of this [VertexProperty]. The new [VertexProperty]
      * applies the given [transform] on every [VertexProperty.get] invocation.
      */
+    @JvmStatic
     public fun <V, O> map(property: VertexProperty<V>, type: Class<O>, transform: (V) -> O): VertexProperty<O> {
         return object : VertexProperty<O> {
             override val graph: Graph get() = property.graph
@@ -78,48 +87,23 @@ public object VertexProperties {
      * [VertexProperty] but have no useful vertex property to use (for example, with a [ValueGraph]). The resulting
      * vertex property takes up very little constant space.
      */
+    @JvmStatic
     public fun unitVertexProperty(graph: Graph): MutableVertexProperty<Unit> {
         return object : MutableVertexProperty<Unit> {
             override val graph: Graph get() = graph
             override val type: Class<Unit> get() = Unit::class.java
 
-            @Suppress("INAPPLICABLE_JVM_NAME")
-            @JvmName("get")
             override fun get(vertex: Vertex): Unit = Unit
 
-            @Suppress("INAPPLICABLE_JVM_NAME")
-            @JvmName("set")
             override fun set(vertex: Vertex, value: Unit) {}
         }
-    }
-
-    /** Returns an empty vertex property to be associated with an empty [ImmutableGraph]. */
-    internal fun <T> emptyVertexProperty(graph: ImmutableGraph, type: Class<T>): MutableVertexProperty<T> {
-        require(graph.vertices.isEmpty())
-
-        return object : MutableVertexProperty<T> {
-            override val graph: Graph get() = graph
-            override val type: Class<T> get() = type
-
-            @Suppress("INAPPLICABLE_JVM_NAME")
-            @JvmName("get")
-            override fun get(vertex: Vertex): T = throw IllegalArgumentException()
-
-            @Suppress("INAPPLICABLE_JVM_NAME")
-            @JvmName("set")
-            override fun set(vertex: Vertex, value: T) = throw IllegalArgumentException()
-        }
-    }
-
-    /** Returns an empty vertex property to be associated with an empty [ImmutableGraph]. */
-    internal inline fun <reified T> emptyVertexProperty(graph: ImmutableGraph): MutableVertexProperty<T> {
-        return emptyVertexProperty(graph, T::class.java)
     }
 
     /**
      * Creates an edge property that is as specialized and efficient as possible for the given graph and type.
      */
     @Suppress("UNCHECKED_CAST")
+    @JvmStatic
     public fun <T> createVertexProperty(
         graph: Graph,
         type: Class<T>,
@@ -147,5 +131,24 @@ public fun <V, O> VertexProperty<V>.map(type: Class<O>, transform: (V) -> O): Ve
 @JvmSynthetic
 public inline fun <V, reified O> VertexProperty<V>.map(noinline transform: (V) -> O): VertexProperty<O> {
     return VertexProperties.map(this, O::class.java, transform)
+}
+
+/** Returns an empty vertex property to be associated with an empty [ImmutableGraph]. */
+internal fun <T> emptyVertexProperty(graph: ImmutableGraph, type: Class<T>): MutableVertexProperty<T> {
+    require(graph.vertices.isEmpty())
+
+    return object : MutableVertexProperty<T> {
+        override val graph: Graph get() = graph
+        override val type: Class<T> get() = type
+
+        override fun get(vertex: Vertex): T = throw IllegalArgumentException()
+
+        override fun set(vertex: Vertex, value: T) = throw IllegalArgumentException()
+    }
+}
+
+/** Returns an empty vertex property to be associated with an empty [ImmutableGraph]. */
+internal inline fun <reified T> emptyVertexProperty(graph: ImmutableGraph): MutableVertexProperty<T> {
+    return emptyVertexProperty(graph, T::class.java)
 }
 

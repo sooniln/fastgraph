@@ -24,7 +24,7 @@ class SubgraphTest {
 
     @Test
     fun inducingSubgraphContainsOnlyInducedVerticesAndEdges() {
-        val graph = Graphs.mutableGraph(true)
+        val graph = mutableGraph(true)
         val v0 = graph.addVertex()
         val v1 = graph.addVertex()
         val v2 = graph.addVertex()
@@ -51,7 +51,7 @@ class SubgraphTest {
 
     @Test
     fun inducingSubgraphExcludesEdgeNotInInducingSetEvenWhenBothEndpointsIncluded() {
-        val graph = Graphs.mutableGraph(true)
+        val graph = mutableGraph(true)
         val v0 = graph.addVertex()
         val v1 = graph.addVertex()
         val v2 = graph.addVertex()
@@ -67,7 +67,7 @@ class SubgraphTest {
 
     @Test
     fun inducingSubgraphStaysInSyncWithParentVertexRemoval() {
-        val graph = Graphs.mutableGraph(true)
+        val graph = mutableGraph(true)
         graph.addVertex() // v3-equivalent placeholder, added first so it is not the highest-indexed vertex
         val v0 = graph.addVertex()
         val v1 = graph.addVertex()
@@ -87,7 +87,7 @@ class SubgraphTest {
 
     @Test
     fun inducingSubgraphSupportsListenersAndReferences() {
-        val graph = Graphs.mutableGraph(true)
+        val graph = mutableGraph(true)
         graph.addVertex()
         val v0 = graph.addVertex()
         val v1 = graph.addVertex()
@@ -110,7 +110,7 @@ class SubgraphTest {
 
     @Test
     fun inducingVertexWithEdgeFilterSubgraphIsEvaluatedDynamicallyAndOnlySupportsVertexListenersReferences() {
-        val graph = Graphs.mutableGraph(true)
+        val graph = mutableGraph(true)
         val v0 = graph.addVertex()
         val v1 = graph.addVertex()
         val v2 = graph.addVertex()
@@ -141,7 +141,7 @@ class SubgraphTest {
 
     @Test
     fun vertexAndEdgeFilterSubgraphDoesNotSupportListenersOrReferences() {
-        val graph = Graphs.mutableGraph(true)
+        val graph = mutableGraph(true)
         val v0 = graph.addVertex()
         val v1 = graph.addVertex()
         val v2 = graph.addVertex()
@@ -161,7 +161,7 @@ class SubgraphTest {
 
     @Test
     fun subgraphRequiresInducingVerticesToBelongToParent() {
-        val graph = Graphs.mutableGraph(true)
+        val graph = mutableGraph(true)
         graph.addVertex()
 
         assertThrows<IllegalArgumentException> { graph.subgraph(vertexSetOf(Vertex(999)), edgeSetOf<Edge>()) }
@@ -171,7 +171,7 @@ class SubgraphTest {
     fun immutableParentProducesImmutableSubgraphWithNoOpListeners() {
         var v0 = Vertex(-1)
         var v1 = Vertex(-1)
-        val immutable = ImmutableGraphs.buildImmutableGraph(true) {
+        val immutable = buildImmutableGraph(true) {
             v0 = addVertex()
             v1 = addVertex()
             addEdge(v0, v1)

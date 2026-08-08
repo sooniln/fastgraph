@@ -59,12 +59,8 @@ internal class ImmutableAdjacencyListNetwork private constructor(
         override fun toEdge(edgeId: Int): Edge = canonicalEdge(edgeId)
     }
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("edgeSource")
     override fun edgeSource(edge: Edge): Vertex = edgeValues[validateEdge(edge).edgeId].source
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("edgeTarget")
     override fun edgeTarget(edge: Edge): Vertex = edgeValues[validateEdge(edge).edgeId].target
 
     override fun registerVertexChangeListener(listener: VertexChangeListener) {}
@@ -72,8 +68,6 @@ internal class ImmutableAdjacencyListNetwork private constructor(
     override fun registerEdgeChangeListener(listener: EdgeChangeListener) {}
     override fun unregisterEdgeChangeListener(listener: EdgeChangeListener) {}
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("containsEdge")
     override fun containsEdge(source: Vertex, target: Vertex): Boolean {
         return successors[source].contains(target)
     }
@@ -102,13 +96,9 @@ internal class ImmutableAdjacencyListNetwork private constructor(
         return EdgeProperties.createEdgeProperty(this, type, initializer)
     }
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("createVertexReference")
     override fun createVertexReference(vertex: Vertex): VertexReference =
         ImmutableVertexReference(validateVertex(vertex))
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("createEdgeReference")
     override fun createEdgeReference(edge: Edge): EdgeReference = ImmutableEdgeReference(validateEdge(edge))
 
     private inner class IncidentEdgeSet(
@@ -119,8 +109,6 @@ internal class ImmutableAdjacencyListNetwork private constructor(
         override val size: Int
             get() = adjacencies.size
 
-        @Suppress("INAPPLICABLE_JVM_NAME")
-        @JvmName("contains")
         override fun contains(element: Edge): Boolean {
             validateEdge(element)
 
@@ -172,8 +160,6 @@ internal class ImmutableAdjacencyListNetwork private constructor(
             get() = object : AbstractVertexSet() {
                 override val size: Int get() = numVertices
 
-                @Suppress("INAPPLICABLE_JVM_NAME")
-                @JvmName("contains")
                 override fun contains(element: Vertex): Boolean = findVertex(element) >= 0
 
                 override fun iterator(): VertexIterator = object : VertexIterator {

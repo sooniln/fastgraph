@@ -16,7 +16,7 @@ class IndexedGraphTest {
 
     private fun constructGraph(immutable: Boolean, indexEdges: Boolean) {
         graph = if (immutable) {
-            ImmutableGraphs.buildImmutableGraph(true, indexEdges = indexEdges) {
+            buildImmutableGraph(true, indexEdges = indexEdges) {
                 v0 = addVertex()
                 v1 = addVertex()
                 v2 = addVertex()
@@ -24,7 +24,7 @@ class IndexedGraphTest {
                 e1 = addEdge(v1, v2)
             }
         } else {
-            Graphs.buildGraph(true, indexEdges = indexEdges) {
+            buildGraph(true, indexEdges = indexEdges) {
                 v0 = addVertex()
                 v1 = addVertex()
                 v2 = addVertex()

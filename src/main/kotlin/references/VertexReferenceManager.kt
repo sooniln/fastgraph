@@ -76,8 +76,6 @@ internal class VertexReferenceManager(private val graph: Graph) : VertexChangeLi
     private class VertexReferenceImpl(vertex: Vertex) : VertexReference {
         private var valid: Boolean = true
 
-        @Suppress("INAPPLICABLE_JVM_NAME")
-        @get:JvmName("unstable")
         override var unstable: Vertex = vertex
             get() {
                 require(valid) { "the vertex referenced has been removed and is no longer valid" }

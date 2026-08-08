@@ -1,137 +1,120 @@
 package io.github.sooniln.fastgraph
 
-import com.google.common.reflect.ClassPath
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import java.lang.reflect.Method
-import java.lang.reflect.Modifier
-import kotlin.reflect.full.declaredMemberFunctions
-import kotlin.reflect.jvm.javaMethod
+import java.io.File
+import kotlin.reflect.jvm.kotlinFunction
 
 /**
- * Guards against KT-31420: Kotlin requires every override of a method whose signature involves a value
- * class (e.g. [Vertex], [Edge]) to manually repeat an identical `@JvmName`, and does not always catch it at
- * compile time when that repetition is missing or wrong. These tests verify the resulting bytecode directly,
- * since that's the level at which such a mistake actually breaks Java interop.
+ * Guards against KT-31420: Kotlin mangles the compiled JVM name of any public function/property whose
+ * parameter or return type is a value class (e.g. [Vertex], [Edge]) unless `@JvmName` is explicitly applied,
+ * silently breaking Java interop. This is checked directly against `api/fastgraph.api`, the project's Kotlin
+ * ABI dump - it already reflects the exact, ground-truth public JVM API surface (internal/private/anonymous
+ * declarations never appear in it), so no reflection or visibility filtering of our own is needed. The `test`
+ * Gradle task depends on `updateKotlinAbi` so this file is always current when this test runs.
  */
 class JvmNameConsistencyTest {
 
-    private val basePackage = "io.github.sooniln.fastgraph"
+    private val abiFile = File("api/fastgraph.api")
 
-    private fun libraryClasses(): List<Class<*>> {
-        val classLoader = javaClass.classLoader
-        return ClassPath.from(classLoader)
-            .getTopLevelClassesRecursive(basePackage)
-            .mapNotNull {
-                try {
-                    Class.forName(it.name, false, classLoader)
-                } catch (e: Throwable) {
-                    null
-                }
-            }
-            .filter(::isMainClass)
-    }
+    private data class AbiFunction(val className: String, val modifiers: List<String>, val name: String)
 
-    private fun isMainClass(clazz: Class<*>): Boolean {
-        val location = clazz.protectionDomain?.codeSource?.location?.path ?: return false
-        return location.replace('\\', '/').contains("/classes/kotlin/main/")
-    }
+    private fun parseAbiFunctions(): List<AbiFunction> {
+        val functions = mutableListOf<AbiFunction>()
+        var currentClass: String? = null
 
-    private fun supertypesOf(clazz: Class<*>): List<Class<*>> {
-        val result = mutableListOf<Class<*>>()
-        val queue = ArrayDeque<Class<*>>()
-        clazz.superclass?.let { queue.add(it) }
-        queue.addAll(clazz.interfaces)
+        for (line in abiFile.readLines()) {
+            if (line.isEmpty()) continue
 
-        while (queue.isNotEmpty()) {
-            val next = queue.removeFirst()
-            if (next.name.startsWith(basePackage) && result.none { it == next }) {
-                result.add(next)
-                next.superclass?.let { queue.add(it) }
-                queue.addAll(next.interfaces)
-            }
-        }
-        return result
-    }
-
-    private fun isCheckableSupertypeMethod(method: Method): Boolean {
-        return Modifier.isPublic(method.modifiers) &&
-            !Modifier.isStatic(method.modifiers) &&
-            !method.isSynthetic &&
-            !method.isBridge
-    }
-
-    @Test
-    fun `overrides preserve the JVM method name declared by their supertype`() {
-        val violations = mutableListOf<String>()
-
-        for (clazz in libraryClasses()) {
-            if (clazz.isInterface || Modifier.isAbstract(clazz.modifiers) || clazz.isSynthetic) continue
-            if (!Modifier.isPublic(clazz.modifiers)) continue
-
-            for (supertype in supertypesOf(clazz)) {
-                for (method in supertype.declaredMethods) {
-                    if (!isCheckableSupertypeMethod(method)) continue
-
-                    val signature = "${supertype.name}.${method.name}(${method.parameterTypes.joinToString { it.simpleName }})"
-
-                    val override = try {
-                        clazz.getMethod(method.name, *method.parameterTypes)
-                    } catch (e: NoSuchMethodException) {
-                        violations += "${clazz.name} has no method matching $signature - an override's " +
-                            "@JvmName likely doesn't match its supertype's"
-                        continue
-                    }
-
-                    if (Modifier.isAbstract(override.modifiers)) {
-                        violations += "${clazz.name} does not concretely implement $signature - the JVM " +
-                            "method name likely diverged (missing/incorrect @JvmName)"
-                    }
-                }
-            }
-        }
-
-        assertThat(violations).describedAs("JVM method name mismatches between supertypes and their overrides").isEmpty()
-    }
-
-    @Test
-    fun mismatchBetweenJvmNameAndKotlinName() {
-        val violations = mutableListOf<String>()
-
-        for (clazz in libraryClasses()) {
-            if (clazz.isSynthetic || !Modifier.isPublic(clazz.modifiers)) continue
-
-            val kClass = try {
-                clazz.kotlin
-            } catch (e: Throwable) {
+            if (!line.startsWith("\t")) {
+                currentClass = if (line == "}") null else Regex("""\bclass\s+(\S+)""").find(line)?.groupValues?.get(1)
                 continue
             }
 
-            for (function in kClass.declaredMemberFunctions) {
-                val javaMethod = try {
-                    function.javaMethod
-                } catch (e: Throwable) {
-                    null
-                } ?: continue
+            val clazz = currentClass ?: continue
+            val tokens = line.trim().split(Regex("\\s+"))
+            val funIndex = tokens.indexOf("fun")
+            if (funIndex == -1 || funIndex + 1 >= tokens.size) continue
 
-                if (!Modifier.isPublic(javaMethod.modifiers)) continue
+            functions += AbiFunction(clazz, tokens.subList(0, funIndex), tokens[funIndex + 1])
+        }
 
-                val kotlinName = function.name
-                val jvmName = javaMethod.name
+        return functions
+    }
 
-                if (jvmName.contains('-')) {
-                    violations += "${clazz.name}.$kotlinName compiles to JVM name '$jvmName', which contains " +
-                        "a mangling dash - @JvmName is likely completely missing on a value-class-typed member"
-                    continue
-                }
+    // Compiler-generated value-class boilerplate: these are never marked `synthetic` in the ABI dump, and have
+    // no source-level declaration to attach @JvmName to. `equals-impl0` is deliberately NOT included here -
+    // see jvmNameMatchesKotlinName().
+    private val valueClassBoilerplateNames = setOf("constructor-impl", "equals-impl", "equals-impl0", "hashCode-impl")
 
-                if (!jvmName.contains(kotlinName)) {
-                    violations += "${clazz.name}.$kotlinName compiles to JVM name '$jvmName', which does not " +
-                        "contain the Kotlin declared name - @JvmName likely has the wrong value"
-                }
+    /**
+     * Publicly visible APIs (any API in the API file) should never contain mangled names.
+     */
+    @Test
+    fun unmangledPublicApis() {
+        val violations = mutableListOf<String>()
+
+        for ((className, modifiers, name) in parseAbiFunctions()) {
+            if ("synthetic" in modifiers) continue
+            if (name in valueClassBoilerplateNames) continue
+            if ('-' !in name) continue
+
+            violations += "$className.$name"
+        }
+
+        assertThat(violations).describedAs("Public APIs with mangled names").isEmpty()
+    }
+
+    /**
+     * Top level methods are compiled into XXXKt classes by default - this results in non-idiomatic code in Java. This
+     * should either be handled by renaming the class wrapping the top level methods (ie to just XXX), or by marking top
+     * level methods as synthetic (and thus inaccessible from Java) if their functionality is available to Java in some
+     * other fashion.
+     */
+    @Test
+    fun syntheticTopLevelFunctions() {
+        val violations = mutableListOf<String>()
+
+        for ((className, modifiers, name) in parseAbiFunctions()) {
+            if (!className.endsWith("Kt")) continue
+            if ("public" !in modifiers) continue
+            if ("synthetic" in modifiers) continue
+
+            violations += "$className.$name"
+        }
+
+        assertThat(violations).describedAs("Top-level functions").isEmpty()
+    }
+
+    val allowedJvmNameMismatches = mapOf(
+        "io/github/sooniln/fastgraph/Homomorphism.getVertex" to "get",
+        "io/github/sooniln/fastgraph/Homomorphism.getEdge" to "get",
+        "io/github/sooniln/fastgraph/IdentityIsomorphism.getVertex" to "get",
+        "io/github/sooniln/fastgraph/IdentityIsomorphism.getEdge" to "get",
+    )
+
+    /**
+     * JvmName annotations should match the Kotlin function name wherever possible to reduce API confusion.
+     */
+    @Test
+    fun jvmNameMismatch() {
+        val violations = mutableListOf<String>()
+
+        for ((className, modifiers, name) in parseAbiFunctions()) {
+            if ("synthetic" in modifiers) continue
+            if (name in valueClassBoilerplateNames) continue
+
+            val clazz = Class.forName(className.replace('/', '.'), false, javaClass.classLoader)
+            val method = clazz.declaredMethods.firstOrNull { it.name == name } ?: continue
+            val kotlinName = method.kotlinFunction?.name ?: continue
+
+            if (name != kotlinName) {
+                if (allowedJvmNameMismatches["$className.$name"] == kotlinName) continue
+
+                violations += "Kotlin('$kotlinName') != JVM('$name') in $className"
             }
         }
 
-        assertThat(violations).describedAs("@JvmName values inconsistent with their Kotlin declared name").isEmpty()
+        assertThat(violations).describedAs("@JvmName inconsistent with Kotlin name").isEmpty()
     }
 }

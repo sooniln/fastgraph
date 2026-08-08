@@ -1,7 +1,7 @@
 /**
- * Utilities for [Vertex].
+ * Methods dealing with edges.
  */
-@file:JvmMultifileClass @file:JvmName("Vertices")
+@file:JvmName("Vertices")
 
 package io.github.sooniln.fastgraph
 
@@ -35,6 +35,7 @@ private val VERTEX_HEX_FORMAT = HexFormat {
  * an unstable reference. Stable references are guaranteed to never be invalidated, but may be more expensive to
  * maintain than unstable references, and thus should be used sparingly.
  */
+@Suppress("INAPPLICABLE_JVM_NAME")
 @JvmInline
 public value class Vertex(public val id: Int) {
     /**
@@ -104,6 +105,7 @@ public value class Vertex(public val id: Int) {
     context(graph: ValueGraph<V, *>)
     public val <V> value: V inline get() = graph.vertexProperty[this]
 
+    @JvmName("toString")
     override fun toString(): String = "Vertex(${id.toHexString(VERTEX_HEX_FORMAT)})"
 }
 
@@ -120,12 +122,10 @@ internal operator fun Vertex.dec(): Vertex = Vertex(id - 1)
  * Vertex boxing/unboxing, and associated performance penalties. Prefer to use this interface whenever possible for
  * those reasons.
  */
+@Suppress("INAPPLICABLE_JVM_NAME")
 public interface VertexIterator : Iterator<Vertex> {
-    @JvmSynthetic
+    @JvmName("next")
     override fun next(): Vertex
-
-    @Deprecated("For JVM usage only", level = DeprecationLevel.HIDDEN)
-    public fun nextVertex(): Int = next().id
 }
 
 /**
@@ -145,11 +145,15 @@ public interface VertexIterable : Iterable<Vertex> {
 /**
  * A functional interface for receiving vertices.
  */
+@Suppress("INAPPLICABLE_JVM_NAME")
 public fun interface VertexConsumer {
+    @JvmName("accept")
     public fun accept(vertex: Vertex)
 }
 
+@Suppress("INAPPLICABLE_JVM_NAME")
 public fun interface VertexPredicate {
+    @JvmName("test")
     public fun test(vertex: Vertex): Boolean
 }
 
@@ -159,6 +163,7 @@ public fun interface VertexPredicate {
  * possible for those reasons. A [VertexCollection] is not re-entrancy safe for writing - attempting to modify the
  * collection while any other method is ongoing leads to undefined behavior.
  */
+@Suppress("INAPPLICABLE_JVM_NAME")
 public interface VertexCollection : Collection<Vertex>, VertexIterable {
 
     override fun isEmpty(): Boolean {
@@ -175,9 +180,6 @@ public interface VertexCollection : Collection<Vertex>, VertexIterable {
         }
     }
 
-    // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
-    //   overrides of this method
-    @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("contains")
     override fun contains(element: Vertex): Boolean {
         for (e in this) {
@@ -226,12 +228,10 @@ public interface MutableVertexCollection : VertexCollection {
  * boxing/unboxing, and associated performance penalties. Prefer to use this interface whenever possible for those
  * reasons.
  */
+@Suppress("INAPPLICABLE_JVM_NAME")
 public interface VertexSet : VertexCollection, Set<Vertex> {
     override fun isEmpty(): Boolean = super.isEmpty()
 
-    // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
-    //   overrides of this method
-    @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("contains")
     override fun contains(element: Vertex): Boolean = super.contains(element)
 
@@ -248,24 +248,21 @@ public interface MutableVertexSet : VertexSet, MutableVertexCollection
  * vertices accessible by index, and an index can be retrieved for each vertex (via `indexOf(vertex)`). The `indexOf()`
  * call is guaranteed to take amortized constant time or better. This collection MUST iterate vertices in index order.
  */
+@Suppress("INAPPLICABLE_JVM_NAME")
 public interface IndexedVertexSet : VertexSet {
 
-    // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
-    //   overrides of this method
-    @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("contains")
     override fun contains(element: Vertex): Boolean
 
     override fun containsAll(elements: Collection<Vertex>): Boolean = super.containsAll(elements)
 
+    @JvmName("get")
     public operator fun get(index: Int): Vertex
-
-    @Deprecated("For JVM usage only", level = DeprecationLevel.HIDDEN)
-    public fun getVertex(index: Int): Int = get(index).id
 
     /**
      * Returns the index of the given vertex in this collection, or -1 if the vertex is not in this set.
      */
+    @JvmName("indexOf")
     public fun indexOf(element: Vertex): Int
 
     override fun iterator(): VertexIterator = object : VertexIterator {
@@ -326,8 +323,6 @@ public fun emptyVertexSet(): IndexedVertexSet = EmptyVertexSetList
 private object EmptyVertexSetList : IndexedVertexSet {
     override val size: Int get() = 0
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("contains")
     override fun contains(element: Vertex): Boolean = false
 
     override fun containsAll(elements: Collection<Vertex>): Boolean = elements.isEmpty()
@@ -341,12 +336,10 @@ private object EmptyVertexSetList : IndexedVertexSet {
 /**
  * Provides a skeletal implementation of the read-only [VertexCollection] interface.
  */
+@Suppress("INAPPLICABLE_JVM_NAME")
 public abstract class AbstractVertexCollection : VertexCollection, AbstractCollection<Vertex>() {
     override fun isEmpty(): Boolean = super<VertexCollection>.isEmpty()
 
-    // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
-    //   overrides of this method
-    @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("contains")
     override fun contains(element: Vertex): Boolean = super<VertexCollection>.contains(element)
     override fun containsAll(elements: Collection<Vertex>): Boolean = super<VertexCollection>.containsAll(elements)
@@ -355,12 +348,10 @@ public abstract class AbstractVertexCollection : VertexCollection, AbstractColle
 /**
  * Provides a skeletal implementation of the read-only [VertexSet] interface.
  */
+@Suppress("INAPPLICABLE_JVM_NAME")
 public abstract class AbstractVertexSet : VertexSet, AbstractSet<Vertex>() {
     override fun isEmpty(): Boolean = super<VertexSet>.isEmpty()
 
-    // KT-31420: until this is resolved this must be suppressed, and @JvmName must be explicitly specified on all
-    //   overrides of this method
-    @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("contains")
     override fun contains(element: Vertex): Boolean = super<VertexSet>.contains(element)
     override fun containsAll(elements: Collection<Vertex>): Boolean = super<VertexSet>.containsAll(elements)
@@ -369,22 +360,24 @@ public abstract class AbstractVertexSet : VertexSet, AbstractSet<Vertex>() {
 /**
  * Provides a skeletal implementation of the read-only [IndexedVertexSet] interface.
  */
+@Suppress("INAPPLICABLE_JVM_NAME")
 public abstract class AbstractIndexedVertexSet : IndexedVertexSet, AbstractVertexSet() {
     override fun iterator(): VertexIterator = super.iterator()
     override fun containsAll(elements: Collection<Vertex>): Boolean = super<IndexedVertexSet>.containsAll(elements)
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
     @JvmName("contains")
     override fun contains(element: Vertex): Boolean {
         require(element.id in indices)
         return true
     }
 
+    @JvmName("get")
     override fun get(index: Int): Vertex {
         if (index !in indices) throw IndexOutOfBoundsException()
         return Vertex(index)
     }
 
+    @JvmName("indexOf")
     override fun indexOf(element: Vertex): Int {
         require(element.id in indices)
         return element.id
@@ -436,8 +429,6 @@ internal fun IntSet.asVertexSet(): VertexSet = VertexSetWrapper(this)
 private class VertexSetWrapper(private val vertices: IntSet) : AbstractVertexSet() {
     override val size: Int get() = vertices.size
 
-    @Suppress("INAPPLICABLE_JVM_NAME")
-    @JvmName("contains")
     override fun contains(element: Vertex): Boolean = vertices.contains(element.id)
     override fun iterator(): VertexIterator = vertices.iterator().asVertexIterator()
     override fun foreach(action: VertexConsumer) = vertices.foreach { vertex -> action.accept(Vertex(vertex)) }

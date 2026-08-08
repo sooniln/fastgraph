@@ -44,7 +44,7 @@ class ListenerTest {
 
     @Test
     fun vertexAddedCallback() {
-        val graph = Graphs.mutableGraph(true)
+        val graph = mutableGraph(true)
         val listener = RecordingVertexListener()
         graph.registerVertexChangeListener(listener)
 
@@ -58,7 +58,7 @@ class ListenerTest {
 
     @Test
     fun vertexRemovedCallbackForLastVertex() {
-        val graph = Graphs.mutableGraph(true)
+        val graph = mutableGraph(true)
         graph.addVertex()
         val v1 = graph.addVertex()
         val listener = RecordingVertexListener()
@@ -72,7 +72,7 @@ class ListenerTest {
 
     @Test
     fun vertexReassignedCallbackWhenRemovingNonLastVertex() {
-        val graph = Graphs.mutableGraph(true)
+        val graph = mutableGraph(true)
         val v0 = graph.addVertex()
         val v1 = graph.addVertex()
         val v2 = graph.addVertex()
@@ -88,7 +88,7 @@ class ListenerTest {
 
     @Test
     fun duplicateVertexListenerRegistrationThrows() {
-        val graph = Graphs.mutableGraph(true)
+        val graph = mutableGraph(true)
         val listener = RecordingVertexListener()
         graph.registerVertexChangeListener(listener)
 
@@ -97,7 +97,7 @@ class ListenerTest {
 
     @Test
     fun unregisterVertexListenerStopsNotifications() {
-        val graph = Graphs.mutableGraph(true)
+        val graph = mutableGraph(true)
         val listener = RecordingVertexListener()
         graph.registerVertexChangeListener(listener)
         graph.unregisterVertexChangeListener(listener)
@@ -109,7 +109,7 @@ class ListenerTest {
 
     @Test
     fun unregisteringUnregisteredVertexListenerIsNoop() {
-        val graph = Graphs.mutableGraph(true)
+        val graph = mutableGraph(true)
         val listener = RecordingVertexListener()
 
         graph.unregisterVertexChangeListener(listener)
@@ -117,7 +117,7 @@ class ListenerTest {
 
     @Test
     fun edgeAddedAndRemovedCallback() {
-        val graph = Graphs.mutableGraph(true)
+        val graph = mutableGraph(true)
         val v0 = graph.addVertex()
         val v1 = graph.addVertex()
         val v2 = graph.addVertex()
@@ -136,7 +136,7 @@ class ListenerTest {
 
     @Test
     fun edgeRemovedCallbackWhenIncidentVertexRemoved() {
-        val graph = Graphs.mutableGraph(true)
+        val graph = mutableGraph(true)
         val v0 = graph.addVertex()
         val v1 = graph.addVertex()
         val e0 = graph.addEdge(v0, v1)
@@ -151,7 +151,7 @@ class ListenerTest {
 
     @Test
     fun edgeReassignedCallbackWhenLastVertexSwapped() {
-        val graph = Graphs.mutableGraph(true)
+        val graph = mutableGraph(true)
         val v0 = graph.addVertex()
         val v1 = graph.addVertex()
         val v2 = graph.addVertex()
@@ -171,7 +171,7 @@ class ListenerTest {
 
     @Test
     fun duplicateEdgeListenerRegistrationThrows() {
-        val graph = Graphs.mutableGraph(true)
+        val graph = mutableGraph(true)
         val listener = RecordingEdgeListener()
         graph.registerEdgeChangeListener(listener)
 
@@ -180,7 +180,7 @@ class ListenerTest {
 
     @Test
     fun unregisterEdgeListenerStopsNotifications() {
-        val graph = Graphs.mutableGraph(true)
+        val graph = mutableGraph(true)
         val v0 = graph.addVertex()
         val v1 = graph.addVertex()
         val listener = RecordingEdgeListener()

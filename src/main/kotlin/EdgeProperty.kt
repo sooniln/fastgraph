@@ -12,6 +12,7 @@ import io.github.sooniln.fastgraph.properties.MapEdgeProperty
  * you pass in an edge that does not belong to the same graph as the property. Some implementations may throw
  * exceptions, and some implementations may silently return invalid data.
  */
+@Suppress("INAPPLICABLE_JVM_NAME")
 public interface EdgeProperty<out V> {
     /** The graph this property is associated with. */
     public val graph: Graph
@@ -23,23 +24,28 @@ public interface EdgeProperty<out V> {
      * Retrieves the value associated with the given edge, but has undefined behavior if the edge does not belong to
      * [graph].
      */
+    @JvmName("get")
     public operator fun get(edge: Edge): V
 }
 
 /** See [EdgeProperty.get]. */
+@JvmSynthetic
 public operator fun <V> EdgeProperty<V>.get(edgeReference: EdgeReference): V = get(edgeReference.unstable)
 
 /** A mutable specialization of [EdgeProperty]. */
+@Suppress("INAPPLICABLE_JVM_NAME")
 public interface MutableEdgeProperty<V> : EdgeProperty<V> {
     /**
      * Sets the value associated with the given edge, but has undefined behavior if the edge does not belong to [graph].
      */
+    @JvmName("set")
     public operator fun set(edge: Edge, value: V)
 
     /**
      * Sets the value associated with the given edge and returns the previous value, but has undefined behavior if the
      * edge does not belong to [graph].
      */
+    @JvmName("put")
     public fun put(edge: Edge, value: V): V {
         val oldValue = get(edge)
         set(edge, value)
@@ -48,10 +54,12 @@ public interface MutableEdgeProperty<V> : EdgeProperty<V> {
 }
 
 /** See [MutableEdgeProperty.set]. */
+@JvmSynthetic
 public operator fun <V> MutableEdgeProperty<V>.set(edgeReference: EdgeReference, value: V): Unit =
     set(edgeReference.unstable, value)
 
 /** See [MutableEdgeProperty.put]. */
+@JvmSynthetic
 public fun <V> MutableEdgeProperty<V>.put(edgeReference: EdgeReference, value: V): V =
     put(edgeReference.unstable, value)
 
@@ -63,6 +71,7 @@ public object EdgeProperties {
      * Creates a new [EdgeProperty] which is a transformation of this [EdgeProperty]. The new [EdgeProperty] applies the
      * given [transform] on every [EdgeProperty.get] invocation.
      */
+    @JvmStatic
     public fun <V, O> map(property: EdgeProperty<V>, type: Class<O>, transform: (V) -> O): EdgeProperty<O> {
         return object : EdgeProperty<O> {
             override val graph: Graph get() = property.graph
@@ -76,48 +85,21 @@ public object EdgeProperties {
      * [EdgeProperty] but have no useful edge property to use (for example, with a [ValueGraph]). The resulting edge
      * property takes up very little constant space.
      */
+    @JvmStatic
     public fun unitEdgeProperty(graph: Graph): MutableEdgeProperty<Unit> {
         return object : MutableEdgeProperty<Unit> {
             override val graph: Graph get() = graph
             override val type: Class<Unit> get() = Unit::class.java
-
-            @Suppress("INAPPLICABLE_JVM_NAME")
-            @JvmName("get")
             override fun get(edge: Edge): Unit = Unit
-
-            @Suppress("INAPPLICABLE_JVM_NAME")
-            @JvmName("set")
             override fun set(edge: Edge, value: Unit) {}
         }
-    }
-
-    /** Returns an empty edge property to be associated with an empty [ImmutableGraph]. */
-    internal fun <T> emptyEdgeProperty(graph: ImmutableGraph, type: Class<T>): MutableEdgeProperty<T> {
-        require(graph.vertices.isEmpty())
-
-        return object : MutableEdgeProperty<T> {
-            override val graph: Graph get() = graph
-            override val type: Class<T> get() = type
-
-            @Suppress("INAPPLICABLE_JVM_NAME")
-            @JvmName("get")
-            override fun get(edge: Edge): T = throw IllegalArgumentException()
-
-            @Suppress("INAPPLICABLE_JVM_NAME")
-            @JvmName("set")
-            override fun set(edge: Edge, value: T) = throw IllegalArgumentException()
-        }
-    }
-
-    /** Returns an empty edge property to be associated with an empty [ImmutableGraph]. */
-    internal inline fun <reified T> emptyEdgeProperty(graph: ImmutableGraph): MutableEdgeProperty<T> {
-        return emptyEdgeProperty(graph, T::class.java)
     }
 
     /**
      * Creates an edge property that is as specialized and efficient as possible for the given graph and type.
      */
     @Suppress("UNCHECKED_CAST")
+    @JvmStatic
     public fun <T> createEdgeProperty(
         graph: Graph,
         type: Class<T>,
@@ -145,4 +127,23 @@ public fun <V, O> EdgeProperty<V>.map(type: Class<O>, transform: (V) -> O): Edge
 @JvmSynthetic
 public inline fun <V, reified O> EdgeProperty<V>.map(noinline transform: (V) -> O): EdgeProperty<O> {
     return EdgeProperties.map(this, O::class.java, transform)
+}
+
+/** Returns an empty edge property to be associated with an empty [ImmutableGraph]. */
+internal fun <T> emptyEdgeProperty(graph: ImmutableGraph, type: Class<T>): MutableEdgeProperty<T> {
+    require(graph.vertices.isEmpty())
+
+    return object : MutableEdgeProperty<T> {
+        override val graph: Graph get() = graph
+        override val type: Class<T> get() = type
+
+        override fun get(edge: Edge): T = throw IllegalArgumentException()
+
+        override fun set(edge: Edge, value: T) = throw IllegalArgumentException()
+    }
+}
+
+/** Returns an empty edge property to be associated with an empty [ImmutableGraph]. */
+internal inline fun <reified T> emptyEdgeProperty(graph: ImmutableGraph): MutableEdgeProperty<T> {
+    return emptyEdgeProperty(graph, T::class.java)
 }
