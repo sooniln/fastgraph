@@ -21,7 +21,7 @@ internal object Utils {
         }
 
         distance[start] = 0f
-        q.add(start.intValue)
+        q.add(start.id)
 
         while (!q.isEmpty()) {
             val v = Vertex(q.removeFirst())
@@ -34,7 +34,7 @@ internal object Utils {
                 val newDistance = curDistance + weights[edge]
                 if (newDistance < distance[n]) {
                     distance[n] = newDistance
-                    q.add(n.intValue)
+                    q.add(n.id)
                 }
             }
         }
@@ -42,7 +42,7 @@ internal object Utils {
         return distance
     }
 
-    fun dijkstrasJGraphT(graph: org.jgrapht.Graph<Int, Loader.JGraphWeightedEdge>, start: Int): Int2FloatMap<Float> {
+    fun dijkstrasJGraphT(graph: org.jgrapht.Graph<Int, Loader.JGraphWeightedEdge>, start: Int): Int2FloatMap {
         val visited = IntHashSet(graph.vertexSet().size)
         val distance = Int2FloatHashMap(graph.vertexSet().size, Float.MAX_VALUE)
 
@@ -74,6 +74,7 @@ internal object Utils {
         return distance
     }
 
+    @Suppress("UnstableApiUsage")
     fun dijkstrasGuava(graph: ValueGraph<Int, Float>, start: Int): Int2FloatMap {
         val visited = IntHashSet(graph.nodes().size)
         val distance = Int2FloatHashMap(graph.nodes().size, Float.MAX_VALUE)
@@ -107,9 +108,10 @@ internal object Utils {
         return distance
     }
 
+    @Suppress("UnstableApiUsage")
     fun dijkstrasGuava(graph: Network<Int, Loader.GuavaWeightedEdge>, start: Int): Int2FloatMap {
         val visited = IntHashSet(graph.nodes().size)
-        val distance = Int2FloatHashMap<Float>(graph.nodes().size, Float.MAX_VALUE)
+        val distance = Int2FloatHashMap(graph.nodes().size, Float.MAX_VALUE)
 
         val q = object : AbstractIntPriorityQueue(graph.nodes().size) {
             override fun isHigherPriority(element1: Int, element2: Int): Boolean {

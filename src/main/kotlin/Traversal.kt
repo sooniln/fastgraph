@@ -2,14 +2,14 @@ package io.github.sooniln.fastgraph
 
 import io.github.sooniln.fastcollect.ints.IntArrayDeque
 
-object Traversal {
+public object Traversal {
     /**
      * Returns an iterable that will return vertices from the given graph in breadth-first iteration order, beginning
      * from the given vertex.
      */
     @JvmStatic
     @JvmName("breadthFirst")
-    fun breadthFirst(graph: Graph, initialVertex: Vertex): VertexIterable {
+    public fun breadthFirst(graph: Graph, initialVertex: Vertex): VertexIterable {
         return breadthFirst(graph, vertexSetOf(initialVertex))
     }
 
@@ -18,7 +18,7 @@ object Traversal {
      * from the given vertices.
      */
     @JvmStatic
-    fun breadthFirst(graph: Graph, initialVertices: VertexSet): VertexIterable {
+    public fun breadthFirst(graph: Graph, initialVertices: VertexSet): VertexIterable {
         return object : VertexIterable {
             override fun iterator(): VertexIterator = BFIterator(graph, initialVertices)
         }
@@ -30,7 +30,7 @@ object Traversal {
      */
     @JvmStatic
     @JvmName("depthFirstPreOrder")
-    fun depthFirstPreOrder(graph: Graph, initialVertex: Vertex): VertexIterable {
+    public fun depthFirstPreOrder(graph: Graph, initialVertex: Vertex): VertexIterable {
         return depthFirstPreOrder(graph, vertexSetOf(initialVertex))
     }
 
@@ -40,7 +40,7 @@ object Traversal {
      * beginning from the given vertices.
      */
     @JvmStatic
-    fun depthFirstPreOrder(graph: Graph, initialVertices: VertexSet): VertexIterable {
+    public fun depthFirstPreOrder(graph: Graph, initialVertices: VertexSet): VertexIterable {
         return object : VertexIterable {
             override fun iterator(): VertexIterator = DFPreOrderIterator(graph, initialVertices)
         }
@@ -55,9 +55,9 @@ object Traversal {
 
         init {
             require(startVertices.isNotEmpty())
-            for (vertex in startVertices) {
+            startVertices.foreach { vertex ->
                 require(graph.vertices.contains(vertex))
-                queue.addLast(vertex.intValue)
+                queue.addLast(vertex.id)
                 visited[vertex] = true
             }
         }
@@ -66,9 +66,9 @@ object Traversal {
 
         override fun next(): Vertex {
             val next = Vertex(queue.removeFirst())
-            for (vertex in graph.successors(next)) {
+            graph.successors(next).foreach { vertex ->
                 if (!visited[vertex]) {
-                    queue.addLast(vertex.intValue)
+                    queue.addLast(vertex.id)
                     visited[vertex] = true
                 }
             }
@@ -83,18 +83,18 @@ object Traversal {
 
         init {
             require(startVertices.isNotEmpty())
-            for (vertex in startVertices) {
+            startVertices.foreach { vertex ->
                 require(graph.vertices.contains(vertex))
-                queue.addLast(vertex.intValue)
+                queue.addLast(vertex.id)
             }
         }
 
         override fun next(): Vertex {
             val next = Vertex(queue.removeLast())
             visited[next] = true
-            for (vertex in graph.successors(next)) {
+            graph.successors(next).foreach { vertex ->
                 if (!visited[vertex]) {
-                    queue.addLast(vertex.intValue)
+                    queue.addLast(vertex.id)
                 }
             }
 
@@ -105,11 +105,8 @@ object Traversal {
         override fun hasNext(): Boolean = !queue.isEmpty()
 
         private fun drain() {
-            var size = queue.size
-            var trash = Vertex(if (size <= 0) 0 else queue[size - 1])
-            while (size > 0 && visited[trash]) {
-                queue.removeAt(--size)
-                trash = Vertex(if (size <= 0) 0 else queue[size - 1])
+            while (!queue.isEmpty() && visited[Vertex(queue.last())]) {
+                queue.removeLast()
             }
         }
     }

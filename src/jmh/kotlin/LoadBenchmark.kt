@@ -67,7 +67,7 @@ open class LoadBenchmark {
     @Benchmark
     fun loadMutableNetwork() = dump(Loader.loadMutableNetwork())
 
-    private fun <G : Graph, V, E> dump(o: PropertyGraph<G, V, E>): PropertyGraph<G, V, E> {
+    private fun <V, E> dump(o: ValueGraph<V, E>): ValueGraph<V, E> {
         /*val totalMem = GraphLayout.parseInstance(o.graph, o.vertexProperty, o.edgeProperty).totalSize()
         val topologyMem = GraphLayout.parseInstance(o.graph).totalSize()
         println("total: $totalMem")

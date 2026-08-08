@@ -1,3 +1,7 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import kotlin.text.lowercase
+import java.nio.file.Path as NioPath
+
 plugins {
     kotlin("jvm") version "2.4.0"
     id("me.champeau.jmh") version "0.7.3"
@@ -5,19 +9,20 @@ plugins {
     id("org.jetbrains.dokka-javadoc") version "2.1.0"
 }
 
-group = "io.github.sooniln"
-version = "0.2.2"
-
 repositories {
     mavenCentral()
     mavenLocal()
 }
 
+group = "io.github.sooniln"
+version = "0.2.2"
+
 kotlin {
     jvmToolchain(17)
     compilerOptions {
-        freeCompilerArgs.add("-Xcontext-parameters")
+        jvmTarget.set(JvmTarget.JVM_17)
     }
+    explicitApi()
 }
 
 java {
@@ -38,181 +43,154 @@ dependencies {
     jmhImplementation(libs.jol)
 }
 
-private object Generate {
-    const val IN_DIR = "src/main/templates"
-    const val OUT_DIR = "src/generated/kotlin"
+private data class TemplateInstantiation(
+    val inputFile: String,
+    val expansions: List<Map<String, Any>>,
+    val outputFile: (Map<String, Any>) -> String,
+)
 
-    object HashSetTypes {
-        val Files = listOf(
-            "GraphHashSet.kte",
-        )
-        val Expansions = listOf(
-            mapOf("Type" to "Int"),
-            mapOf("Type" to "Long"),
-        )
-    }
+private fun Map<String, Any>.generateFullExpansion(): Map<String, Any> {
+    val map = this
+    return buildMap {
+        putAll(map)
 
-    object HashMapTypes {
-        val Files = listOf(
-            "GraphHashMap.kte",
-        )
-        val Expansions = listOf(
-            mapOf("KeyType" to "Int", "ValueType" to "Int", "DefaultValue" to "Int.MIN_VALUE"),
-            mapOf("KeyType" to "Int", "ValueType" to "Long", "DefaultValue" to "Long.MIN_VALUE"),
-            mapOf("KeyType" to "Int", "ValueType" to "V", "DefaultValue" to "null", "isReferenceValue" to true),
-        )
-    }
+        val type = map["Type"] as String?
+        if (type != null) {
+            putIfAbsent("lowerType", type.lowercase())
 
-    object FPHashMapTypes {
-        val Files = listOf(
-            "GraphFPHashMap.kte",
-        )
-        val Expansions = listOf(
-            mapOf("KeyType" to "Int", "ValueType" to "Float", "DefaultValue" to "Float.NaN"),
-            mapOf("KeyType" to "Int", "ValueType" to "Double", "DefaultValue" to "Double.NaN"),
-        )
-    }
-}
+            val isFPType = type == "Float" || type == "Double"
+            putIfAbsent("isFPType", isFPType)
+            if (isFPType) {
+                val nonFPType = if (type == "Float") "Int" else "Long"
+                putIfAbsent("NonFPType", nonFPType)
+                putIfAbsent("lowerNonFPType", nonFPType.lowercase())
+            }
+        }
 
-private fun List<Map<String, Any>>.generateFullExpansion(): List<Map<String, Any>> {
-    return map { expansion ->
-        buildMap {
-            putAll(expansion)
+        val kvType = map["KVType"] as String?
+        if (kvType != null) {
+            putIfAbsent("lowerKVType", kvType.lowercase())
+            putIfAbsent("Name", "${kvType}2${kvType}")
+            putIfAbsent("lowerName", "${get("lowerKVType")}2${kvType}")
 
-            val type = expansion["Type"] as String?
-            if (type != null) {
-                putIfAbsent("lowerType", type.lowercase())
-                putIfAbsent("subpackage", type.lowercase() + "s")
+            val arrayType = map["ArrayType"] as String?
+            if (arrayType != null) {
+                putIfAbsent("lowerArrayType", arrayType.lowercase())
+            }
+        }
 
-                val isFPType = type == "Float" || type == "Double"
-                putIfAbsent("isFPType", isFPType)
-                if (isFPType) {
-                    val nonFPType = if (type == "Float") "Int" else "Long"
-                    putIfAbsent("NonFPType", nonFPType)
-                    putIfAbsent("lowerNonFPType", nonFPType.lowercase())
-                }
+        val keyType = map["KeyType"] as String?
+        if (keyType != null) {
+            putIfAbsent("lowerKeyType", keyType.lowercase())
+
+            val isFPKey = keyType == "Float" || keyType == "Double"
+            putIfAbsent("isFPKey", isFPKey)
+            if (isFPKey) {
+                val nonFPKeyType = if (keyType == "Float") "Int" else "Long"
+                putIfAbsent("NonFPKeyType", nonFPKeyType)
+                putIfAbsent("lowerNonFPKeyType", nonFPKeyType.lowercase())
+            }
+        }
+
+        val valueType = map["ValueType"] as String?
+        if (valueType != null) {
+            putIfAbsent("lowerValueType", valueType.lowercase())
+
+            val isFPValue = valueType == "Float" || valueType == "Double"
+            putIfAbsent("isFPValue", isFPValue)
+            if (isFPValue) {
+                val nonFPValueType = if (valueType == "Float") "Int" else "Long"
+                putIfAbsent("NonFPValueType", nonFPValueType)
+                putIfAbsent("lowerNonFPValueType", nonFPValueType.lowercase())
+            }
+        }
+
+        if (keyType != null && valueType != null) {
+            val isReferenceValue = map["isReferenceValue"] as Boolean? ?: false
+            putIfAbsent("isReferenceValue", isReferenceValue)
+
+            if (isReferenceValue) {
+                putIfAbsent("Name", "${keyType}2Any")
+                putIfAbsent("lowerName", "${get("lowerKeyType")}2Any")
+                putIfAbsent("ValueCollectionType", "Collection")
+                putIfAbsent("ValueIteratorType", "Iterator")
+                putIfAbsent("Nullable", "?")
+                putIfAbsent("Generics", "<$valueType>")
+                putIfAbsent("StarGenerics", "<*>")
+            } else {
+                putIfAbsent("Name", "${keyType}2${valueType}")
+                putIfAbsent("lowerName", "${get("lowerKeyType")}2${valueType}")
+                putIfAbsent("ValueCollectionType", "${valueType}Collection")
+                putIfAbsent("ValueIteratorType", "${valueType}Iterator")
+                putIfAbsent("Nullable", "")
+                putIfAbsent("Generics", "")
+                putIfAbsent("StarGenerics", "")
             }
 
-            val keyType = expansion["KeyType"] as String?
-            if (keyType != null) {
-                putIfAbsent("lowerKeyType", keyType.lowercase())
-                putIfAbsent("keySubpackage", keyType.lowercase() + "s")
+            val isFPKeyOrValue = get("isFPKey") as Boolean || get("isFPValue") as Boolean
+            putIfAbsent("isFPKeyOrValue", isFPKeyOrValue)
+            if (isFPKeyOrValue) {
+                val nonFPKeyType = getOrElse("NonFPKeyType") { getValue("KeyType") } as String
+                val nonFPValueType = getOrElse("NonFPValueType") { getValue("ValueType") } as String
 
-                val isFPKey = keyType == "Float" || keyType == "Double"
-                putIfAbsent("isFPKey", isFPKey)
-                if (isFPKey) {
-                    val nonFPKeyType = if (keyType == "Float") "Int" else "Long"
-                    putIfAbsent("NonFPKeyType", nonFPKeyType)
-                    putIfAbsent("lowerNonFPKeyType", nonFPKeyType.lowercase())
-                }
-            }
-
-            val valueType = expansion["ValueType"] as String?
-            if (valueType != null) {
-                putIfAbsent("lowerValueType", valueType.lowercase())
-                putIfAbsent("valueSubpackage", valueType.lowercase() + "s")
-
-                val isFPValue = valueType == "Float" || valueType == "Double"
-                putIfAbsent("isFPValue", isFPValue)
-                if (isFPValue) {
-                    val nonFPValueType = if (valueType == "Float") "Int" else "Long"
-                    putIfAbsent("NonFPValueType", nonFPValueType)
-                    putIfAbsent("lowerNonFPValueType", nonFPValueType.lowercase())
-                }
-            }
-
-            if (keyType != null && valueType != null) {
-                putIfAbsent("subpackage", getValue("keySubpackage"))
-
-                val isReferenceValue = expansion["isReferenceValue"] as Boolean? ?: false
-                putIfAbsent("isReferenceValue", isReferenceValue)
-
-                if (isReferenceValue) {
-                    putIfAbsent("Name", "${keyType}2Any")
-                    putIfAbsent("lowerName", "${get("lowerKeyType")}2Any")
-                    putIfAbsent("ValueCollectionType", "Collection")
-                    putIfAbsent("ValueIteratorType", "Iterator")
-                    putIfAbsent("Nullable", "?")
-                    putIfAbsent("Generics", "<$valueType>")
-                } else {
-                    putIfAbsent("Name", "${keyType}2${valueType}")
-                    putIfAbsent("lowerName", "${get("lowerKeyType")}2${valueType}")
-                    putIfAbsent("ValueCollectionType", "${valueType}Collection")
-                    putIfAbsent("ValueIteratorType", "${valueType}Iterator")
-                    putIfAbsent("Nullable", "")
-                    putIfAbsent("Generics", "")
-                }
-
-                val isFPKeyOrValue = get("isFPKey") as Boolean || get("isFPValue") as Boolean
-                putIfAbsent("isFPKeyOrValue", isFPKeyOrValue)
-                if (isFPKeyOrValue) {
-                    val nonFPKeyType = getOrElse("NonFPKeyType") { getValue("KeyType") } as String
-                    val nonFPValueType = getOrElse("NonFPValueType") { getValue("ValueType") } as String
-
-                    put("NonFPName", "${nonFPKeyType}2${nonFPValueType}")
-                    putIfAbsent("lowerNonFPName", "${get("lowernonFPKeyType")}2${valueType}")
-                }
+                put("NonFPName", "${nonFPKeyType}2${nonFPValueType}")
+                putIfAbsent("lowerNonFPName", "${get("lowernonFPKeyType")}2${valueType}")
             }
         }
     }
 }
 
-private fun Sync.generate(
-    inputFiles: List<String>,
-    expansions: List<Map<String, Any>>,
-    dir: String,
-    outputFile: (String, Map<String, Any>) -> String
-) {
-    inputFiles.forEach { inputFile ->
-        expansions.forEach { expansion ->
-            into(dir) {
-                from("${Generate.IN_DIR}/$inputFile")
-                rename { filename -> outputFile(filename, expansion) }
-                expand(*expansion.toList().toTypedArray())
+private fun Sync.generate(sourceSet: String, templates: List<TemplateInstantiation>) {
+    templates.forEach { template ->
+        template.expansions.forEach { expansion ->
+            val fullExpansion = expansion.generateFullExpansion()
+            val path = NioPath.of(template.outputFile(fullExpansion))
+            val outputFolder = (path.parent ?: NioPath.of(".")).toString()
+            val outputFile = path.fileName.toString()
+            check(outputFile.endsWith(".kt")) { "$outputFile must end with .kt" }
+            into(outputFolder) {
+                from("src/$sourceSet/templates/${template.inputFile}")
+                rename { outputFile }
+                expand(*fullExpansion.toList().toTypedArray())
             }
         }
     }
 }
 
-tasks.register<Sync>("GenerateCollections") {
-    description = "Generates source code for primitively typed collection classes from templates."
+tasks.register<Sync>("GenerateMain") {
+    description = "Generates source code for templates in main."
     group = "build"
-    into(Generate.OUT_DIR)
+    into("src/mainGenerated/kotlin")
 
-    generate(
-        Generate.HashSetTypes.Files,
-        Generate.HashSetTypes.Expansions.generateFullExpansion(),
-        "primitives/collections"
-    )
-    { _, expansion ->
-        "Graph${expansion["Type"]}HashSet.kt"
-    }
-
-    generate(
-        Generate.HashMapTypes.Files,
-        Generate.HashMapTypes.Expansions.generateFullExpansion(),
-        "primitives/collections"
-    )
-    { _, expansion ->
-        "Graph${expansion["Name"]}HashMap.kt"
-    }
-
-    generate(
-        Generate.FPHashMapTypes.Files,
-        Generate.FPHashMapTypes.Expansions.generateFullExpansion(),
-        "primitives/collections"
-    )
-    { _, expansion ->
-        "Graph${expansion["Name"]}HashMap.kt"
-    }
+    generate("commonMain",
+        listOf(
+            TemplateInstantiation(
+                "GraphHashSet.kte",
+                listOf(
+                    mapOf("Type" to "Int"),
+                    mapOf("Type" to "Long"),
+                )) { expansion -> "primitives/collections/Graph${expansion["Type"]}HashSet.kt" },
+        TemplateInstantiation(
+            "GraphHashMap.kte",
+            listOf(
+                mapOf("KeyType" to "Int", "ValueType" to "Int", "DefaultValue" to "Int.MIN_VALUE"),
+                mapOf("KeyType" to "Int", "ValueType" to "Long", "DefaultValue" to "Long.MIN_VALUE"),
+                mapOf("KeyType" to "Int", "ValueType" to "V", "DefaultValue" to "null", "isReferenceValue" to true),
+            )) { expansion -> "primitives/collections/Graph${expansion["Name"]}HashMap.kt" },
+        TemplateInstantiation(
+            "GraphFPHashMap.kte",
+            listOf(
+                mapOf("KeyType" to "Int", "ValueType" to "Float", "DefaultValue" to "Float.NaN"),
+                mapOf("KeyType" to "Int", "ValueType" to "Double", "DefaultValue" to "Double.NaN"),
+            )) { expansion -> "primitives/collections/Graph${expansion["Name"]}HashMap.kt" },
+        ))
 }
 
 sourceSets {
     main {
-        kotlin.srcDir(tasks.named<Sync>("GenerateCollections"))
+        kotlin.srcDir(tasks.named<Sync>("GenerateMain"))
     }
 }
-
 
 tasks.named("compileJava", JavaCompile::class.java) {
     options.compilerArgumentProviders.add(CommandLineArgumentProvider {
@@ -239,7 +217,6 @@ dokka {
 
 tasks.test {
     useJUnitPlatform()
-
     enableAssertions = true
 }
 

@@ -21,16 +21,11 @@ import java.util.concurrent.TimeUnit
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 open class MutableNetworkBenchmark {
 
-    lateinit var graph: MutableGraph
-    lateinit var vertexId: VertexProperty<Int>
-    lateinit var edgeWeight: EdgeProperty<Float>
+    lateinit var graph: ValueGraph<Int, Float>
 
     @Setup
     fun setup() {
-        val g = Loader.loadMutableNetwork()
-        graph = g.graph
-        vertexId = g.vertexProperty
-        edgeWeight = g.edgeProperty
+        graph = Loader.loadMutableNetwork()
     }
 
     @OutputTimeUnit(TimeUnit.MICROSECONDS)
@@ -38,7 +33,7 @@ open class MutableNetworkBenchmark {
     fun vertices(): Int {
         var i = 0
         for (vertex in graph.vertices) {
-            i += vertex.intValue
+            i += vertex.id
         }
         return i
     }
@@ -48,7 +43,7 @@ open class MutableNetworkBenchmark {
     fun vertexValues(): Int {
         var i = 0
         for (vertex in graph.vertices) {
-            i += vertexId[vertex]
+            i += graph.vertexProperty[vertex]
         }
         return i
     }
@@ -57,7 +52,7 @@ open class MutableNetworkBenchmark {
     fun edges(): Long {
         var i = 0L
         for (edge in graph.edges) {
-            i += edge.longValue
+            i += edge.id
         }
         return i
     }
@@ -66,7 +61,7 @@ open class MutableNetworkBenchmark {
     fun edgeValues(): Double {
         var i = 0.0
         for (edge in graph.edges) {
-            i += edgeWeight[edge]
+            i += graph.edgeProperty[edge]
         }
         return i
     }
@@ -76,7 +71,7 @@ open class MutableNetworkBenchmark {
         var i = 0
         for (source in graph.vertices) {
             for (target in graph.successors(source)) {
-                i += target.intValue
+                i += target.id
             }
         }
         return i
@@ -99,7 +94,7 @@ open class MutableNetworkBenchmark {
         var i = 0.0
         for (source in graph.vertices) {
             for (edge in graph.outgoingEdges(source)) {
-                i += edgeWeight[edge]
+                i += graph.edgeProperty[edge]
             }
         }
         return i
@@ -109,11 +104,11 @@ open class MutableNetworkBenchmark {
     fun bfs(): Int {
         var n = 0
         for (vertex in Traversal.breadthFirst(graph, graph.vertices.first())) {
-            n += vertexId[vertex]
+            n += graph.vertexProperty[vertex]
         }
         return n
     }
 
     @Benchmark
-    fun dijkstras() = Utils.dijkstras(graph, edgeWeight, graph.vertices.first())
+    fun dijkstras() = Utils.dijkstras(graph, graph.edgeProperty, graph.vertices.first())
 }

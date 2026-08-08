@@ -21,14 +21,11 @@ import java.util.concurrent.TimeUnit
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 open class MutableSimpleGraphBenchmark {
 
-    lateinit var graph: MutableGraph
-    lateinit var vertexId: VertexProperty<Int>
+    lateinit var graph: ValueGraph<Int, Unit>
 
     @Setup
     fun setup() {
-        val g = Loader.loadMutableSimpleGraph()
-        graph = g.graph
-        vertexId = g.vertexProperty
+        graph = Loader.loadMutableSimpleGraph()
     }
 
     @OutputTimeUnit(TimeUnit.MICROSECONDS)
@@ -36,7 +33,7 @@ open class MutableSimpleGraphBenchmark {
     fun vertices(): Int {
         var i = 0
         for (vertex in graph.vertices) {
-            i += vertex.intValue
+            i += vertex.id
         }
         return i
     }
@@ -46,7 +43,7 @@ open class MutableSimpleGraphBenchmark {
     fun vertexValues(): Int {
         var i = 0
         for (vertex in graph.vertices) {
-            i += vertexId[vertex]
+            i += graph.vertexProperty[vertex]
         }
         return i
     }
@@ -66,7 +63,7 @@ open class MutableSimpleGraphBenchmark {
         var i = 0
         for (source in graph.vertices) {
             for (target in graph.successors(source)) {
-                i += target.intValue
+                i += target.id
             }
         }
         return i
@@ -88,7 +85,7 @@ open class MutableSimpleGraphBenchmark {
     fun bfs(): Int {
         var n = 0
         for (vertex in Traversal.breadthFirst(graph, graph.vertices.first())) {
-            n += vertexId[vertex]
+            n += graph.vertexProperty[vertex]
         }
         return n
     }

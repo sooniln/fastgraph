@@ -38,7 +38,7 @@ open class ImmutableNetworkBenchmark {
     fun vertices(): Int {
         var i = 0
         for (vertex in graph.vertices) {
-            i += vertex.intValue
+            i += vertex.id
         }
         return i
     }
@@ -57,7 +57,7 @@ open class ImmutableNetworkBenchmark {
     fun edges(): Long {
         var i = 0L
         for (edge in graph.edges) {
-            i += edge.longValue
+            i += edge.id
         }
         return i
     }
@@ -76,7 +76,7 @@ open class ImmutableNetworkBenchmark {
         var i = 0
         for (source in graph.vertices) {
             for (target in graph.successors(source)) {
-                i += target.intValue
+                i += target.id
             }
         }
         return i

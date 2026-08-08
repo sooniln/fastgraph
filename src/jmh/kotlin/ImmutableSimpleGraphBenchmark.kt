@@ -36,7 +36,7 @@ open class ImmutableSimpleGraphBenchmark {
     fun vertices(): Int {
         var i = 0
         for (vertex in graph.vertices) {
-            i += vertex.intValue
+            i += vertex.id
         }
         return i
     }
@@ -66,7 +66,7 @@ open class ImmutableSimpleGraphBenchmark {
         var i = 0
         for (source in graph.vertices) {
             for (target in graph.successors(source)) {
-                i += target.intValue
+                i += target.id
             }
         }
         return i

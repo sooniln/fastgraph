@@ -95,7 +95,7 @@ class JvmNameConsistencyTest {
     }
 
     @Test
-    fun `JvmName does not silently diverge from the Kotlin declared name`() {
+    fun mismatchBetweenJvmNameAndKotlinName() {
         val violations = mutableListOf<String>()
 
         for (clazz in libraryClasses()) {

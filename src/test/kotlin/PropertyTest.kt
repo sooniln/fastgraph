@@ -1,7 +1,6 @@
 package io.github.sooniln.fastgraph
 
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
 
@@ -9,25 +8,28 @@ class PropertyTest {
 
     enum class GraphType {
         MUTABLE_GRAPH {
-            override fun loadGraph(): Graph = mutableGraph(true, builderAction = build())
+            override fun loadGraph(): Graph = Graphs.buildGraph(true, builder = build())
         },
         MUTABLE_NETWORK {
-            override fun loadGraph(): Graph = mutableGraph(true, supportMultiEdge = true, builderAction = build())
+            override fun loadGraph(): Graph = Graphs.buildGraph(true, multiEdge = true, builder = build())
         },
         IMMUTABLE_GRAPH {
-            override fun loadGraph(): Graph = immutableGraph(true, builderAction = build())
+            override fun loadGraph(): Graph = ImmutableGraphs.buildImmutableGraph(true, builder = build())
         },
         IMMUTABLE_NETWORK {
-            override fun loadGraph(): Graph = immutableGraph(true, supportMultiEdge = true, builderAction = build())
+            override fun loadGraph(): Graph = ImmutableGraphs.buildImmutableGraph(true, multiEdge = true, builder = build())
         };
 
         abstract fun loadGraph(): Graph
 
-        protected fun build(): GraphMutator<String, Nothing>.() -> Unit = {
-            addEdge("v0", "v1")
-            addEdge("v1", "v2")
-            addEdge("v2", "v0")
-            addEdge("v0", "v0")
+        protected fun build(): GraphBuilder.() -> Unit = {
+            val v0 = addVertex()
+            val v1 = addVertex()
+            val v2 = addVertex()
+            addEdge(v0, v1)
+            addEdge(v1, v2)
+            addEdge(v2, v0)
+            addEdge(v0, v0)
         }
     }
 
@@ -45,8 +47,6 @@ class PropertyTest {
             property[vertex] = false
             assertThat(property[vertex]).isFalse()
         }
-
-        assertThrows<IllegalArgumentException> { property[Vertex(99)] }
     }
 
     @ParameterizedTest
@@ -70,8 +70,6 @@ class PropertyTest {
             assertThat(property[vertex]).isEqualTo(c)
             c *= 2
         }
-
-        assertThrows<IllegalArgumentException> { property[Vertex(99)] }
     }
 
     @ParameterizedTest
@@ -95,8 +93,6 @@ class PropertyTest {
             assertThat(property[vertex]).isEqualTo(c)
             c *= 2
         }
-
-        assertThrows<IllegalArgumentException> { property[Vertex(99)] }
     }
 
     @ParameterizedTest
@@ -120,8 +116,6 @@ class PropertyTest {
             assertThat(property[vertex]).isEqualTo(c)
             c *= 2
         }
-
-        assertThrows<IllegalArgumentException> { property[Vertex(99)] }
     }
 
     @ParameterizedTest
@@ -145,8 +139,6 @@ class PropertyTest {
             assertThat(property[vertex]).isEqualTo(c)
             c *= 2
         }
-
-        assertThrows<IllegalArgumentException> { property[Vertex(99)] }
     }
 
     @ParameterizedTest
@@ -166,8 +158,6 @@ class PropertyTest {
         for (vertex in graph.vertices) {
             assertThat(property[vertex]).isEqualTo("test$vertex")
         }
-
-        assertThrows<IllegalArgumentException> { property[Vertex(99)] }
     }
 
     @ParameterizedTest
@@ -184,8 +174,6 @@ class PropertyTest {
             property[edge] = false
             assertThat(property[edge]).isFalse()
         }
-
-        assertThrows<IllegalArgumentException> { property[Edge(99L)] }
     }
 
     @ParameterizedTest
@@ -209,8 +197,6 @@ class PropertyTest {
             assertThat(property[edge]).isEqualTo(c)
             c *= 2
         }
-
-        assertThrows<IllegalArgumentException> { property[Edge(99L)] }
     }
 
     @ParameterizedTest
@@ -234,8 +220,6 @@ class PropertyTest {
             assertThat(property[edge]).isEqualTo(c)
             c *= 2
         }
-
-        assertThrows<IllegalArgumentException> { property[Edge(99L)] }
     }
 
     @ParameterizedTest
@@ -259,8 +243,6 @@ class PropertyTest {
             assertThat(property[edge]).isEqualTo(c)
             c *= 2
         }
-
-        assertThrows<IllegalArgumentException> { property[Edge(99L)] }
     }
 
     @ParameterizedTest
@@ -284,8 +266,6 @@ class PropertyTest {
             assertThat(property[edge]).isEqualTo(c)
             c *= 2
         }
-
-        assertThrows<IllegalArgumentException> { property[Edge(99L)] }
     }
 
     @ParameterizedTest
@@ -305,7 +285,5 @@ class PropertyTest {
         for (edge in graph.edges) {
             assertThat(property[edge]).isEqualTo("test$edge")
         }
-
-        assertThrows<IllegalArgumentException> { property[Edge(99L)] }
     }
 }

@@ -1,5 +1,6 @@
 package io.github.sooniln.fastgraph.primitives
 
+import io.github.sooniln.fastcollect.ints.Int2IntHashMap
 import org.openjdk.jmh.annotations.Benchmark
 import org.openjdk.jmh.annotations.BenchmarkMode
 import org.openjdk.jmh.annotations.Fork
@@ -74,7 +75,7 @@ open class Int2IntHashMapBenchmark {
     @Benchmark
     fun iterate(): Int {
         var c = 0
-        for (i in map.primitiveEntries) {
+        for (i in map) {
             c += i.key + i.value
         }
         return c

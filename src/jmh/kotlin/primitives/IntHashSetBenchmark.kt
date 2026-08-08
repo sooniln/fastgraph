@@ -1,5 +1,6 @@
 package io.github.sooniln.fastgraph.primitives
 
+import io.github.sooniln.fastcollect.ints.IntHashSet
 import org.openjdk.jmh.annotations.Benchmark
 import org.openjdk.jmh.annotations.BenchmarkMode
 import org.openjdk.jmh.annotations.Fork

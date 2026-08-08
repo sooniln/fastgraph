@@ -14,6 +14,7 @@ import io.github.sooniln.fastcollect.${keySubpackage}.${KeyType}Consumer
 import io.github.sooniln.fastcollect.${keySubpackage}.${KeyType}${ValueType}Consumer
 import io.github.sooniln.fastcollect.${valueSubpackage}.Mutable${ValueType}Collection
 <% if (KeyType != ValueType) { %>
+import io.github.sooniln.fastcollect.${valueSubpackage}.${ValueType}Consumer
 import io.github.sooniln.fastcollect.${valueSubpackage}.Mutable${ValueType}Iterator
 <% } %>
 <% } else { %>

@@ -6,7 +6,7 @@ package io.github.sooniln.fastgraph
  * a less efficient representation than [Edge], in terms of both memory and CPU. Prefer [Edge] unless reference
  * stability across mutations is a requirement.
  */
-interface EdgeReference {
+public interface EdgeReference {
 
     /**
      * An unstable [Edge] reference corresponding to this stable reference.
@@ -15,14 +15,14 @@ interface EdgeReference {
     //   overrides of this method
     @Suppress("INAPPLICABLE_JVM_NAME")
     @get:JvmName("unstable")
-    val unstable: Edge
+    public val unstable: Edge
 }
 
 /**
  * See [Graph.edgeSource].
  */
 context(graph: Graph)
-val EdgeReference.source
+public val EdgeReference.source: Vertex
     @JvmSynthetic @JvmName("#EdgeReference_source") inline get() = graph.edgeSource(
         unstable
     )
@@ -31,7 +31,7 @@ val EdgeReference.source
  * See [Graph.edgeTarget].
  */
 context(graph: Graph)
-val EdgeReference.target
+public val EdgeReference.target: Vertex
     @JvmSynthetic @JvmName("#EdgeReference_target") inline get() = graph.edgeTarget(
         unstable
     )
@@ -42,22 +42,22 @@ val EdgeReference.target
 @JvmSynthetic
 @JvmName("#EdgeReference_opposite")
 context(graph: Graph)
-fun EdgeReference.opposite(other: Vertex) = graph.edgeOpposite(unstable, other)
+public fun EdgeReference.opposite(other: Vertex): Vertex = graph.edgeOpposite(unstable, other)
 
 /**
  * Returns the index of this edge in [IndexedEdgeGraph.edges].
  */
 context(graph: IndexedEdgeGraph)
-val EdgeReference.index: Int
+public val EdgeReference.index: Int
     @JvmSynthetic @JvmName("#EdgeReference_index")
     inline get() = graph.edges.indexOf(unstable)
 
 @JvmSynthetic
 @JvmName("#EdgeReference_component1")
 context(graph: Graph)
-operator fun EdgeReference.component1(): Vertex = source
+public operator fun EdgeReference.component1(): Vertex = source
 
 @JvmSynthetic
 @JvmName("#EdgeReference_component2")
 context(graph: Graph)
-operator fun EdgeReference.component2(): Vertex = target
+public operator fun EdgeReference.component2(): Vertex = target

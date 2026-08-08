@@ -8,6 +8,7 @@ import org.junit.jupiter.params.provider.ValueSource
 class UndirectedNetworkTest {
 
     private lateinit var graph: Graph
+    private lateinit var valueGraph: ValueGraph<String, Float>
     private lateinit var vertexName: VertexProperty<String>
     private lateinit var edgeWeight: EdgeProperty<Float>
     private var v0: Vertex = Vertex(-1)
@@ -21,31 +22,20 @@ class UndirectedNetworkTest {
     private var e4: Edge = Edge(-1)
 
     private fun constructGraph(immutable: Boolean) {
-        if (immutable) {
-            val immutable =
-                immutableGraphBuilder<String, Float>(false, supportMultiEdge = true)
-                    .withVertexProperty()
-                    .withEdgeProperty()
-                    .buildPropertyGraph {
-                        v0 = addVertex("v0")
-                        v1 = addVertex("v1")
-                        v2 = addVertex("v2")
-                        v3 = addVertex("v3")
-                        e0 = addEdge("v0", "v1", 1.5f)
-                        e1 = addEdge("v1", "v2", 2.0f)
-                        e2 = addEdge("v2", "v0", 2.1f)
-                        e3 = addEdge("v0", "v0", 1.0f)
-                        e4 = addEdge("v0", "v0", 3.0f)
-                    }
-            graph = immutable.graph
-            vertexName = immutable.vertexProperty
-            edgeWeight = immutable.edgeProperty
+        valueGraph = if (immutable) {
+            ImmutableGraphs.buildImmutableValueGraph<String, Float>(false, { "" }, { 0f }, multiEdge = true) {
+                v0 = addVertex("v0")
+                v1 = addVertex("v1")
+                v2 = addVertex("v2")
+                v3 = addVertex("v3")
+                e0 = addEdge("v0", "v1", 1.5f)
+                e1 = addEdge("v1", "v2", 2.0f)
+                e2 = addEdge("v2", "v0", 2.1f)
+                e3 = addEdge("v0", "v0", 1.0f)
+                e4 = addEdge("v0", "v0", 3.0f)
+            }
         } else {
-            val n = mutableGraph(false, multiEdge = true)
-            graph = n
-            vertexName = graph.createVertexProperty { "" }
-            edgeWeight = graph.createEdgeProperty { 0f }
-            buildGraph(n, vertexName, edgeWeight) {
+            Graphs.buildValueGraph<String, Float>(false, { "" }, { 0f }, multiEdge = true) {
                 v0 = addVertex("v0")
                 v1 = addVertex("v1")
                 v2 = addVertex("v2")
@@ -57,6 +47,9 @@ class UndirectedNetworkTest {
                 e4 = addEdge("v0", "v0", 3.0f)
             }
         }
+        graph = valueGraph.graph
+        vertexName = valueGraph.vertexProperty
+        edgeWeight = valueGraph.edgeProperty
     }
 
     @ParameterizedTest(name = "immutable={0}")
@@ -64,7 +57,7 @@ class UndirectedNetworkTest {
     fun vertices(immutable: Boolean) {
         constructGraph(immutable)
 
-        context(graph, vertexName) {
+        context(valueGraph) {
             assertThat(graph.vertices).containsExactlyInAnyOrder(v0, v1, v2, v3)
             assertThat(graph.vertices.size).isEqualTo(graph.vertices.iterator().asSequence().count())
             assertThat(graph.vertices.contains(v0)).isTrue
@@ -74,10 +67,10 @@ class UndirectedNetworkTest {
 
             assertThrows<IllegalArgumentException> { graph.vertices.contains(Vertex(99)) }
 
-            assertThat(v0.property).isEqualTo("v0")
-            assertThat(v1.property).isEqualTo("v1")
-            assertThat(v2.property).isEqualTo("v2")
-            assertThat(v3.property).isEqualTo("v3")
+            assertThat(v0.value).isEqualTo("v0")
+            assertThat(v1.value).isEqualTo("v1")
+            assertThat(v2.value).isEqualTo("v2")
+            assertThat(v3.value).isEqualTo("v3")
         }
     }
 
@@ -284,7 +277,7 @@ class UndirectedNetworkTest {
     fun edges(immutable: Boolean) {
         constructGraph(immutable)
 
-        context(graph, edgeWeight) {
+        context(valueGraph) {
             assertThat(graph.edges).containsExactlyInAnyOrder(e0, e1, e2, e3, e4)
             assertThat(graph.edges.size).isEqualTo(graph.edges.iterator().asSequence().count())
             assertThat(graph.edges.contains(e0)).isTrue
@@ -295,11 +288,11 @@ class UndirectedNetworkTest {
 
             assertThrows<IllegalArgumentException> { graph.edges.contains(Edge(99L)) }
 
-            assertThat(e0.property).isEqualTo(1.5f)
-            assertThat(e1.property).isEqualTo(2.0f)
-            assertThat(e2.property).isEqualTo(2.1f)
-            assertThat(e3.property).isEqualTo(1.0f)
-            assertThat(e4.property).isEqualTo(3.0f)
+            assertThat(e0.value).isEqualTo(1.5f)
+            assertThat(e1.value).isEqualTo(2.0f)
+            assertThat(e2.value).isEqualTo(2.1f)
+            assertThat(e3.value).isEqualTo(1.0f)
+            assertThat(e4.value).isEqualTo(3.0f)
         }
     }
 

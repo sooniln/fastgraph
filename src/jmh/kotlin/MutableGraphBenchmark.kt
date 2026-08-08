@@ -21,16 +21,11 @@ import java.util.concurrent.TimeUnit
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 open class MutableGraphBenchmark {
 
-    lateinit var graph: MutableGraph
-    lateinit var vertexId: VertexProperty<Int>
-    lateinit var edgeWeight: EdgeProperty<Float>
+    lateinit var graph: ValueGraph<Int, Float>
 
     @Setup
     fun setup() {
-        val g = Loader.loadMutableGraph()
-        graph = g.graph
-        vertexId = g.vertexProperty
-        edgeWeight = g.edgeProperty
+        graph = Loader.loadMutableGraph()
     }
 
     @OutputTimeUnit(TimeUnit.MICROSECONDS)
@@ -38,7 +33,7 @@ open class MutableGraphBenchmark {
     fun vertices(): Int {
         var i = 0
         for (vertex in graph.vertices) {
-            i += vertex.intValue
+            i += vertex.id
         }
         return i
     }
@@ -48,7 +43,7 @@ open class MutableGraphBenchmark {
     fun vertexValues(): Int {
         var i = 0
         for (vertex in graph.vertices) {
-            i += vertexId[vertex]
+            i += graph.vertexProperty[vertex]
         }
         return i
     }
@@ -67,7 +62,7 @@ open class MutableGraphBenchmark {
     fun edgeValues(): Double {
         var i = 0.0
         for (edge in graph.edges) {
-            i += edgeWeight[edge]
+            i += graph.edgeProperty[edge]
         }
         return i
     }
@@ -77,7 +72,7 @@ open class MutableGraphBenchmark {
         var i = 0
         for (source in graph.vertices) {
             for (target in graph.successors(source)) {
-                i += target.intValue
+                i += target.id
             }
         }
         return i
@@ -100,7 +95,7 @@ open class MutableGraphBenchmark {
         var i = 0.0
         for (source in graph.vertices) {
             for (edge in graph.outgoingEdges(source)) {
-                i += edgeWeight[edge]
+                i += graph.edgeProperty[edge]
             }
         }
         return i
@@ -110,11 +105,11 @@ open class MutableGraphBenchmark {
     fun bfs(): Int {
         var n = 0
         for (vertex in Traversal.breadthFirst(graph, graph.vertices.first())) {
-            n += vertexId[vertex]
+            n += graph.vertexProperty[vertex]
         }
         return n
     }
 
     @Benchmark
-    fun dijkstras() = Utils.dijkstras(graph, edgeWeight, graph.vertices.first())
+    fun dijkstras() = Utils.dijkstras(graph, graph.edgeProperty, graph.vertices.first())
 }

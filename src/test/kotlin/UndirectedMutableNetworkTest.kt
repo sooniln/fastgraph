@@ -6,35 +6,13 @@ import org.junit.jupiter.api.assertThrows
 
 class UndirectedMutableNetworkTest {
 
-    private val graph = mutableGraph(false, multiEdge = true)
+    private val graph = Graphs.mutableGraph(false, multiEdge = true)
     private val vertexProperty = graph.createVertexProperty<String>()
     private val edgeProperty = graph.createEdgeProperty<String>()
 
     @Test
     fun multiEdge() {
-        context(graph) {
-            assertThat(graph.multiEdge).isFalse
-
-            val v1 = graph.addVertex()
-            val v2 = graph.addVertex()
-            assertThat(graph.multiEdge).isFalse
-
-            val e1 = graph.addEdge(v1, v1).createReference()
-            val e2 = graph.addEdge(v1, v2).createReference()
-            assertThat(graph.multiEdge).isFalse
-
-            graph.addEdge(v1, v1)
-            assertThat(graph.multiEdge).isTrue
-
-            graph.addEdge(v1, v2)
-            assertThat(graph.multiEdge).isTrue
-
-            graph.removeEdge(e1)
-            assertThat(graph.multiEdge).isTrue
-
-            graph.removeEdge(e2)
-            assertThat(graph.multiEdge).isFalse
-        }
+        assertThat(graph.multiEdge).isTrue
     }
 
     @Test
@@ -76,21 +54,21 @@ class UndirectedMutableNetworkTest {
             val v3 = graph.addVertex().createReference()
             vertexProperty[v3] = "v3"
 
-            val e1 = graph.addEdge(v1, v2).createReference()
+            val e1 = graph.addEdge(v1, v2).reference()
             edgeProperty[e1] = "e1"
-            val e2 = graph.addEdge(v2, v1).createReference()
+            val e2 = graph.addEdge(v2, v1).reference()
             edgeProperty[e2] = "e2"
-            val e3 = graph.addEdge(v2, v3).createReference()
+            val e3 = graph.addEdge(v2, v3).reference()
             edgeProperty[e3] = "e3"
-            val e4 = graph.addEdge(v2, v2).createReference()
+            val e4 = graph.addEdge(v2, v2).reference()
             edgeProperty[e4] = "e4"
-            val e5 = graph.addEdge(v2, v2).createReference()
+            val e5 = graph.addEdge(v2, v2).reference()
             edgeProperty[e5] = "e5"
-            val e6 = graph.addEdge(v1, v3).createReference()
+            val e6 = graph.addEdge(v1, v3).reference()
             edgeProperty[e6] = "e6"
-            val e7 = graph.addEdge(v3, v3).createReference()
+            val e7 = graph.addEdge(v3, v3).reference()
             edgeProperty[e7] = "e7"
-            val e8 = graph.addEdge(v3, v3).createReference()
+            val e8 = graph.addEdge(v3, v3).reference()
             edgeProperty[e8] = "e8"
 
             val it = graph.vertices.iterator()
@@ -128,21 +106,21 @@ class UndirectedMutableNetworkTest {
             val v3 = graph.addVertex().createReference()
             vertexProperty[v3] = "v3"
 
-            val e1 = graph.addEdge(v1, v2).createReference()
+            val e1 = graph.addEdge(v1, v2).reference()
             edgeProperty[e1] = "e1"
-            val e2 = graph.addEdge(v2, v1).createReference()
+            val e2 = graph.addEdge(v2, v1).reference()
             edgeProperty[e2] = "e2"
-            val e3 = graph.addEdge(v2, v3).createReference()
+            val e3 = graph.addEdge(v2, v3).reference()
             edgeProperty[e3] = "e3"
-            val e4 = graph.addEdge(v2, v2).createReference()
+            val e4 = graph.addEdge(v2, v2).reference()
             edgeProperty[e4] = "e4"
-            val e5 = graph.addEdge(v2, v2).createReference()
+            val e5 = graph.addEdge(v2, v2).reference()
             edgeProperty[e5] = "e5"
-            val e6 = graph.addEdge(v1, v3).createReference()
+            val e6 = graph.addEdge(v1, v3).reference()
             edgeProperty[e6] = "e6"
-            val e7 = graph.addEdge(v3, v3).createReference()
+            val e7 = graph.addEdge(v3, v3).reference()
             edgeProperty[e7] = "e7"
-            val e8 = graph.addEdge(v3, v3).createReference()
+            val e8 = graph.addEdge(v3, v3).reference()
             edgeProperty[e8] = "e8"
 
             graph.removeVertex(v2)
@@ -203,21 +181,21 @@ class UndirectedMutableNetworkTest {
             val v3 = graph.addVertex().createReference()
             vertexProperty[v3] = "v3"
 
-            val e1 = graph.addEdge(v1, v2).createReference()
+            val e1 = graph.addEdge(v1, v2).reference()
             edgeProperty[e1] = "e1"
-            val e2 = graph.addEdge(v2, v1).createReference()
+            val e2 = graph.addEdge(v2, v1).reference()
             edgeProperty[e2] = "e2"
-            val e3 = graph.addEdge(v2, v3).createReference()
+            val e3 = graph.addEdge(v2, v3).reference()
             edgeProperty[e3] = "e3"
-            val e4 = graph.addEdge(v2, v2).createReference()
+            val e4 = graph.addEdge(v2, v2).reference()
             edgeProperty[e4] = "e4"
-            val e5 = graph.addEdge(v2, v2).createReference()
+            val e5 = graph.addEdge(v2, v2).reference()
             edgeProperty[e5] = "e5"
-            val e6 = graph.addEdge(v1, v3).createReference()
+            val e6 = graph.addEdge(v1, v3).reference()
             edgeProperty[e6] = "e6"
-            val e7 = graph.addEdge(v3, v3).createReference()
+            val e7 = graph.addEdge(v3, v3).reference()
             edgeProperty[e7] = "e7"
-            val e8 = graph.addEdge(v3, v3).createReference()
+            val e8 = graph.addEdge(v3, v3).reference()
             edgeProperty[e8] = "e8"
 
             val it = graph.edges.iterator()
@@ -284,12 +262,12 @@ class UndirectedMutableNetworkTest {
             val v2 = graph.addVertex()
             assertThat(graph.edges).isEmpty()
 
-            val e1 = graph.addEdge(v1, v2).createReference()
+            val e1 = graph.addEdge(v1, v2).reference()
             assertThat(graph.edges).containsExactlyInAnyOrder(e1.unstable)
             assertThat(graph.edgeSource(e1)).isEqualTo(v1)
             assertThat(graph.edgeTarget(e1)).isEqualTo(v2)
 
-            val e2 = graph.addEdge(v1, v2).createReference()
+            val e2 = graph.addEdge(v1, v2).reference()
             assertThat(graph.edges).containsExactlyInAnyOrder(e1.unstable, e2.unstable)
             assertThat(graph.edgeSource(e2)).isEqualTo(v1)
             assertThat(graph.edgeTarget(e2)).isEqualTo(v2)

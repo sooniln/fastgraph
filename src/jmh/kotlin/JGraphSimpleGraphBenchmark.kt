@@ -1,7 +1,7 @@
 package io.github.sooniln.fastgraph
 
-import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap
-import it.unimi.dsi.fastutil.ints.IntArrayFIFOQueue
+import io.github.sooniln.fastcollect.ints.Int2IntHashMap
+import io.github.sooniln.fastcollect.ints.IntArrayDeque
 import org.jgrapht.Graphs
 import org.jgrapht.graph.DefaultEdge
 import org.jgrapht.traverse.BreadthFirstIterator
@@ -96,25 +96,25 @@ open class JGraphSimpleGraphBenchmark {
 
     private class BFSIterator(private val graph: org.jgrapht.Graph<Int, *>, start: Int) : IntIterator() {
 
-        private val visited = Int2IntOpenHashMap(graph.vertexSet().size)
-        private val queue = IntArrayFIFOQueue()
+        private val visited = Int2IntHashMap(graph.vertexSet().size)
+        private val queue = IntArrayDeque()
 
         init {
-            queue.enqueue(start)
+            queue.addLast(start)
             visited[start] = 1
         }
 
         override fun nextInt(): Int {
-            val next = queue.dequeueInt()
+            val next = queue.removeFirst()
             for (vertexId in Graphs.successorListOf(graph, next)) {
                 if (visited[vertexId] != 1) {
                     visited[vertexId] = 1
-                    queue.enqueue(vertexId)
+                    queue.addLast(vertexId)
                 }
             }
             return next
         }
 
-        override fun hasNext(): Boolean = !queue.isEmpty
+        override fun hasNext(): Boolean = !queue.isEmpty()
     }
 }

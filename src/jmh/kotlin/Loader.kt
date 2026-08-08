@@ -3,12 +3,15 @@ package io.github.sooniln.fastgraph
 import com.google.common.graph.GraphBuilder
 import com.google.common.graph.NetworkBuilder
 import com.google.common.graph.ValueGraphBuilder
+import io.github.sooniln.fastgraph.Graphs.buildValueGraph
+import io.github.sooniln.fastgraph.ImmutableGraphs.buildImmutableValueGraph
 import org.jgrapht.Graphs
 import org.jgrapht.graph.DefaultEdge
 import org.jgrapht.graph.builder.GraphTypeBuilder
 import java.util.zip.ZipInputStream
 import kotlin.random.Random
 
+@Suppress("UnstableApiUsage")
 object Loader {
 
     private const val RANDOM_SEED = 10099
@@ -116,9 +119,9 @@ object Loader {
         return@load graph
     }
 
-    fun loadImmutableSimpleGraph(): PropertyGraph<ImmutableGraph, Int, Nothing> =
+    fun loadImmutableSimpleGraph(): ImmutableValueGraph<Int, Unit> =
         load { numVertices, numEdges, lineSequence ->
-            val g = immutableGraphBuilder<Int, Nothing>(false).withVertexProperty().buildPropertyGraph {
+            val g = buildImmutableValueGraph(false, 0, Unit) {
                 ensureVertexCapacity(numVertices)
                 ensureEdgeCapacity(numEdges)
                 lineSequence.forEach { (v1, v2, _) -> addEdge(v1, v2) }
@@ -130,8 +133,8 @@ object Loader {
             return@load g
         }
 
-    fun loadImmutableGraph(): PropertyGraph<ImmutableGraph, Int, Float> = load { numVertices, numEdges, lineSequence ->
-        val g = immutableGraphBuilder<Int, Float>(false).withVertexProperty().withEdgeProperty().buildPropertyGraph {
+    fun loadImmutableGraph(): ImmutableValueGraph<Int, Float> = load { numVertices, numEdges, lineSequence ->
+        val g = buildImmutableValueGraph(false, 0, 0f) {
             ensureVertexCapacity(numVertices)
             ensureEdgeCapacity(numEdges)
             lineSequence.forEach { (v1, v2, e) -> addEdge(v1, v2, e) }
@@ -143,10 +146,8 @@ object Loader {
         return@load g
     }
 
-    fun loadImmutableNetwork(): PropertyGraph<ImmutableGraph, Int, Float> =
-        load { numVertices, numEdges, lineSequence ->
-            val g = immutableGraphBuilder<Int, Float>(false, supportMultiEdge = true).withVertexProperty()
-                .withEdgeProperty().buildPropertyGraph {
+    fun loadImmutableNetwork(): ImmutableValueGraph<Int, Float> = load { numVertices, numEdges, lineSequence ->
+            val g = buildImmutableValueGraph(false, 0, 0f, multiEdge = true) {
             ensureVertexCapacity(numVertices)
             ensureEdgeCapacity(numEdges)
             lineSequence.forEach { (v1, v2, e) -> addEdge(v1, v2, e) }
@@ -158,11 +159,8 @@ object Loader {
         return@load g
     }
 
-    fun loadMutableSimpleGraph(): PropertyGraph<MutableGraph, Int, Nothing> =
-        load { numVertices, numEdges, lineSequence ->
-        val graph = mutableGraph(false)
-        val vertexProperty = graph.createVertexProperty<Int> { 0 }
-        buildGraph<Int, Float>(graph, vertexProperty) {
+    fun loadMutableSimpleGraph(): ValueGraph<Int, Unit> = load { numVertices, numEdges, lineSequence ->
+        val graph = buildValueGraph(false, 0, Unit) {
             ensureVertexCapacity(numVertices)
             ensureEdgeCapacity(numEdges)
             lineSequence.forEach { (v1, v2) -> addEdge(v1, v2) }
@@ -171,14 +169,11 @@ object Loader {
         check(graph.vertices.size == NUM_VERTICES)
         check(graph.edges.size == NUM_EDGES)
 
-            return PropertyGraph(graph, vertexProperty, nothingEdgeProperty(graph))
+        return@load graph
     }
 
-    fun loadMutableGraph(): PropertyGraph<MutableGraph, Int, Float> = load { numVertices, numEdges, lineSequence ->
-        val graph = mutableGraph(false)
-        val vertexProperty = graph.createVertexProperty<Int> { 0 }
-        val edgeProperty = graph.createEdgeProperty<Float> { 0f }
-        buildGraph(graph, vertexProperty, edgeProperty) {
+    fun loadMutableGraph(): ValueGraph<Int, Float> = load { numVertices, numEdges, lineSequence ->
+        val graph = buildValueGraph(false, 0, 0f) {
             ensureVertexCapacity(numVertices)
             ensureEdgeCapacity(numEdges)
             lineSequence.forEach { (v1, v2, e) -> addEdge(v1, v2, e) }
@@ -187,14 +182,11 @@ object Loader {
         check(graph.vertices.size == NUM_VERTICES)
         check(graph.edges.size == NUM_EDGES)
 
-        return PropertyGraph(graph, vertexProperty, edgeProperty)
+        return@load graph
     }
 
-    fun loadMutableNetwork(): PropertyGraph<MutableGraph, Int, Float> = load { numVertices, numEdges, lineSequence ->
-        val graph = mutableGraph(false, multiEdge = true)
-        val vertexProperty = graph.createVertexProperty<Int> { 0 }
-        val edgeProperty = graph.createEdgeProperty<Float> { 0f }
-        buildGraph(graph, vertexProperty, edgeProperty) {
+    fun loadMutableNetwork(): ValueGraph<Int, Float> = load { numVertices, numEdges, lineSequence ->
+        val graph = buildValueGraph(false, 0, 0f, multiEdge = true) {
             ensureVertexCapacity(numVertices)
             ensureEdgeCapacity(numEdges)
             lineSequence.forEach { (v1, v2, e) -> addEdge(v1, v2, e) }
@@ -203,7 +195,7 @@ object Loader {
         check(graph.vertices.size == NUM_VERTICES)
         check(graph.edges.size == NUM_EDGES)
 
-        return PropertyGraph(graph, vertexProperty, edgeProperty)
+        return@load graph
     }
 
     private inline fun <T> load(loader: (Int, Int, Sequence<Edge>) -> T): T {

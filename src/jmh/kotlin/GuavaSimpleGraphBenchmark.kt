@@ -1,8 +1,8 @@
 package io.github.sooniln.fastgraph
 
 import com.google.common.graph.Traverser
-import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap
-import it.unimi.dsi.fastutil.ints.IntArrayFIFOQueue
+import io.github.sooniln.fastcollect.ints.Int2IntHashMap
+import io.github.sooniln.fastcollect.ints.IntArrayDeque
 import org.openjdk.jmh.annotations.Benchmark
 import org.openjdk.jmh.annotations.BenchmarkMode
 import org.openjdk.jmh.annotations.Fork
@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
+@Suppress("UnstableApiUsage")
 open class GuavaSimpleGraphBenchmark {
 
     lateinit var graph: com.google.common.graph.ImmutableGraph<Int>
@@ -95,25 +96,25 @@ open class GuavaSimpleGraphBenchmark {
     private class BFSIterator(private val graph: com.google.common.graph.ImmutableGraph<Int>, start: Int) :
         IntIterator() {
 
-        private val visited = Int2IntOpenHashMap(graph.nodes().size)
-        private val queue = IntArrayFIFOQueue()
+        private val visited = Int2IntHashMap(graph.nodes().size)
+        private val queue = IntArrayDeque()
 
         init {
-            queue.enqueue(start)
+            queue.addLast(start)
             visited[start] = 1
         }
 
         override fun nextInt(): Int {
-            val next = queue.dequeueInt()
+            val next = queue.removeFirst()
             for (vertexId in graph.successors(next)) {
                 if (visited[vertexId] != 1) {
                     visited[vertexId] = 1
-                    queue.enqueue(vertexId)
+                    queue.addLast(vertexId)
                 }
             }
             return next
         }
 
-        override fun hasNext(): Boolean = !queue.isEmpty
+        override fun hasNext(): Boolean = !queue.isEmpty()
     }
 }

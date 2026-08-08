@@ -1,62 +1,68 @@
 package io.github.sooniln.fastgraph.references
 
 import io.github.sooniln.fastcollect.ints.Int2AnyHashMap
+import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.Vertex
+import io.github.sooniln.fastgraph.VertexChangeListener
 import io.github.sooniln.fastgraph.VertexReference
 import java.lang.ref.ReferenceQueue
 import java.lang.ref.WeakReference
 
-internal class VertexReferenceManager {
+internal class VertexReferenceManager(private val graph: Graph) : VertexChangeListener {
+
     private val refs = Int2AnyHashMap<VertexWeakReference>()
     private val refQueue = ReferenceQueue<VertexReferenceImpl>()
 
     private fun cleanup() {
         var removable = refQueue.poll() as VertexWeakReference?
         while (removable != null) {
-            refs.remove(removable.intValue)
+            refs.remove(removable.id)
             removable = refQueue.poll() as VertexWeakReference?
+        }
+
+        if (refs.isEmpty()) {
+            graph.unregisterVertexChangeListener(this)
         }
     }
 
-    /** Returns a stable reference to the given vertex. */
     fun getReference(vertex: Vertex): VertexReference {
-        var ref = refs[vertex.intValue]?.get()
+        if (refs.isEmpty()) {
+            graph.registerVertexChangeListener(this)
+        }
+
+        var ref = refs[vertex.id]?.get()
         if (ref == null) {
             ref = VertexReferenceImpl(vertex)
-            refs.put(vertex.intValue, VertexWeakReference(ref, refQueue))
+            refs.put(vertex.id, VertexWeakReference(ref, refQueue))
         }
 
         cleanup()
         return ref
     }
 
-    /** Invoked before the vertex is removed from the graph. */
-    fun onVertexRemoved(vertex: Vertex) {
+    override fun onVertexAdded(vertex: Vertex) {}
+
+    override fun onVertexRemoved(vertex: Vertex) {
         cleanup()
-        refs.remove(vertex.intValue)?.get()?.invalidate()
+        refs.remove(vertex.id)?.get()?.invalidate()
     }
 
-    /**
-     * Invoked before a vertex ID is re-assigned. May not be invoked with [oldVertex] == [newVertex]. The effect of
-     * this method should be the same as if: (1) any references pointing at the new vertex are invalidated (2) any
-     * references pointing at the old vertex are updated to point at the new vertex (3) no references should point at
-     * the old vertex after completion.
-     */
-    fun onVertexReassigned(oldVertex: Vertex, newVertex: Vertex) {
-        check(oldVertex != newVertex)
-
+    override fun onVertexReassigned(oldVertex: Vertex, newVertex: Vertex) {
         cleanup()
 
         val reference: VertexReferenceImpl?
-        val weakReference = refs.remove(oldVertex.intValue).also { reference = it?.get() }
-
-        if (weakReference != null && reference != null) {
+        val weakReference = refs.remove(oldVertex.id).also { reference = it?.get() }
+        if (reference != null && weakReference != null) {
             reference.unstable = newVertex
-            weakReference.intValue = newVertex.intValue
-            refs.put(newVertex.intValue, weakReference)?.get()?.invalidate()
+            weakReference.id = newVertex.id
+            refs.put(newVertex.id, weakReference)?.get()?.invalidate()
         } else {
-            refs.remove(newVertex.intValue)?.get()?.invalidate()
+            refs.remove(newVertex.id)?.get()?.invalidate()
         }
+    }
+
+    override fun trimToSize() {
+        refs.trimToSize()
     }
 
     private class VertexWeakReference(
@@ -64,7 +70,7 @@ internal class VertexReferenceManager {
         queue: ReferenceQueue<VertexReferenceImpl>
     ) : WeakReference<VertexReferenceImpl>(ref, queue) {
         // store the vertex id so that it can be cleaned up from the map later
-        var intValue: Int = ref.unstable.intValue
+        var id: Int = ref.unstable.id
     }
 
     private class VertexReferenceImpl(vertex: Vertex) : VertexReference {
