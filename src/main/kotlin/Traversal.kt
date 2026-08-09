@@ -1,6 +1,6 @@
 package io.github.sooniln.fastgraph
 
-import io.github.sooniln.fastcollect.ints.IntArrayDeque
+import io.github.sooniln.fastcollect.IntArrayDeque
 
 public object Traversal {
     /**

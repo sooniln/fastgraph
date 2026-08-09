@@ -1,13 +1,13 @@
 package io.github.sooniln.fastgraph.internal
 
-import io.github.sooniln.fastcollect.ints.Int2AnyHashMap
-import io.github.sooniln.fastcollect.ints.Int2IntHashMap
-import io.github.sooniln.fastcollect.ints.IntArrayList
-import io.github.sooniln.fastcollect.ints.IntList
-import io.github.sooniln.fastcollect.ints.emptyIntIterator
-import io.github.sooniln.fastcollect.ints.emptyIntList
-import io.github.sooniln.fastcollect.ints.intIteratorOf
-import io.github.sooniln.fastcollect.ints.intListOf
+import io.github.sooniln.fastcollect.Int2AnyHashMap
+import io.github.sooniln.fastcollect.Int2IntHashMap
+import io.github.sooniln.fastcollect.IntArrayList
+import io.github.sooniln.fastcollect.IntList
+import io.github.sooniln.fastcollect.emptyIntIterator
+import io.github.sooniln.fastcollect.emptyIntList
+import io.github.sooniln.fastcollect.intIteratorOf
+import io.github.sooniln.fastcollect.intListOf
 import io.github.sooniln.fastgraph.AbstractEdgeSet
 import io.github.sooniln.fastgraph.AbstractGraph
 import io.github.sooniln.fastgraph.AbstractMutableIndexedEdgeSet
@@ -15,9 +15,8 @@ import io.github.sooniln.fastgraph.AbstractMutableIndexedVertexSet
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeChangeListener
 import io.github.sooniln.fastgraph.EdgeConsumer
-import io.github.sooniln.fastgraph.EdgeInitializer
+import io.github.sooniln.fastgraph.EdgeFunction
 import io.github.sooniln.fastgraph.EdgeIterator
-import io.github.sooniln.fastgraph.EdgeProperties
 import io.github.sooniln.fastgraph.EdgeReference
 import io.github.sooniln.fastgraph.EdgeSet
 import io.github.sooniln.fastgraph.IndexedEdgeGraph
@@ -29,11 +28,12 @@ import io.github.sooniln.fastgraph.MutableIndexedVertexSet
 import io.github.sooniln.fastgraph.MutableVertexProperty
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
-import io.github.sooniln.fastgraph.VertexInitializer
-import io.github.sooniln.fastgraph.VertexProperties
+import io.github.sooniln.fastgraph.VertexFunction
 import io.github.sooniln.fastgraph.VertexReference
 import io.github.sooniln.fastgraph.VertexSet
 import io.github.sooniln.fastgraph.asVertexSet
+import io.github.sooniln.fastgraph.createEdgeProperty
+import io.github.sooniln.fastgraph.createVertexProperty
 import io.github.sooniln.fastgraph.listeners.EdgeChangeListenerManager
 import io.github.sooniln.fastgraph.listeners.VertexChangeListenerManager
 import io.github.sooniln.fastgraph.references.EdgeReferenceManager
@@ -259,7 +259,6 @@ internal class AdjacencyListNetwork(
                 predecessors[lastTarget].reassign(lastSource, lastEdgeId, edgeId)
             }
 
-            // TODO: graph is not consistent at this point in time
             edgeListeners.notifyEdgeReassigned(lastEdge, edge)
         } else {
             edgeListeners.notifyEdgeRemoved(edge)
@@ -311,13 +310,13 @@ internal class AdjacencyListNetwork(
 
     override fun <T> createVertexProperty(
         type: Class<T>,
-        initializer: VertexInitializer<T>
-    ): MutableVertexProperty<T> = VertexProperties.createVertexProperty(this, type, initializer)
+        defaultValueFunction: VertexFunction<T>
+    ): MutableVertexProperty<T> = createVertexProperty(this, type, defaultValueFunction)
 
     override fun <T> createEdgeProperty(
         type: Class<T>,
-        initializer: EdgeInitializer<T>
-    ): MutableEdgeProperty<T> = EdgeProperties.createEdgeProperty(this, type, initializer)
+        defaultValueFunction: EdgeFunction<T>
+    ): MutableEdgeProperty<T> = createEdgeProperty(this, type, defaultValueFunction)
 
     override fun createVertexReference(vertex: Vertex): VertexReference =
         vertexRefs.getReference(validateVertex(vertex))

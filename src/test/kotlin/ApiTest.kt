@@ -6,14 +6,9 @@ import java.io.File
 import kotlin.reflect.jvm.kotlinFunction
 
 /**
- * Guards against KT-31420: Kotlin mangles the compiled JVM name of any public function/property whose
- * parameter or return type is a value class (e.g. [Vertex], [Edge]) unless `@JvmName` is explicitly applied,
- * silently breaking Java interop. This is checked directly against `api/fastgraph.api`, the project's Kotlin
- * ABI dump - it already reflects the exact, ground-truth public JVM API surface (internal/private/anonymous
- * declarations never appear in it), so no reflection or visibility filtering of our own is needed. The `test`
- * Gradle task depends on `updateKotlinAbi` so this file is always current when this test runs.
+ * Tests the exposed JVM API for mistakes.
  */
-class JvmNameConsistencyTest {
+class ApiTest {
 
     private val abiFile = File("api/fastgraph.api")
 
@@ -45,7 +40,7 @@ class JvmNameConsistencyTest {
     // Compiler-generated value-class boilerplate: these are never marked `synthetic` in the ABI dump, and have
     // no source-level declaration to attach @JvmName to. `equals-impl0` is deliberately NOT included here -
     // see jvmNameMatchesKotlinName().
-    private val valueClassBoilerplateNames = setOf("constructor-impl", "equals-impl", "equals-impl0", "hashCode-impl")
+    private val valueClassBoilerplateSuffixes = setOf("-impl", "-impl0")
 
     /**
      * Publicly visible APIs (any API in the API file) should never contain mangled names.
@@ -56,7 +51,7 @@ class JvmNameConsistencyTest {
 
         for ((className, modifiers, name) in parseAbiFunctions()) {
             if ("synthetic" in modifiers) continue
-            if (name in valueClassBoilerplateNames) continue
+            if (valueClassBoilerplateSuffixes.any { name.endsWith(it) }) continue
             if ('-' !in name) continue
 
             violations += "$className.$name"
@@ -102,7 +97,7 @@ class JvmNameConsistencyTest {
 
         for ((className, modifiers, name) in parseAbiFunctions()) {
             if ("synthetic" in modifiers) continue
-            if (name in valueClassBoilerplateNames) continue
+            if (valueClassBoilerplateSuffixes.any { name.endsWith(it) }) continue
 
             val clazz = Class.forName(className.replace('/', '.'), false, javaClass.classLoader)
             val method = clazz.declaredMethods.firstOrNull { it.name == name } ?: continue

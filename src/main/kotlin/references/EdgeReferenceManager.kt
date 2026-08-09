@@ -1,6 +1,6 @@
 package io.github.sooniln.fastgraph.references
 
-import io.github.sooniln.fastcollect.longs.Long2AnyHashMap
+import io.github.sooniln.fastcollect.Long2AnyHashMap
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeChangeListener
 import io.github.sooniln.fastgraph.EdgeReference

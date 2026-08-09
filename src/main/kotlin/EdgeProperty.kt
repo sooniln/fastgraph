@@ -1,10 +1,33 @@
+/**
+ * Methods dealing with edge properties.
+ */
+@file:JvmName("EdgeProperties")
+
 package io.github.sooniln.fastgraph
 
 import io.github.sooniln.fastgraph.properties.ArrayEdgeProperty
+import io.github.sooniln.fastgraph.properties.ByteArrayEdgeProperty
+import io.github.sooniln.fastgraph.properties.ByteMapEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableArrayEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableByteArrayEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableByteMapEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableIntArrayEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableIntMapEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableLongArrayEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableLongMapEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableMapEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableShortArrayEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableShortMapEdgeProperty
+import io.github.sooniln.fastgraph.properties.IntArrayEdgeProperty
+import io.github.sooniln.fastgraph.properties.IntMapEdgeProperty
+import io.github.sooniln.fastgraph.properties.LongArrayEdgeProperty
+import io.github.sooniln.fastgraph.properties.LongMapEdgeProperty
 import io.github.sooniln.fastgraph.properties.MapEdgeProperty
+import io.github.sooniln.fastgraph.properties.ShortArrayEdgeProperty
+import io.github.sooniln.fastgraph.properties.ShortMapEdgeProperty
 
 /**
- * A store of property values for vertices. Conceptually this functions a map - mapping edges to values. Every edge
+ * A store of property values for edges. Conceptually this functions a map - mapping edges to values. Every edge
  * property is associated with a particular graph, and stores a value for every edge in the graph. Edge properties
  * are required to remain in sync with their respective graphs.
  *
@@ -64,74 +87,260 @@ public fun <V> MutableEdgeProperty<V>.put(edgeReference: EdgeReference, value: V
     put(edgeReference.unstable, value)
 
 /**
- * Methods dealing with [EdgeProperty].
+ * Creates an [EdgeProperty] for the [Unit] type. This is useful for cases where you are required to specify an
+ * [EdgeProperty] but have no useful edge property to use (for example, with a [ValueGraph]). The resulting edge
+ * property takes up very little constant space.
  */
-public object EdgeProperties {
-    /**
-     * Creates a new [EdgeProperty] which is a transformation of this [EdgeProperty]. The new [EdgeProperty] applies the
-     * given [transform] on every [EdgeProperty.get] invocation.
-     */
-    @JvmStatic
-    public fun <V, O> map(property: EdgeProperty<V>, type: Class<O>, transform: (V) -> O): EdgeProperty<O> {
-        return object : EdgeProperty<O> {
-            override val graph: Graph get() = property.graph
-            override val type: Class<O> get() = type
-            override fun get(edge: Edge): O  = transform(property[edge])
-        }
+public fun unitEdgeProperty(graph: Graph): MutableEdgeProperty<Unit> {
+    return object : MutableEdgeProperty<Unit> {
+        override val graph: Graph get() = graph
+        override val type: Class<Unit> get() = Unit::class.java
+        override fun get(edge: Edge): Unit = Unit
+        override fun set(edge: Edge, value: Unit) {}
     }
+}
 
-    /**
-     * Creates an [EdgeProperty] for the [Unit] type. This is useful for cases where you are required to specify an
-     * [EdgeProperty] but have no useful edge property to use (for example, with a [ValueGraph]). The resulting edge
-     * property takes up very little constant space.
-     */
-    @JvmStatic
-    public fun unitEdgeProperty(graph: Graph): MutableEdgeProperty<Unit> {
-        return object : MutableEdgeProperty<Unit> {
-            override val graph: Graph get() = graph
-            override val type: Class<Unit> get() = Unit::class.java
-            override fun get(edge: Edge): Unit = Unit
-            override fun set(edge: Edge, value: Unit) {}
-        }
-    }
+/**
+ * Creates an edge property that is as specialized and efficient as possible for the given graph and type. This method
+ * guarantees that if [graph] is an [ImmutableGraph], then [defaultValueFunction] will not be referenced after this
+ * method completes.
+ */
+@Suppress("UNCHECKED_CAST")
+public fun <T> createEdgeProperty(
+    graph: Graph,
+    type: Class<T>,
+    defaultValueFunction: EdgeFunction<T>
+): MutableEdgeProperty<T> {
+    return when (type) {
+        Unit::class.java -> unitEdgeProperty(graph) as MutableEdgeProperty<T>
+        Boolean::class.java ->
+            createMapped<Byte, Boolean>(
+                graph,
+                defaultValueFunction as EdgeFunction<Boolean>,
+                { it != 0.toByte() },
+                { if (it) 1 else 0 }) as MutableEdgeProperty<T>
 
-    /**
-     * Creates an edge property that is as specialized and efficient as possible for the given graph and type.
-     */
-    @Suppress("UNCHECKED_CAST")
-    @JvmStatic
-    public fun <T> createEdgeProperty(
-        graph: Graph,
-        type: Class<T>,
-        initializer: EdgeInitializer<T>
-    ): MutableEdgeProperty<T> {
-        return if (type == Unit::class.java) {
-            unitEdgeProperty(graph) as MutableEdgeProperty<T>
-        } else if (graph is ImmutableGraph && graph.isEmpty()) {
-            emptyEdgeProperty(graph, type)
-        } else if (graph is IndexedEdgeGraph) {
-            ArrayEdgeProperty(graph, type, initializer)
-        } else {
-            MapEdgeProperty(graph, type, initializer)
+        Float::class.java ->
+            createMapped<Int, Float>(
+                graph,
+                defaultValueFunction as EdgeFunction<Float>,
+                { Float.fromBits(it) },
+                { it.toRawBits() }) as MutableEdgeProperty<T>
+
+        Double::class.java ->
+            createMapped<Long, Double>(
+                graph,
+                defaultValueFunction as EdgeFunction<Double>,
+                { Double.fromBits(it) },
+                { it.toRawBits() }) as MutableEdgeProperty<T>
+
+        else -> {
+            if (graph is ImmutableGraph) {
+                if (graph.isEmpty()) {
+                    emptyEdgeProperty(graph, type)
+                } else if (graph is IndexedEdgeGraph) {
+                    when (type) {
+                        Byte::class.java ->
+                            ImmutableByteArrayEdgeProperty(
+                                graph,
+                                defaultValueFunction as EdgeFunction<Byte>
+                            ) as MutableEdgeProperty<T>
+
+                        Short::class.java ->
+                            ImmutableShortArrayEdgeProperty(
+                                graph,
+                                defaultValueFunction as EdgeFunction<Short>
+                            ) as MutableEdgeProperty<T>
+
+                        Int::class.java ->
+                            ImmutableIntArrayEdgeProperty(
+                                graph,
+                                defaultValueFunction as EdgeFunction<Int>
+                            ) as MutableEdgeProperty<T>
+
+                        Long::class.java ->
+                            ImmutableLongArrayEdgeProperty(
+                                graph,
+                                defaultValueFunction as EdgeFunction<Long>
+                            ) as MutableEdgeProperty<T>
+
+                        else -> ImmutableArrayEdgeProperty(graph, type, defaultValueFunction)
+                    }
+                } else {
+                    when (type) {
+                        Byte::class.java ->
+                            ImmutableByteMapEdgeProperty(
+                                graph,
+                                defaultValueFunction as EdgeFunction<Byte>
+                            ) as MutableEdgeProperty<T>
+
+                        Short::class.java ->
+                            ImmutableShortMapEdgeProperty(
+                                graph,
+                                defaultValueFunction as EdgeFunction<Short>
+                            ) as MutableEdgeProperty<T>
+
+                        Int::class.java ->
+                            ImmutableIntMapEdgeProperty(
+                                graph,
+                                defaultValueFunction as EdgeFunction<Int>
+                            ) as MutableEdgeProperty<T>
+
+                        Long::class.java ->
+                            ImmutableLongMapEdgeProperty(
+                                graph,
+                                defaultValueFunction as EdgeFunction<Long>
+                            ) as MutableEdgeProperty<T>
+
+                        else -> ImmutableMapEdgeProperty(graph, type, defaultValueFunction)
+                    }
+                }
+            } else {
+                if (graph is IndexedEdgeGraph) {
+                    when (type) {
+                        Byte::class.java ->
+                            ByteArrayEdgeProperty(
+                                graph,
+                                defaultValueFunction as EdgeFunction<Byte>
+                            ) as MutableEdgeProperty<T>
+
+                        Short::class.java ->
+                            ShortArrayEdgeProperty(
+                                graph,
+                                defaultValueFunction as EdgeFunction<Short>
+                            ) as MutableEdgeProperty<T>
+
+                        Int::class.java ->
+                            IntArrayEdgeProperty(
+                                graph,
+                                defaultValueFunction as EdgeFunction<Int>
+                            ) as MutableEdgeProperty<T>
+
+                        Long::class.java ->
+                            LongArrayEdgeProperty(
+                                graph,
+                                defaultValueFunction as EdgeFunction<Long>
+                            ) as MutableEdgeProperty<T>
+
+                        else -> ArrayEdgeProperty(graph, type, defaultValueFunction)
+                    }
+                } else {
+                    when (type) {
+                        Byte::class.java ->
+                            ByteMapEdgeProperty(
+                                graph,
+                                defaultValueFunction as EdgeFunction<Byte>
+                            ) as MutableEdgeProperty<T>
+
+                        Short::class.java ->
+                            ShortMapEdgeProperty(
+                                graph,
+                                defaultValueFunction as EdgeFunction<Short>
+                            ) as MutableEdgeProperty<T>
+
+                        Int::class.java ->
+                            IntMapEdgeProperty(
+                                graph,
+                                defaultValueFunction as EdgeFunction<Int>
+                            ) as MutableEdgeProperty<T>
+
+                        Long::class.java ->
+                            LongMapEdgeProperty(
+                                graph,
+                                defaultValueFunction as EdgeFunction<Long>
+                            ) as MutableEdgeProperty<T>
+
+                        else -> MapEdgeProperty(graph, type, defaultValueFunction)
+                    }
+                }
+            }
         }
     }
 }
 
-/** See [EdgeProperties.map]. */
+private inline fun <reified V, reified O> createMapped(
+    graph: Graph,
+    defaultValueFunction: EdgeFunction<O>,
+    crossinline transform: (V) -> O,
+    crossinline reverseTransform: (O) -> V
+): MutableEdgeProperty<O> {
+    val property = createEdgeProperty(graph, V::class.java) { reverseTransform(defaultValueFunction.apply(it)) }
+    return object : MutableEdgeProperty<O> {
+        override val graph: Graph get() = property.graph
+        override val type: Class<O> get() = O::class.java
+        override fun get(edge: Edge): O = transform(property[edge])
+        override fun set(edge: Edge, value: O) { property[edge] = reverseTransform(value)}
+        override fun put(edge: Edge, value: O) = transform(property.put(edge, reverseTransform(value)))
+    }
+}
+
+/**
+ * Creates a new [EdgeProperty] which is a transformation of this [EdgeProperty]. The new [EdgeProperty] applies the
+ * given [transform] on every [EdgeProperty.get] invocation.
+ */
+public fun <V, O> map(property: EdgeProperty<V>, type: Class<O>, transform: (V) -> O): EdgeProperty<O> {
+    return object : EdgeProperty<O> {
+        override val graph: Graph get() = property.graph
+        override val type: Class<O> get() = type
+        override fun get(edge: Edge): O  = transform(property[edge])
+    }
+}
+
+/** See [map]. */
 @JvmSynthetic
+@JvmName("#map")
 public fun <V, O> EdgeProperty<V>.map(type: Class<O>, transform: (V) -> O): EdgeProperty<O> {
-    return EdgeProperties.map(this, type, transform)
+    return map(this, type, transform)
 }
 
-/** See [EdgeProperties.map]. */
+/** See [map]. */
 @JvmSynthetic
 public inline fun <V, reified O> EdgeProperty<V>.map(noinline transform: (V) -> O): EdgeProperty<O> {
-    return EdgeProperties.map(this, O::class.java, transform)
+    return map(this, O::class.java, transform)
+}
+
+/**
+ * Creates a new [EdgeProperty] which is a transformation of this [EdgeProperty]. The new [EdgeProperty]
+ * applies the given [transform] on every [EdgeProperty.get] invocation.
+ */
+public fun <V, O> map(
+    property: MutableEdgeProperty<V>,
+    type: Class<O>,
+    transform: (V) -> O,
+    reverseTransform: (O) -> V
+): MutableEdgeProperty<O> {
+    return object : MutableEdgeProperty<O> {
+        override val graph: Graph get() = property.graph
+        override val type: Class<O> get() = type
+        override fun get(edge: Edge): O = transform(property[edge])
+        override fun set(edge: Edge, value: O) { property[edge] = reverseTransform(value)}
+        override fun put(edge: Edge, value: O) = transform(property.put(edge, reverseTransform(value)))
+    }
+}
+
+/** See [map]. */
+@JvmSynthetic
+@JvmName("#mutableEdgePropertyMap")
+public fun <V, O> MutableEdgeProperty<V>.map(
+    type: Class<O>,
+    transform: (V) -> O,
+    reverseTransform: (O) -> V
+): MutableEdgeProperty<O> {
+    return map(this, type, transform, reverseTransform)
+}
+
+/** See [map]. */
+@JvmSynthetic
+public inline fun <V, reified O> MutableEdgeProperty<V>.map(
+    noinline transform: (V) -> O,
+    noinline reverseTransform: (O) -> V
+): MutableEdgeProperty<O> {
+    return map(this, O::class.java, transform, reverseTransform)
 }
 
 /** Returns an empty edge property to be associated with an empty [ImmutableGraph]. */
 internal fun <T> emptyEdgeProperty(graph: ImmutableGraph, type: Class<T>): MutableEdgeProperty<T> {
-    require(graph.vertices.isEmpty())
+    require(graph.edges.isEmpty())
 
     return object : MutableEdgeProperty<T> {
         override val graph: Graph get() = graph

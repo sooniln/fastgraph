@@ -1,13 +1,12 @@
 package io.github.sooniln.fastgraph.subgraph
 
-import io.github.sooniln.fastcollect.longs.LongHashSet
+import io.github.sooniln.fastcollect.LongHashSet
 import io.github.sooniln.fastgraph.AbstractEdgeSet
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeChangeListener
 import io.github.sooniln.fastgraph.EdgeConsumer
-import io.github.sooniln.fastgraph.EdgeInitializer
+import io.github.sooniln.fastgraph.EdgeFunction
 import io.github.sooniln.fastgraph.EdgeIterator
-import io.github.sooniln.fastgraph.EdgeProperties
 import io.github.sooniln.fastgraph.EdgeReference
 import io.github.sooniln.fastgraph.EdgeSet
 import io.github.sooniln.fastgraph.Graph
@@ -15,6 +14,7 @@ import io.github.sooniln.fastgraph.MutableEdgeProperty
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
 import io.github.sooniln.fastgraph.asEdgeIterator
+import io.github.sooniln.fastgraph.createEdgeProperty
 import io.github.sooniln.fastgraph.listeners.EdgeChangeListenerManager
 import io.github.sooniln.fastgraph.references.EdgeReferenceManager
 
@@ -70,8 +70,8 @@ internal class InducingEdges(
 
     override fun <T> createEdgeProperty(
         type: Class<T>,
-        initializer: EdgeInitializer<T>
-    ): MutableEdgeProperty<T> = EdgeProperties.createEdgeProperty(graph, type, initializer)
+        initializer: EdgeFunction<T>
+    ): MutableEdgeProperty<T> = createEdgeProperty(graph, type, initializer)
 
     override fun createEdgeReference(edge: Edge): EdgeReference {
         return references.getReference(edge)

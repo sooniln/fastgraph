@@ -1,18 +1,18 @@
 package io.github.sooniln.fastgraph.subgraph
 
-import io.github.sooniln.fastcollect.ints.IntHashSet
+import io.github.sooniln.fastcollect.IntHashSet
 import io.github.sooniln.fastgraph.AbstractVertexSet
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.MutableVertexProperty
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
 import io.github.sooniln.fastgraph.VertexConsumer
-import io.github.sooniln.fastgraph.VertexInitializer
+import io.github.sooniln.fastgraph.VertexFunction
 import io.github.sooniln.fastgraph.VertexIterator
-import io.github.sooniln.fastgraph.VertexProperties
 import io.github.sooniln.fastgraph.VertexReference
 import io.github.sooniln.fastgraph.VertexSet
 import io.github.sooniln.fastgraph.asVertexIterator
+import io.github.sooniln.fastgraph.createVertexProperty
 import io.github.sooniln.fastgraph.listeners.VertexChangeListenerManager
 import io.github.sooniln.fastgraph.references.VertexReferenceManager
 
@@ -59,8 +59,8 @@ internal class InducingVertices(parent: Graph, inducers: VertexSet) : SubgraphVe
 
     override fun <T> createVertexProperty(
         type: Class<T>,
-        initializer: VertexInitializer<T>
-    ): MutableVertexProperty<T> = VertexProperties.createVertexProperty(graph, type, initializer)
+        initializer: VertexFunction<T>
+    ): MutableVertexProperty<T> = createVertexProperty(graph, type, initializer)
 
     override fun createVertexReference(vertex: Vertex): VertexReference {
         return references.getReference(vertex)

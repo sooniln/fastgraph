@@ -1,3 +1,8 @@
+/**
+ * Methods dealing with edge references.
+ */
+@file:JvmName("EdgeReferences")
+
 package io.github.sooniln.fastgraph
 
 /**

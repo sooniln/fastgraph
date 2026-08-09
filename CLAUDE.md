@@ -8,11 +8,11 @@ Topology information is stored separately from data (values associated with vert
 
 # Java APIs
 
-This library is intended to be used from Java code as a first class client as well as from Kotlin. The
-JvmNameConsistencyTest is design to help catch some issues with JVM APIs and Kotlin name mangling. The current ABI is
-found at api/fastgraph.api and can be updated with current changes via the `updateKotlinAbi` Gradle task. This is useful
-for determining what is actually part of the public API, and which names are currently mangled. This library must never
-ship any mangled names as part of the public ABI.
+This library is intended to be used from Java code as a first class client as well as from Kotlin. The ApiTest test
+will help catch many issues with JVM APIs and Kotlin name mangling. The current ABI is found at api/fastgraph.api
+and can be updated via the `updateKotlinAbi` Gradle task. This is useful for determining what is actually part of the
+public API, and which names are currently mangled. This library must never ship any mangled names as part of the public
+ABI.
 
 ## Value Classes
 

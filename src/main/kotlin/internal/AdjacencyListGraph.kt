@@ -1,16 +1,15 @@
 package io.github.sooniln.fastgraph.internal
 
-import io.github.sooniln.fastcollect.ints.IntHashSet
-import io.github.sooniln.fastcollect.ints.emptyMutableIntIterator
+import io.github.sooniln.fastcollect.IntHashSet
+import io.github.sooniln.fastcollect.emptyMutableIntIterator
 import io.github.sooniln.fastgraph.AbstractEdgeSet
 import io.github.sooniln.fastgraph.AbstractGraph
 import io.github.sooniln.fastgraph.AbstractMutableIndexedVertexSet
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeChangeListener
 import io.github.sooniln.fastgraph.EdgeConsumer
-import io.github.sooniln.fastgraph.EdgeInitializer
+import io.github.sooniln.fastgraph.EdgeFunction
 import io.github.sooniln.fastgraph.EdgeIterator
-import io.github.sooniln.fastgraph.EdgeProperties
 import io.github.sooniln.fastgraph.EdgeReference
 import io.github.sooniln.fastgraph.EdgeSet
 import io.github.sooniln.fastgraph.IndexedVertexGraph
@@ -22,12 +21,13 @@ import io.github.sooniln.fastgraph.MutableIndexedVertexSet
 import io.github.sooniln.fastgraph.MutableVertexProperty
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
-import io.github.sooniln.fastgraph.VertexInitializer
-import io.github.sooniln.fastgraph.VertexProperties
+import io.github.sooniln.fastgraph.VertexFunction
 import io.github.sooniln.fastgraph.VertexReference
 import io.github.sooniln.fastgraph.VertexSet
 import io.github.sooniln.fastgraph.asVertexSet
 import io.github.sooniln.fastgraph.compareTo
+import io.github.sooniln.fastgraph.createEdgeProperty
+import io.github.sooniln.fastgraph.createVertexProperty
 import io.github.sooniln.fastgraph.edgeSetOf
 import io.github.sooniln.fastgraph.emptyEdgeSet
 import io.github.sooniln.fastgraph.inc
@@ -151,7 +151,6 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
                     // predecessors hasn't been corrected yet, so treat lastIndex as index when necessary
                     val newSource = if (source == lastVertex) vertex else source
 
-                    // TODO: graph is not consistent at this point in time
                     val oldEdge = canonicalEdge(source, lastVertex)
                     val newEdge = canonicalEdge(newSource, vertex)
                     edgeListeners.notifyEdgeReassigned(oldEdge, newEdge)
@@ -168,7 +167,6 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
                     // predecessors above, and swapping and removing again would lose info, so only swap and remove for
                     // non-self-loops
                     if (vertex != newTarget) {
-                        // TODO: graph is not consistent at this point in time
                         val oldEdge = canonicalEdge(lastVertex, target)
                         val newEdge = canonicalEdge(vertex, newTarget)
                         edgeListeners.notifyEdgeReassigned(oldEdge, newEdge)
@@ -182,7 +180,6 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
                     // successors hasn't been corrected yet, so treat lastIndex as index when necessary
                     val newTarget = if (target == lastVertex) vertex else target
 
-                    // TODO: graph is not consistent at this point in time
                     val oldEdge = canonicalEdge(lastVertex, target)
                     val newEdge = canonicalEdge(vertex, newTarget)
                     edgeListeners.notifyEdgeReassigned(oldEdge, newEdge)
@@ -370,13 +367,13 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
 
     override fun <T> createVertexProperty(
         type: Class<T>,
-        initializer: VertexInitializer<T>
-    ): MutableVertexProperty<T> = VertexProperties.createVertexProperty(this, type, initializer)
+        defaultValueFunction: VertexFunction<T>
+    ): MutableVertexProperty<T> = createVertexProperty(this, type, defaultValueFunction)
 
     override fun <T> createEdgeProperty(
         type: Class<T>,
-        initializer: EdgeInitializer<T>
-    ): MutableEdgeProperty<T> = EdgeProperties.createEdgeProperty(this, type, initializer)
+        defaultValueFunction: EdgeFunction<T>
+    ): MutableEdgeProperty<T> = createEdgeProperty(this, type, defaultValueFunction)
 
     override fun createVertexReference(vertex: Vertex): VertexReference =
         vertexRefs.getReference(validateVertex(vertex))

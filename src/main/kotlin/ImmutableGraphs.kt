@@ -152,8 +152,8 @@ public inline fun buildImmutableGraph(
  */
 public inline fun <reified V, reified E> buildImmutableValueGraph(
     directed: Boolean,
-    vertexInitializer: VertexInitializer<V>,
-    edgeInitializer: EdgeInitializer<E>,
+    vertexInitializer: VertexFunction<V>,
+    edgeInitializer: EdgeFunction<E>,
     multiEdge: Boolean = false,
     indexEdges: Boolean = false,
     builder: ValueGraphBuilder<V, E>.() -> Unit
@@ -246,11 +246,11 @@ private class EmptyGraph(override val directed: Boolean) : ImmutableGraph, Index
     override fun registerEdgeChangeListener(listener: EdgeChangeListener) {}
     override fun unregisterEdgeChangeListener(listener: EdgeChangeListener) {}
 
-    override fun <T> createVertexProperty(type: Class<T>, initializer: VertexInitializer<T>): MutableVertexProperty<T> {
+    override fun <T> createVertexProperty(type: Class<T>, defaultValueFunction: VertexFunction<T>): MutableVertexProperty<T> {
         return emptyVertexProperty(this, type)
     }
 
-    override fun <T> createEdgeProperty(type: Class<T>, initializer: EdgeInitializer<T>): MutableEdgeProperty<T> {
+    override fun <T> createEdgeProperty(type: Class<T>, defaultValueFunction: EdgeFunction<T>): MutableEdgeProperty<T> {
         return emptyEdgeProperty(this, type)
     }
 

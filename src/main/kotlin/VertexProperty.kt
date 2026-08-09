@@ -1,7 +1,30 @@
+/**
+ * Methods dealing with vertex properties.
+ */
+@file:JvmName("VertexProperties")
+
 package io.github.sooniln.fastgraph
 
 import io.github.sooniln.fastgraph.properties.ArrayVertexProperty
+import io.github.sooniln.fastgraph.properties.ByteArrayVertexProperty
+import io.github.sooniln.fastgraph.properties.ByteMapVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableArrayVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableByteArrayVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableByteMapVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableIntArrayVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableIntMapVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableLongArrayVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableLongMapVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableMapVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableShortArrayVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableShortMapVertexProperty
+import io.github.sooniln.fastgraph.properties.IntArrayVertexProperty
+import io.github.sooniln.fastgraph.properties.IntMapVertexProperty
+import io.github.sooniln.fastgraph.properties.LongArrayVertexProperty
+import io.github.sooniln.fastgraph.properties.LongMapVertexProperty
 import io.github.sooniln.fastgraph.properties.MapVertexProperty
+import io.github.sooniln.fastgraph.properties.ShortArrayVertexProperty
+import io.github.sooniln.fastgraph.properties.ShortMapVertexProperty
 
 /**
  * A store of property values for vertices. Conceptually this functions a map - mapping vertices to values. Every vertex
@@ -65,72 +88,257 @@ public fun <V> MutableVertexProperty<V>.put(vertexReference: VertexReference, va
     put(vertexReference.unstable, value)
 
 /**
- * Methods dealing with [VertexProperty].
+ * Creates a [VertexProperty] for the [Unit] type. This is useful for cases where you are required to specify an
+ * [VertexProperty] but have no useful vertex property to use (for example, with a [ValueGraph]). The resulting
+ * vertex property takes up very little constant space.
  */
-public object VertexProperties {
+public fun unitVertexProperty(graph: Graph): MutableVertexProperty<Unit> {
+    return object : MutableVertexProperty<Unit> {
+        override val graph: Graph get() = graph
+        override val type: Class<Unit> get() = Unit::class.java
 
-    /**
-     * Creates a new [VertexProperty] which is a transformation of this [VertexProperty]. The new [VertexProperty]
-     * applies the given [transform] on every [VertexProperty.get] invocation.
-     */
-    @JvmStatic
-    public fun <V, O> map(property: VertexProperty<V>, type: Class<O>, transform: (V) -> O): VertexProperty<O> {
-        return object : VertexProperty<O> {
-            override val graph: Graph get() = property.graph
-            override val type: Class<O> get() = type
-            override fun get(vertex: Vertex): O = transform(property[vertex])
-        }
+        override fun get(vertex: Vertex): Unit = Unit
+
+        override fun set(vertex: Vertex, value: Unit) {}
     }
+}
 
-    /**
-     * Creates a [VertexProperty] for the [Unit] type. This is useful for cases where you are required to specify an
-     * [VertexProperty] but have no useful vertex property to use (for example, with a [ValueGraph]). The resulting
-     * vertex property takes up very little constant space.
-     */
-    @JvmStatic
-    public fun unitVertexProperty(graph: Graph): MutableVertexProperty<Unit> {
-        return object : MutableVertexProperty<Unit> {
-            override val graph: Graph get() = graph
-            override val type: Class<Unit> get() = Unit::class.java
+/**
+ * Creates a vertex property that is as specialized and efficient as possible for the given graph and type. This method
+ * guarantees that if [graph] is an [ImmutableGraph], then [defaultValueFunction] will not be referenced after this
+ * method completes.
+ */
+@Suppress("UNCHECKED_CAST")
+public fun <T> createVertexProperty(
+    graph: Graph,
+    type: Class<T>,
+    defaultValueFunction: VertexFunction<T>
+): MutableVertexProperty<T> {
+    return when (type) {
+        Unit::class.java -> unitVertexProperty(graph) as MutableVertexProperty<T>
+        Boolean::class.java ->
+            createMapped<Byte, Boolean>(
+                graph,
+                defaultValueFunction as VertexFunction<Boolean>,
+                { it != 0.toByte() },
+                { if (it) 1 else 0 }) as MutableVertexProperty<T>
 
-            override fun get(vertex: Vertex): Unit = Unit
+        Float::class.java ->
+            createMapped<Int, Float>(
+                graph,
+                defaultValueFunction as VertexFunction<Float>,
+                { Float.fromBits(it) },
+                { it.toRawBits() }) as MutableVertexProperty<T>
 
-            override fun set(vertex: Vertex, value: Unit) {}
-        }
-    }
+        Double::class.java ->
+            createMapped<Long, Double>(
+                graph,
+                defaultValueFunction as VertexFunction<Double>,
+                { Double.fromBits(it) },
+                { it.toRawBits() }) as MutableVertexProperty<T>
 
-    /**
-     * Creates an edge property that is as specialized and efficient as possible for the given graph and type.
-     */
-    @Suppress("UNCHECKED_CAST")
-    @JvmStatic
-    public fun <T> createVertexProperty(
-        graph: Graph,
-        type: Class<T>,
-        initializer: VertexInitializer<T>
-    ): MutableVertexProperty<T> {
-        return if (type == Unit::class.java) {
-            unitVertexProperty(graph) as MutableVertexProperty<T>
-        } else if (graph is ImmutableGraph && graph.isEmpty()) {
-            emptyVertexProperty(graph, type)
-        } else if (graph is IndexedVertexGraph) {
-            ArrayVertexProperty(graph, type, initializer)
-        } else {
-            MapVertexProperty(graph, type, initializer)
+        else -> {
+            if (graph is ImmutableGraph) {
+                if (graph.isEmpty()) {
+                    emptyVertexProperty(graph, type)
+                } else if (graph is IndexedVertexGraph) {
+                    when (type) {
+                        Byte::class.java ->
+                            ImmutableByteArrayVertexProperty(
+                                graph,
+                                defaultValueFunction as VertexFunction<Byte>
+                            ) as MutableVertexProperty<T>
+
+                        Short::class.java ->
+                            ImmutableShortArrayVertexProperty(
+                                graph,
+                                defaultValueFunction as VertexFunction<Short>
+                            ) as MutableVertexProperty<T>
+
+                        Int::class.java ->
+                            ImmutableIntArrayVertexProperty(
+                                graph,
+                                defaultValueFunction as VertexFunction<Int>
+                            ) as MutableVertexProperty<T>
+
+                        Long::class.java ->
+                            ImmutableLongArrayVertexProperty(
+                                graph,
+                                defaultValueFunction as VertexFunction<Long>
+                            ) as MutableVertexProperty<T>
+
+                        else -> ImmutableArrayVertexProperty(graph, type, defaultValueFunction)
+                    }
+                } else {
+                    when (type) {
+                        Byte::class.java ->
+                            ImmutableByteMapVertexProperty(
+                                graph,
+                                defaultValueFunction as VertexFunction<Byte>
+                            ) as MutableVertexProperty<T>
+
+                        Short::class.java ->
+                            ImmutableShortMapVertexProperty(
+                                graph,
+                                defaultValueFunction as VertexFunction<Short>
+                            ) as MutableVertexProperty<T>
+
+                        Int::class.java ->
+                            ImmutableIntMapVertexProperty(
+                                graph,
+                                defaultValueFunction as VertexFunction<Int>
+                            ) as MutableVertexProperty<T>
+
+                        Long::class.java ->
+                            ImmutableLongMapVertexProperty(
+                                graph,
+                                defaultValueFunction as VertexFunction<Long>
+                            ) as MutableVertexProperty<T>
+
+                        else -> ImmutableMapVertexProperty(graph, type, defaultValueFunction)
+                    }
+                }
+            } else {
+                if (graph is IndexedVertexGraph) {
+                    when (type) {
+                        Byte::class.java ->
+                            ByteArrayVertexProperty(
+                                graph,
+                                defaultValueFunction as VertexFunction<Byte>
+                            ) as MutableVertexProperty<T>
+
+                        Short::class.java ->
+                            ShortArrayVertexProperty(
+                                graph,
+                                defaultValueFunction as VertexFunction<Short>
+                            ) as MutableVertexProperty<T>
+
+                        Int::class.java ->
+                            IntArrayVertexProperty(
+                                graph,
+                                defaultValueFunction as VertexFunction<Int>
+                            ) as MutableVertexProperty<T>
+
+                        Long::class.java ->
+                            LongArrayVertexProperty(
+                                graph,
+                                defaultValueFunction as VertexFunction<Long>
+                            ) as MutableVertexProperty<T>
+
+                        else -> ArrayVertexProperty(graph, type, defaultValueFunction)
+                    }
+                } else {
+                    when (type) {
+                        Byte::class.java ->
+                            ByteMapVertexProperty(
+                                graph,
+                                defaultValueFunction as VertexFunction<Byte>
+                            ) as MutableVertexProperty<T>
+
+                        Short::class.java ->
+                            ShortMapVertexProperty(
+                                graph,
+                                defaultValueFunction as VertexFunction<Short>
+                            ) as MutableVertexProperty<T>
+
+                        Int::class.java ->
+                            IntMapVertexProperty(
+                                graph,
+                                defaultValueFunction as VertexFunction<Int>
+                            ) as MutableVertexProperty<T>
+
+                        Long::class.java ->
+                            LongMapVertexProperty(
+                                graph,
+                                defaultValueFunction as VertexFunction<Long>
+                            ) as MutableVertexProperty<T>
+
+                        else -> MapVertexProperty(graph, type, defaultValueFunction)
+                    }
+                }
+            }
         }
     }
 }
 
-/** See [VertexProperties.map]. */
+private inline fun <reified V, reified O> createMapped(
+    graph: Graph,
+    defaultValueFunction: VertexFunction<O>,
+    crossinline transform: (V) -> O,
+    crossinline reverseTransform: (O) -> V
+): MutableVertexProperty<O> {
+    val property = createVertexProperty(graph, V::class.java) { reverseTransform(defaultValueFunction.apply(it)) }
+    return object : MutableVertexProperty<O> {
+        override val graph: Graph get() = property.graph
+        override val type: Class<O> get() = O::class.java
+        override fun get(vertex: Vertex): O = transform(property[vertex])
+        override fun set(vertex: Vertex, value: O) { property[vertex] = reverseTransform(value)}
+        override fun put(vertex: Vertex, value: O) = transform(property.put(vertex, reverseTransform(value)))
+    }
+}
+
+/**
+ * Creates a new [VertexProperty] which is a transformation of this [VertexProperty]. The new [VertexProperty]
+ * applies the given [transform] on every [VertexProperty.get] invocation.
+ */
+public fun <V, O> map(property: VertexProperty<V>, type: Class<O>, transform: (V) -> O): VertexProperty<O> {
+    return object : VertexProperty<O> {
+        override val graph: Graph get() = property.graph
+        override val type: Class<O> get() = type
+        override fun get(vertex: Vertex): O = transform(property[vertex])
+    }
+}
+
+/** See [map]. */
 @JvmSynthetic
+@JvmName("#vertexPropertyMap")
 public fun <V, O> VertexProperty<V>.map(type: Class<O>, transform: (V) -> O): VertexProperty<O> {
-    return VertexProperties.map(this, type, transform)
+    return map(this, type, transform)
 }
 
-/** See [VertexProperties.map]. */
+/** See [map]. */
 @JvmSynthetic
 public inline fun <V, reified O> VertexProperty<V>.map(noinline transform: (V) -> O): VertexProperty<O> {
-    return VertexProperties.map(this, O::class.java, transform)
+    return map(this, O::class.java, transform)
+}
+
+/**
+ * Creates a new [VertexProperty] which is a transformation of this [VertexProperty]. The new [VertexProperty]
+ * applies the given [transform] on every [VertexProperty.get] invocation.
+ */
+public fun <V, O> map(
+    property: MutableVertexProperty<V>,
+    type: Class<O>,
+    transform: (V) -> O,
+    reverseTransform: (O) -> V
+): MutableVertexProperty<O> {
+    return object : MutableVertexProperty<O> {
+        override val graph: Graph get() = property.graph
+        override val type: Class<O> get() = type
+        override fun get(vertex: Vertex): O = transform(property[vertex])
+        override fun set(vertex: Vertex, value: O) { property[vertex] = reverseTransform(value)}
+        override fun put(vertex: Vertex, value: O) = transform(property.put(vertex, reverseTransform(value)))
+    }
+}
+
+/** See [map]. */
+@JvmSynthetic
+@JvmName("#mutableVertexPropertyMap")
+public fun <V, O> MutableVertexProperty<V>.map(
+    type: Class<O>,
+    transform: (V) -> O,
+    reverseTransform: (O) -> V
+): MutableVertexProperty<O> {
+    return map(this, type, transform, reverseTransform)
+}
+
+/** See [map]. */
+@JvmSynthetic
+public inline fun <V, reified O> MutableVertexProperty<V>.map(
+    noinline transform: (V) -> O,
+    noinline reverseTransform: (O) -> V
+): MutableVertexProperty<O> {
+    return map(this, O::class.java, transform, reverseTransform)
 }
 
 /** Returns an empty vertex property to be associated with an empty [ImmutableGraph]. */

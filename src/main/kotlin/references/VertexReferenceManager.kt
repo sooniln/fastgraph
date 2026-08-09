@@ -1,6 +1,6 @@
 package io.github.sooniln.fastgraph.references
 
-import io.github.sooniln.fastcollect.ints.Int2AnyHashMap
+import io.github.sooniln.fastcollect.Int2AnyHashMap
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener

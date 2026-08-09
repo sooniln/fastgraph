@@ -5,10 +5,10 @@
 
 package io.github.sooniln.fastgraph
 
-import io.github.sooniln.fastcollect.longs.LongHashSet
-import io.github.sooniln.fastcollect.longs.LongSet
-import io.github.sooniln.fastcollect.longs.emptyLongIterator
-import io.github.sooniln.fastcollect.longs.longIteratorOf
+import io.github.sooniln.fastcollect.LongHashSet
+import io.github.sooniln.fastcollect.LongSet
+import io.github.sooniln.fastcollect.emptyLongIterator
+import io.github.sooniln.fastcollect.longIteratorOf
 
 private val EDGE_HEX_FORMAT = HexFormat {
     number {
@@ -95,6 +95,33 @@ public value class Edge(public val id: Long) {
 }
 
 /**
+ * A functional interface for consuming edges.
+ */
+@Suppress("INAPPLICABLE_JVM_NAME")
+public fun interface EdgeConsumer {
+    @JvmName("accept")
+    public fun accept(edge: Edge)
+}
+
+/**
+ * A functional interface for deciding on an edge.
+ */
+@Suppress("INAPPLICABLE_JVM_NAME")
+public fun interface EdgePredicate {
+    @JvmName("test")
+    public fun test(edge: Edge): Boolean
+}
+
+/**
+ * A functional interface representing an edge function.
+ */
+@Suppress("INAPPLICABLE_JVM_NAME")
+public fun interface EdgeFunction<T> {
+    @JvmName("apply")
+    public fun apply(edge: Edge): T
+}
+
+/**
  * An iterator over edges. Note that this interface is distinct from [Iterator<Edge>][Iterator] in order to avoid Edge
  * boxing/unboxing, and associated performance penalties. Prefer to use this interface whenever possible for those
  * reasons.
@@ -117,24 +144,6 @@ public interface MutableEdgeIterator : EdgeIterator, MutableIterator<Edge>
  */
 public interface EdgeIterable : Iterable<Edge> {
     override fun iterator(): EdgeIterator
-}
-
-/**
- * A functional interface for consuming edges.
- */
-@Suppress("INAPPLICABLE_JVM_NAME")
-public fun interface EdgeConsumer {
-    @JvmName("accept")
-    public fun accept(edge: Edge)
-}
-
-/**
- * A function interface for reacting to edges with true/false.
- */
-@Suppress("INAPPLICABLE_JVM_NAME")
-public fun interface EdgePredicate {
-    @JvmName("test")
-    public fun test(edge: Edge): Boolean
 }
 
 /**
@@ -262,6 +271,11 @@ public interface IndexedEdgeSet : EdgeSet {
         }
     }
 }
+
+public val IndexedEdgeSet.lastIndex: Int @JvmSynthetic get() = size - 1
+
+@Suppress("ReplaceManualRangeWithIndicesCalls")
+public val IndexedEdgeSet.indices: IntRange @JvmSynthetic get() = 0..<size
 
 /**
  * A set of edges where each edge is associated with an index from `0` to `size() - 1`. This makes edges accessible by

@@ -13,11 +13,10 @@ plugins {
 
 repositories {
     mavenCentral()
-    mavenLocal()
 }
 
 group = "io.github.sooniln"
-version = "0.2.2"
+version = "1.0.0"
 
 kotlin {
     jvmToolchain(17)
@@ -37,7 +36,7 @@ java {
 }
 
 dependencies {
-    implementation("io.github.sooniln:fastcollect-kotlin-jvm:2.0.3")
+    implementation("io.github.sooniln:fastcollect-kotlin-jvm:3.0.1")
 
     testImplementation(libs.bundles.testing)
     testImplementation(kotlin("reflect"))
@@ -167,27 +166,24 @@ tasks.register<Sync>("GenerateMain") {
     group = "build"
     into("src/mainGenerated/kotlin")
 
-    generate("commonMain",
+    generate("main",
         listOf(
             TemplateInstantiation(
-                "GraphHashSet.kte",
+                "EdgeProperties.kte",
                 listOf(
+                    mapOf("Type" to "Byte"),
+                    mapOf("Type" to "Short"),
                     mapOf("Type" to "Int"),
                     mapOf("Type" to "Long"),
-                )) { expansion -> "primitives/collections/Graph${expansion["Type"]}HashSet.kt" },
-        TemplateInstantiation(
-            "GraphHashMap.kte",
-            listOf(
-                mapOf("KeyType" to "Int", "ValueType" to "Int", "DefaultValue" to "Int.MIN_VALUE"),
-                mapOf("KeyType" to "Int", "ValueType" to "Long", "DefaultValue" to "Long.MIN_VALUE"),
-                mapOf("KeyType" to "Int", "ValueType" to "V", "DefaultValue" to "null", "isReferenceValue" to true),
-            )) { expansion -> "primitives/collections/Graph${expansion["Name"]}HashMap.kt" },
-        TemplateInstantiation(
-            "GraphFPHashMap.kte",
-            listOf(
-                mapOf("KeyType" to "Int", "ValueType" to "Float", "DefaultValue" to "Float.NaN"),
-                mapOf("KeyType" to "Int", "ValueType" to "Double", "DefaultValue" to "Double.NaN"),
-            )) { expansion -> "primitives/collections/Graph${expansion["Name"]}HashMap.kt" },
+                )) { expansion -> "properties/${expansion["Type"]}EdgeProperties.kt" },
+            TemplateInstantiation(
+                "VertexProperties.kte",
+                listOf(
+                    mapOf("Type" to "Byte"),
+                    mapOf("Type" to "Short"),
+                    mapOf("Type" to "Int"),
+                    mapOf("Type" to "Long"),
+                )) { expansion -> "properties/${expansion["Type"]}VertexProperties.kt" },
         ))
 }
 
@@ -225,7 +221,7 @@ tasks.test {
     enableAssertions = true
 
     // some tests read the abi file for verifications
-    dependsOn("updateKotlinAbi")
+    dependsOn("checkKotlinAbi")
 }
 
 jmh {

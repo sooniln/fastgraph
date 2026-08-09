@@ -1,3 +1,8 @@
+/**
+ * Methods dealing with vertex references.
+ */
+@file:JvmName("VertexReferences")
+
 package io.github.sooniln.fastgraph
 
 /**

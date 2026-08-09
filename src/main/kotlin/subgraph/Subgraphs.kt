@@ -1,11 +1,11 @@
 package io.github.sooniln.fastgraph.subgraph
 
-import io.github.sooniln.fastcollect.ints.IntHashSet
-import io.github.sooniln.fastcollect.longs.LongHashSet
+import io.github.sooniln.fastcollect.IntHashSet
+import io.github.sooniln.fastcollect.LongHashSet
 import io.github.sooniln.fastgraph.AbstractGraph
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeChangeListener
-import io.github.sooniln.fastgraph.EdgeInitializer
+import io.github.sooniln.fastgraph.EdgeFunction
 import io.github.sooniln.fastgraph.EdgePredicate
 import io.github.sooniln.fastgraph.EdgeReference
 import io.github.sooniln.fastgraph.EdgeSet
@@ -16,7 +16,7 @@ import io.github.sooniln.fastgraph.MutableEdgeProperty
 import io.github.sooniln.fastgraph.MutableVertexProperty
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
-import io.github.sooniln.fastgraph.VertexInitializer
+import io.github.sooniln.fastgraph.VertexFunction
 import io.github.sooniln.fastgraph.VertexPredicate
 import io.github.sooniln.fastgraph.VertexReference
 import io.github.sooniln.fastgraph.VertexSet
@@ -65,7 +65,7 @@ internal interface SubgraphVertices : VertexSet {
     fun registerVertexChangeListener(listener: VertexChangeListener)
     fun unregisterVertexChangeListener(listener: VertexChangeListener)
 
-    fun <T> createVertexProperty(type: Class<T>, initializer: VertexInitializer<T>): MutableVertexProperty<T>
+    fun <T> createVertexProperty(type: Class<T>, initializer: VertexFunction<T>): MutableVertexProperty<T>
     fun createVertexReference(vertex: Vertex): VertexReference
 
     fun trimToSize()
@@ -77,7 +77,7 @@ internal interface SubgraphEdges : EdgeSet {
     fun registerEdgeChangeListener(listener: EdgeChangeListener)
     fun unregisterEdgeChangeListener(listener: EdgeChangeListener)
 
-    fun <T> createEdgeProperty(type: Class<T>, initializer: EdgeInitializer<T>): MutableEdgeProperty<T>
+    fun <T> createEdgeProperty(type: Class<T>, initializer: EdgeFunction<T>): MutableEdgeProperty<T>
     fun createEdgeReference(edge: Edge): EdgeReference
 
     fun trimToSize()
@@ -225,12 +225,12 @@ private abstract class AbstractSubgraph(
         return all?.asEdgeSet() ?: emptyEdgeSet()
     }
 
-    override fun <T> createVertexProperty(type: Class<T>, initializer: VertexInitializer<T>): MutableVertexProperty<T> {
-        return vertices.createVertexProperty(type, initializer)
+    override fun <T> createVertexProperty(type: Class<T>, defaultValueFunction: VertexFunction<T>): MutableVertexProperty<T> {
+        return vertices.createVertexProperty(type, defaultValueFunction)
     }
 
-    override fun <T> createEdgeProperty(type: Class<T>, initializer: EdgeInitializer<T>): MutableEdgeProperty<T> {
-        return edges.createEdgeProperty(type, initializer)
+    override fun <T> createEdgeProperty(type: Class<T>, defaultValueFunction: EdgeFunction<T>): MutableEdgeProperty<T> {
+        return edges.createEdgeProperty(type, defaultValueFunction)
     }
 
     override fun trimToSize() {

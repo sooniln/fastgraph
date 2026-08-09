@@ -6,7 +6,7 @@ import io.github.sooniln.fastgraph.MutableVertexProperty
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
 import io.github.sooniln.fastgraph.VertexConsumer
-import io.github.sooniln.fastgraph.VertexInitializer
+import io.github.sooniln.fastgraph.VertexFunction
 import io.github.sooniln.fastgraph.VertexIterator
 import io.github.sooniln.fastgraph.VertexPredicate
 import io.github.sooniln.fastgraph.VertexReference
@@ -80,7 +80,7 @@ internal class FilteredVertices(
 
     override fun <T> createVertexProperty(
         type: Class<T>,
-        initializer: VertexInitializer<T>
+        initializer: VertexFunction<T>
     ): MutableVertexProperty<T> {
         val property = FilteredVertexProperty(graph, type, initializer, filter)
         properties.add(WeakReference(property))

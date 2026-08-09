@@ -5,10 +5,10 @@
 
 package io.github.sooniln.fastgraph
 
-import io.github.sooniln.fastcollect.ints.IntHashSet
-import io.github.sooniln.fastcollect.ints.IntSet
-import io.github.sooniln.fastcollect.ints.emptyIntIterator
-import io.github.sooniln.fastcollect.ints.intIteratorOf
+import io.github.sooniln.fastcollect.IntHashSet
+import io.github.sooniln.fastcollect.IntSet
+import io.github.sooniln.fastcollect.emptyIntIterator
+import io.github.sooniln.fastcollect.intIteratorOf
 
 private val VERTEX_HEX_FORMAT = HexFormat {
     number {
@@ -118,6 +118,33 @@ internal operator fun Vertex.inc(): Vertex = Vertex(id + 1)
 internal operator fun Vertex.dec(): Vertex = Vertex(id - 1)
 
 /**
+ * A functional interface for receiving vertices.
+ */
+@Suppress("INAPPLICABLE_JVM_NAME")
+public fun interface VertexConsumer {
+    @JvmName("accept")
+    public fun accept(vertex: Vertex)
+}
+
+/**
+ * A functional interface for deciding on a vertex.
+ */
+@Suppress("INAPPLICABLE_JVM_NAME")
+public fun interface VertexPredicate {
+    @JvmName("test")
+    public fun test(vertex: Vertex): Boolean
+}
+
+/**
+ * A functional interface representing a vertex function.
+ */
+@Suppress("INAPPLICABLE_JVM_NAME")
+public fun interface VertexFunction<T> {
+    @JvmName("apply")
+    public fun apply(vertex: Vertex): T
+}
+
+/**
  * An iterator over vertices. Note that this interface is distinct from [Iterator<Vertex>][Iterator] in order to avoid
  * Vertex boxing/unboxing, and associated performance penalties. Prefer to use this interface whenever possible for
  * those reasons.
@@ -140,21 +167,6 @@ public interface MutableVertexIterator : VertexIterator, MutableIterator<Vertex>
  */
 public interface VertexIterable : Iterable<Vertex> {
     override fun iterator(): VertexIterator
-}
-
-/**
- * A functional interface for receiving vertices.
- */
-@Suppress("INAPPLICABLE_JVM_NAME")
-public fun interface VertexConsumer {
-    @JvmName("accept")
-    public fun accept(vertex: Vertex)
-}
-
-@Suppress("INAPPLICABLE_JVM_NAME")
-public fun interface VertexPredicate {
-    @JvmName("test")
-    public fun test(vertex: Vertex): Boolean
 }
 
 /**
@@ -282,6 +294,11 @@ public interface IndexedVertexSet : VertexSet {
         }
     }
 }
+
+public val IndexedVertexSet.lastIndex: Int @JvmSynthetic get() = size - 1
+
+@Suppress("ReplaceManualRangeWithIndicesCalls")
+public val IndexedVertexSet.indices: IntRange @JvmSynthetic get() = 0..<size
 
 /**
  * A set of vertices where each vertex is associated with an index from `0` to `size() - 1`. This makes vertices

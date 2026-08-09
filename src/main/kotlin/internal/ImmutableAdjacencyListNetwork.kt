@@ -1,10 +1,10 @@
 package io.github.sooniln.fastgraph.internal
 
-import io.github.sooniln.fastcollect.ints.Int2AnyHashMap
-import io.github.sooniln.fastcollect.ints.IntArrayList
-import io.github.sooniln.fastcollect.ints.emptyIntIterator
-import io.github.sooniln.fastcollect.ints.getOrPut
-import io.github.sooniln.fastcollect.ints.intIteratorOf
+import io.github.sooniln.fastcollect.Int2AnyHashMap
+import io.github.sooniln.fastcollect.IntArrayList
+import io.github.sooniln.fastcollect.emptyIntIterator
+import io.github.sooniln.fastcollect.getOrPut
+import io.github.sooniln.fastcollect.intIteratorOf
 import io.github.sooniln.fastgraph.*
 
 internal class ImmutableAdjacencyListNetwork private constructor(
@@ -84,16 +84,16 @@ internal class ImmutableAdjacencyListNetwork private constructor(
 
     override fun <T> createVertexProperty(
         type: Class<T>,
-        initializer: VertexInitializer<T>
+        defaultValueFunction: VertexFunction<T>
     ): MutableVertexProperty<T> {
-        return VertexProperties.createVertexProperty(this, type, initializer)
+        return createVertexProperty(this, type, defaultValueFunction)
     }
 
     override fun <T> createEdgeProperty(
         type: Class<T>,
-        initializer: EdgeInitializer<T>
+        defaultValueFunction: EdgeFunction<T>
     ): MutableEdgeProperty<T> {
-        return EdgeProperties.createEdgeProperty(this, type, initializer)
+        return createEdgeProperty(this, type, defaultValueFunction)
     }
 
     override fun createVertexReference(vertex: Vertex): VertexReference =

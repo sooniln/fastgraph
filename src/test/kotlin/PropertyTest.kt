@@ -2,7 +2,9 @@ package io.github.sooniln.fastgraph
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.EnumSource
+import org.junit.jupiter.params.provider.Arguments
+import org.junit.jupiter.params.provider.MethodSource
+import java.util.stream.Stream
 
 class PropertyTest {
 
@@ -33,257 +35,82 @@ class PropertyTest {
         }
     }
 
-    @ParameterizedTest(name = "graphType={0}")
-    @EnumSource(GraphType::class)
-    fun booleanVertexProperty(graphType: GraphType) {
+    class PropertyCase<T>(
+        val type: Class<T>,
+        val defaultValue: T,
+        val valueAt: (Int) -> T,
+    ) {
+        override fun toString(): String = type.simpleName
+    }
+
+    companion object {
+        @JvmStatic
+        fun propertyCases(): List<PropertyCase<*>> = listOf(
+            PropertyCase(Unit::class.java, Unit) { },
+            PropertyCase(Boolean::class.java, true) { index -> index % 2 == 0 },
+            PropertyCase(Byte::class.java, 1.toByte()) { index -> (2 shl index).toByte() },
+            PropertyCase(Short::class.java, 1.toShort()) { index -> (2 shl index).toShort() },
+            PropertyCase(Int::class.java, 1) { index -> 2 shl index },
+            PropertyCase(Long::class.java, 1L) { index -> 2L shl index },
+            PropertyCase(Float::class.java, 1f) { index -> (2 shl index).toFloat() },
+            PropertyCase(Double::class.java, 1.0) { index -> (2 shl index).toDouble() },
+            PropertyCase(String::class.java, "hello") { index -> "test$index" },
+        )
+
+        @JvmStatic
+        fun graphTypeAndPropertyCases(): Stream<Arguments> =
+            GraphType.entries.stream().flatMap { graphType ->
+                propertyCases().stream().map { case -> Arguments.of(graphType, case) }
+            }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    @ParameterizedTest(name = "graphType={0}, type={1}")
+    @MethodSource("graphTypeAndPropertyCases")
+    fun vertexProperty(graphType: GraphType, case: PropertyCase<*>) {
+        val typedCase = case as PropertyCase<Any?>
         val graph = graphType.loadGraph()
-        val property = graph.createVertexProperty { true }
+        val property = graph.createVertexProperty(typedCase.type) { typedCase.defaultValue }
 
         for (vertex in graph.vertices) {
-            assertThat(property[vertex]).isTrue()
+            assertThat(property[vertex]).isEqualTo(typedCase.defaultValue)
         }
 
+        var index = 0
         for (vertex in graph.vertices) {
-            property[vertex] = false
-            assertThat(property[vertex]).isFalse()
+            property[vertex] = typedCase.valueAt(index)
+            index++
+        }
+
+        index = 0
+        for (vertex in graph.vertices) {
+            assertThat(property[vertex]).isEqualTo(typedCase.valueAt(index))
+            index++
         }
     }
 
-    @ParameterizedTest(name = "graphType={0}")
-    @EnumSource(GraphType::class)
-    fun intVertexProperty(graphType: GraphType) {
+    @Suppress("UNCHECKED_CAST")
+    @ParameterizedTest(name = "graphType={0}, type={1}")
+    @MethodSource("graphTypeAndPropertyCases")
+    fun edgeProperty(graphType: GraphType, case: PropertyCase<*>) {
+        val typedCase = case as PropertyCase<Any?>
         val graph = graphType.loadGraph()
-        val property = graph.createVertexProperty { 1 }
-
-        for (vertex in graph.vertices) {
-            assertThat(property[vertex]).isEqualTo(1)
-        }
-
-        var c = 2
-        for (vertex in graph.vertices) {
-            property[vertex] = c
-            c *= 2
-        }
-
-        c = 2
-        for (vertex in graph.vertices) {
-            assertThat(property[vertex]).isEqualTo(c)
-            c *= 2
-        }
-    }
-
-    @ParameterizedTest(name = "graphType={0}")
-    @EnumSource(GraphType::class)
-    fun floatVertexProperty(graphType: GraphType) {
-        val graph = graphType.loadGraph()
-        val property = graph.createVertexProperty { 1f }
-
-        for (vertex in graph.vertices) {
-            assertThat(property[vertex]).isEqualTo(1f)
-        }
-
-        var c = 2f
-        for (vertex in graph.vertices) {
-            property[vertex] = c
-            c *= 2
-        }
-
-        c = 2f
-        for (vertex in graph.vertices) {
-            assertThat(property[vertex]).isEqualTo(c)
-            c *= 2
-        }
-    }
-
-    @ParameterizedTest(name = "graphType={0}")
-    @EnumSource(GraphType::class)
-    fun longVertexProperty(graphType: GraphType) {
-        val graph = graphType.loadGraph()
-        val property = graph.createVertexProperty { 1L }
-
-        for (vertex in graph.vertices) {
-            assertThat(property[vertex]).isEqualTo(1L)
-        }
-
-        var c = 2L
-        for (vertex in graph.vertices) {
-            property[vertex] = c
-            c *= 2
-        }
-
-        c = 2L
-        for (vertex in graph.vertices) {
-            assertThat(property[vertex]).isEqualTo(c)
-            c *= 2
-        }
-    }
-
-    @ParameterizedTest(name = "graphType={0}")
-    @EnumSource(GraphType::class)
-    fun doubleVertexProperty(graphType: GraphType) {
-        val graph = graphType.loadGraph()
-        val property = graph.createVertexProperty { 1.0 }
-
-        for (vertex in graph.vertices) {
-            assertThat(property[vertex]).isEqualTo(1.0)
-        }
-
-        var c = 2.0
-        for (vertex in graph.vertices) {
-            property[vertex] = c
-            c *= 2
-        }
-
-        c = 2.0
-        for (vertex in graph.vertices) {
-            assertThat(property[vertex]).isEqualTo(c)
-            c *= 2
-        }
-    }
-
-    @ParameterizedTest(name = "graphType={0}")
-    @EnumSource(GraphType::class)
-    fun objectVertexProperty(graphType: GraphType) {
-        val graph = graphType.loadGraph()
-        val property = graph.createVertexProperty { "hello" }
-
-        for (vertex in graph.vertices) {
-            assertThat(property[vertex]).isEqualTo("hello")
-        }
-
-        for (vertex in graph.vertices) {
-            property[vertex] = "test$vertex"
-        }
-
-        for (vertex in graph.vertices) {
-            assertThat(property[vertex]).isEqualTo("test$vertex")
-        }
-    }
-
-    @ParameterizedTest(name = "graphType={0}")
-    @EnumSource(GraphType::class)
-    fun booleanEdgeProperty(graphType: GraphType) {
-        val graph = graphType.loadGraph()
-        val property = graph.createEdgeProperty { true }
+        val property = graph.createEdgeProperty(typedCase.type) { typedCase.defaultValue }
 
         for (edge in graph.edges) {
-            assertThat(property[edge]).isTrue()
+            assertThat(property[edge]).isEqualTo(typedCase.defaultValue)
         }
 
+        var index = 0
         for (edge in graph.edges) {
-            property[edge] = false
-            assertThat(property[edge]).isFalse()
-        }
-    }
-
-    @ParameterizedTest(name = "graphType={0}")
-    @EnumSource(GraphType::class)
-    fun intEdgeProperty(graphType: GraphType) {
-        val graph = graphType.loadGraph()
-        val property = graph.createEdgeProperty { 1 }
-
-        for (edge in graph.edges) {
-            assertThat(property[edge]).isEqualTo(1)
+            property[edge] = typedCase.valueAt(index)
+            index++
         }
 
-        var c = 2
+        index = 0
         for (edge in graph.edges) {
-            property[edge] = c
-            c *= 2
-        }
-
-        c = 2
-        for (edge in graph.edges) {
-            assertThat(property[edge]).isEqualTo(c)
-            c *= 2
-        }
-    }
-
-    @ParameterizedTest(name = "graphType={0}")
-    @EnumSource(GraphType::class)
-    fun floatEdgeProperty(graphType: GraphType) {
-        val graph = graphType.loadGraph()
-        val property = graph.createEdgeProperty { 1f }
-
-        for (edge in graph.edges) {
-            assertThat(property[edge]).isEqualTo(1f)
-        }
-
-        var c = 2f
-        for (edge in graph.edges) {
-            property[edge] = c
-            c *= 2
-        }
-
-        c = 2f
-        for (edge in graph.edges) {
-            assertThat(property[edge]).isEqualTo(c)
-            c *= 2
-        }
-    }
-
-    @ParameterizedTest(name = "graphType={0}")
-    @EnumSource(GraphType::class)
-    fun longEdgeProperty(graphType: GraphType) {
-        val graph = graphType.loadGraph()
-        val property = graph.createEdgeProperty { 1L }
-
-        for (edge in graph.edges) {
-            assertThat(property[edge]).isEqualTo(1L)
-        }
-
-        var c = 2L
-        for (edge in graph.edges) {
-            property[edge] = c
-            c *= 2
-        }
-
-        c = 2L
-        for (edge in graph.edges) {
-            assertThat(property[edge]).isEqualTo(c)
-            c *= 2
-        }
-    }
-
-    @ParameterizedTest(name = "graphType={0}")
-    @EnumSource(GraphType::class)
-    fun doubleEdgeProperty(graphType: GraphType) {
-        val graph = graphType.loadGraph()
-        val property = graph.createEdgeProperty { 1.0 }
-
-        for (edge in graph.edges) {
-            assertThat(property[edge]).isEqualTo(1.0)
-        }
-
-        var c = 2.0
-        for (edge in graph.edges) {
-            property[edge] = c
-            c *= 2
-        }
-
-        c = 2.0
-        for (edge in graph.edges) {
-            assertThat(property[edge]).isEqualTo(c)
-            c *= 2
-        }
-    }
-
-    @ParameterizedTest(name = "graphType={0}")
-    @EnumSource(GraphType::class)
-    fun objectEdgeProperty(graphType: GraphType) {
-        val graph = graphType.loadGraph()
-        val property = graph.createEdgeProperty { "hello" }
-
-        for (edge in graph.edges) {
-            assertThat(property[edge]).isEqualTo("hello")
-        }
-
-        for (edge in graph.edges) {
-            property[edge] = "test$edge"
-        }
-
-        for (edge in graph.edges) {
-            assertThat(property[edge]).isEqualTo("test$edge")
+            assertThat(property[edge]).isEqualTo(typedCase.valueAt(index))
+            index++
         }
     }
 }

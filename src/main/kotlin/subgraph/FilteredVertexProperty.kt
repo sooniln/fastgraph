@@ -1,19 +1,19 @@
 package io.github.sooniln.fastgraph.subgraph
 
-import io.github.sooniln.fastcollect.ints.Int2AnyHashMap
-import io.github.sooniln.fastcollect.ints.getOrPut
-import io.github.sooniln.fastcollect.ints.replaceOrSet
+import io.github.sooniln.fastcollect.Int2AnyHashMap
+import io.github.sooniln.fastcollect.getOrPut
+import io.github.sooniln.fastcollect.replaceOrSet
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.MutableVertexProperty
 import io.github.sooniln.fastgraph.Vertex
-import io.github.sooniln.fastgraph.VertexInitializer
+import io.github.sooniln.fastgraph.VertexFunction
 import io.github.sooniln.fastgraph.VertexPredicate
 import io.github.sooniln.fastgraph.internal.throwIllegalVertex
 
 internal class FilteredVertexProperty<T>(
     override val graph: Graph,
     override val type: Class<T>,
-    private val initializer: VertexInitializer<T>,
+    private val defaultValueFunction: VertexFunction<T>,
     private val filter: VertexPredicate,
 ) : MutableVertexProperty<T> {
 
@@ -25,7 +25,7 @@ internal class FilteredVertexProperty<T>(
             throwIllegalVertex(vertex)
         }
 
-        return property.getOrPut(vertex.id) { initializer.initialize(vertex) }
+        return property.getOrPut(vertex.id) { defaultValueFunction.apply(vertex) }
     }
 
     override fun set(vertex: Vertex, value: T) {
@@ -43,7 +43,7 @@ internal class FilteredVertexProperty<T>(
             throwIllegalVertex(vertex)
         }
 
-        return property.replaceOrSet(vertex.id, value) { initializer.initialize(vertex) }
+        return property.replaceOrSet(vertex.id, value) { defaultValueFunction.apply(vertex) }
     }
 
     fun trimToSize() = property.trimToSize()

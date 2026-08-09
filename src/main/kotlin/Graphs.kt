@@ -210,28 +210,34 @@ public interface Graph {
      * to associate data with vertices in this graph, this method returns a new [VertexProperty] instance which can
      * associate some type of data with vertices in this graph. The returned property is guaranteed to remain in sync
      * with the graph, such that vertices added to the graph will appear in the property and vertices removed from the
-     * graph will be removed from the property.  If the returned property is associated with a mutable graph, the given
-     * initializer may be retained indefinitely (to initialize the property for added edges) - be careful not to leak
-     * memory through the initializer.
+     * graph will be removed from the property.
+     *
+     * If this method is invoked on an [ImmutableGraph], the returned property will never reference
+     * [defaultValueFunction] after initialization. For other graphs, the returned property may continue to reference
+     * [defaultValueFunction] indefinitely (in case vertices are later added), so be cautious of leaking memory through
+     * the reference.
      *
      * The extension method of the same name allows for not passing in the [Class] parameter explicitly - this should be
      * simpler to use where possible.
      */
-    public fun <T> createVertexProperty(type: Class<T>, initializer: VertexInitializer<T>): MutableVertexProperty<T>
+    public fun <T> createVertexProperty(type: Class<T>, defaultValueFunction: VertexFunction<T>): MutableVertexProperty<T>
 
     /**
      * [Graph] represents only a topology, not any data associated with the vertices and edges of the topology. In order
      * to associate data with edges in this graph, this method returns a new [EdgeProperty] instance which can associate
      * some type of data with edges in this graph. The returned property is guaranteed to remain in sync with the graph,
      * such that edges added to the graph will appear in the property and edges removed from the graph will be removed
-     * from the property. If the returned property is associated with a mutable graph, the given initializer may be
-     * retained indefinitely (to initialize the property for added edges) - be careful not to leak memory through the
-     * initializer.
+     * from the property.
+     *
+     * If this method is invoked on an [ImmutableGraph], the returned property will never reference
+     * [defaultValueFunction] after initialization. For other graphs, the returned property may continue to reference
+     * [defaultValueFunction] indefinitely (in case edges are later added), so be cautious of leaking memory through the
+     * reference.
      *
      * The extension method of the same name allows for not passing in the [Class] parameter explicitly - this should be
      * simpler to use where possible.
      */
-    public fun <T> createEdgeProperty(type: Class<T>, initializer: EdgeInitializer<T>): MutableEdgeProperty<T>
+    public fun <T> createEdgeProperty(type: Class<T>, defaultValueFunction: EdgeFunction<T>): MutableEdgeProperty<T>
 
     /**
      * Returns a stable reference to the given vertex. For more information about vertices and stable references to
@@ -343,7 +349,6 @@ public interface VertexChangeListener {
      * Invoked after the vertex is removed from the graph. The graph is in a consistent state with the vertex not
      * present.
      */
-    // TODO: should this be invoked before the vertex is removed?
     @JvmName("onVertexRemoved")
     public fun onVertexRemoved(vertex: Vertex)
 
@@ -354,7 +359,8 @@ public interface VertexChangeListener {
      * `onVertexRemoved(newVertex.id)` was invoked (2) all references to `oldVertex.id` are updated to `newVertex.id`
      * (3) no references to `oldVertex.id` should be present anywhere after completion of this method.
      *
-     * When invoked, the graph is in a consistent state with [oldVertex] not present and [newVertex] present.
+     * When invoked, the graph is MAY NOT be in a consistent state, so interaction with the graph within this method is
+     * forbidden and should not be attempted.
      */
     @JvmName("onVertexReassigned")
     public fun onVertexReassigned(oldVertex: Vertex, newVertex: Vertex)
@@ -408,26 +414,8 @@ public interface EdgeChangeListener {
 }
 
 /**
- * The concrete [VertexProperty] initializer type.
- */
-@Suppress("INAPPLICABLE_JVM_NAME")
-public fun interface VertexInitializer<T> {
-    @JvmName("initialize")
-    public fun initialize(vertex: Vertex): T
-}
-
-/**
- * The concrete [EdgeProperty] initializer type.
- */
-@Suppress("INAPPLICABLE_JVM_NAME")
-public fun interface EdgeInitializer<T> {
-    @JvmName("initialize")
-    public fun initialize(edge: Edge): T
-}
-
-/**
- * A convenient extension method for [Graph.createVertexProperty] that creates a [MutableVertexProperty] with every value
- * initialized to null.
+ * A convenient extension method for [Graph.createVertexProperty] that creates a [MutableVertexProperty] with every
+ * value initialized to null.
  */
 public inline fun <reified T> Graph.createVertexProperty(): MutableVertexProperty<T?> {
     // thanks to kotlin's decision to not have reasonable generic type information, this idiocy results. this also means
@@ -453,16 +441,20 @@ public inline fun <reified T> Graph.createEdgeProperty(): MutableEdgeProperty<T?
  * [Class].
  */
 @JvmSynthetic
-public inline fun <reified T> Graph.createVertexProperty(initializer: VertexInitializer<T>): MutableVertexProperty<T> {
-    return createVertexProperty(T::class.java, initializer)
+public inline fun <reified T> Graph.createVertexProperty(
+    defaultValueFunction: VertexFunction<T>
+): MutableVertexProperty<T> {
+    return createVertexProperty(T::class.java, defaultValueFunction)
 }
 
 /**
  * A convenient extension method for [Graph.createEdgeProperty] that does not require explicitly providing the [Class].
  */
 @JvmSynthetic
-public inline fun <reified T> Graph.createEdgeProperty(initializer: EdgeInitializer<T>): MutableEdgeProperty<T> {
-    return createEdgeProperty(T::class.java, initializer)
+public inline fun <reified T> Graph.createEdgeProperty(
+    defaultValueFunction: EdgeFunction<T>
+): MutableEdgeProperty<T> {
+    return createEdgeProperty(T::class.java, defaultValueFunction)
 }
 
 /**
@@ -500,7 +492,7 @@ public interface IndexedVertexGraph : Graph {
  * implies that when an edge is added or removed the graph must re-order edges in order to ensure the invariants are
  * met.
  *
- * Note that you CANNOT reconstruct an Edge directly from its index - i.e. `Edge(index.toLong())` will not yield the
+ * Note that you CANNOT reconstruct an Edge directly from its index - i.e. `Edge(index.toLong())` MAY NOT yield the
  * correct edge - you must use `edges[index]`.
  */
 public interface IndexedEdgeGraph : Graph {
@@ -710,8 +702,8 @@ public inline fun buildGraph(
  */
 public inline fun <reified V, reified E> buildValueGraph(
     directed: Boolean,
-    vertexInitializer: VertexInitializer<V>,
-    edgeInitializer: EdgeInitializer<E>,
+    vertexInitializer: VertexFunction<V>,
+    edgeInitializer: EdgeFunction<E>,
     multiEdge: Boolean = false,
     indexEdges: Boolean = false,
     builder: ValueGraphBuilder<V, E>.() -> Unit
