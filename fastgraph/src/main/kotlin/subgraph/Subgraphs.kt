@@ -14,6 +14,7 @@ import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.InternalImmutableGraph
 import io.github.sooniln.fastgraph.MutableEdgeProperty
 import io.github.sooniln.fastgraph.MutableVertexProperty
+import io.github.sooniln.fastgraph.TypeReference
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
 import io.github.sooniln.fastgraph.VertexFunction
@@ -65,7 +66,10 @@ internal interface SubgraphVertices : VertexSet {
     fun registerVertexChangeListener(listener: VertexChangeListener)
     fun unregisterVertexChangeListener(listener: VertexChangeListener)
 
-    fun <T> createVertexProperty(type: Class<T>, initializer: VertexFunction<T>): MutableVertexProperty<T>
+    fun <T> createVertexProperty(
+        type: TypeReference<T>,
+        defaultValueFunction: VertexFunction<T>
+    ): MutableVertexProperty<T>
     fun createVertexReference(vertex: Vertex): VertexReference
 
     fun trimToSize()
@@ -77,7 +81,7 @@ internal interface SubgraphEdges : EdgeSet {
     fun registerEdgeChangeListener(listener: EdgeChangeListener)
     fun unregisterEdgeChangeListener(listener: EdgeChangeListener)
 
-    fun <T> createEdgeProperty(type: Class<T>, initializer: EdgeFunction<T>): MutableEdgeProperty<T>
+    fun <T> createEdgeProperty(type: TypeReference<T>, defaultValueFunction: EdgeFunction<T>): MutableEdgeProperty<T>
     fun createEdgeReference(edge: Edge): EdgeReference
 
     fun trimToSize()
@@ -225,11 +229,17 @@ private abstract class AbstractSubgraph(
         return all?.asEdgeSet() ?: emptyEdgeSet()
     }
 
-    override fun <T> createVertexProperty(type: Class<T>, defaultValueFunction: VertexFunction<T>): MutableVertexProperty<T> {
+    override fun <T> createVertexProperty(
+        type: TypeReference<T>,
+        defaultValueFunction: VertexFunction<T>
+    ): MutableVertexProperty<T> {
         return vertices.createVertexProperty(type, defaultValueFunction)
     }
 
-    override fun <T> createEdgeProperty(type: Class<T>, defaultValueFunction: EdgeFunction<T>): MutableEdgeProperty<T> {
+    override fun <T> createEdgeProperty(
+        type: TypeReference<T>,
+        defaultValueFunction: EdgeFunction<T>
+    ): MutableEdgeProperty<T> {
         return edges.createEdgeProperty(type, defaultValueFunction)
     }
 

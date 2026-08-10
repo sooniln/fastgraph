@@ -1,8 +1,6 @@
 package io.github.sooniln.fastgraph.subgraph
 
 import io.github.sooniln.fastgraph.AbstractEdgeSet
-import io.github.sooniln.fastgraph.Graph
-import io.github.sooniln.fastgraph.MutableEdgeProperty
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeChangeListener
 import io.github.sooniln.fastgraph.EdgeConsumer
@@ -10,6 +8,9 @@ import io.github.sooniln.fastgraph.EdgeFunction
 import io.github.sooniln.fastgraph.EdgeIterator
 import io.github.sooniln.fastgraph.EdgePredicate
 import io.github.sooniln.fastgraph.EdgeReference
+import io.github.sooniln.fastgraph.Graph
+import io.github.sooniln.fastgraph.MutableEdgeProperty
+import io.github.sooniln.fastgraph.TypeReference
 import java.lang.ref.WeakReference
 
 internal class FilteredEdges(
@@ -86,10 +87,10 @@ internal class FilteredEdges(
     }
 
     override fun <T> createEdgeProperty(
-        type: Class<T>,
-        initializer: EdgeFunction<T>
+        type: TypeReference<T>,
+        defaultValueFunction: EdgeFunction<T>
     ): MutableEdgeProperty<T> {
-        val property = FilteredEdgeProperty(graph, type, initializer, filter)
+        val property = FilteredEdgeProperty(graph, type, defaultValueFunction, filter)
         properties.add(WeakReference(property))
         return property
     }

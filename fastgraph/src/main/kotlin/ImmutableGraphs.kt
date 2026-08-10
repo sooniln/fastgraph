@@ -39,8 +39,8 @@ internal interface InternalImmutableGraph : ImmutableGraph
  */
 public class ImmutableValueGraph<V, E>(
     override val graph: ImmutableGraph,
-   override val vertexProperty: MutableVertexProperty<V>,
-   override val edgeProperty: MutableEdgeProperty<E>
+    override val vertexProperty: MutableVertexProperty<V>,
+    override val edgeProperty: MutableEdgeProperty<E>
 ) : ValueGraph<V, E>, ImmutableGraph by graph {
     init {
         require(vertexProperty.graph === graph)
@@ -58,10 +58,11 @@ public fun emptyImmutableGraph(directed: Boolean): ImmutableGraph {
 /**
  * Returns an empty [ImmutableValueGraph] with the given directedness and vertex/edge property types.
  */
+@JvmName("emptyImmutableValueGraph")
 public fun <V, E> emptyImmutableValueGraph(
     directed: Boolean,
-    vertexType: Class<V>,
-    edgeType: Class<E>
+    vertexType: TypeReference<V>,
+    edgeType: TypeReference<E>
 ): ImmutableValueGraph<V, E> {
     val graph = if (directed) EmptyGraph.DIRECTED else EmptyGraph.UNDIRECTED
     return ImmutableValueGraph(
@@ -75,7 +76,7 @@ public fun <V, E> emptyImmutableValueGraph(
  * Returns an empty [ImmutableValueGraph] with the given directedness.
  */
 public inline fun <reified V, reified E> emptyImmutableValueGraph(directed: Boolean): ImmutableValueGraph<V, E> {
-    return emptyImmutableValueGraph(directed, V::class.java, E::class.java)
+    return emptyImmutableValueGraph(directed, TypeReference.of(), TypeReference.of())
 }
 
 /**
@@ -246,11 +247,17 @@ private class EmptyGraph(override val directed: Boolean) : ImmutableGraph, Index
     override fun registerEdgeChangeListener(listener: EdgeChangeListener) {}
     override fun unregisterEdgeChangeListener(listener: EdgeChangeListener) {}
 
-    override fun <T> createVertexProperty(type: Class<T>, defaultValueFunction: VertexFunction<T>): MutableVertexProperty<T> {
+    override fun <T> createVertexProperty(
+        type: TypeReference<T>,
+        defaultValueFunction: VertexFunction<T>
+    ): MutableVertexProperty<T> {
         return emptyVertexProperty(this, type)
     }
 
-    override fun <T> createEdgeProperty(type: Class<T>, defaultValueFunction: EdgeFunction<T>): MutableEdgeProperty<T> {
+    override fun <T> createEdgeProperty(
+        type: TypeReference<T>,
+        defaultValueFunction: EdgeFunction<T>
+    ): MutableEdgeProperty<T> {
         return emptyEdgeProperty(this, type)
     }
 

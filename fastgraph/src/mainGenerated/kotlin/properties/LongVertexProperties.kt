@@ -1,18 +1,19 @@
 package io.github.sooniln.fastgraph.properties
 
-import io.github.sooniln.fastcollect.LongArrayList
 import io.github.sooniln.fastcollect.Int2LongHashMap
+import io.github.sooniln.fastcollect.LongArrayList
 import io.github.sooniln.fastcollect.getOrPut
 import io.github.sooniln.fastcollect.lastIndex
 import io.github.sooniln.fastcollect.removeOrElse
 import io.github.sooniln.fastcollect.replaceOrSet
-import io.github.sooniln.fastgraph.Vertex
-import io.github.sooniln.fastgraph.VertexChangeListener
-import io.github.sooniln.fastgraph.VertexFunction
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.IndexedVertexGraph
 import io.github.sooniln.fastgraph.MutableVertexProperty
+import io.github.sooniln.fastgraph.TypeReference
+import io.github.sooniln.fastgraph.Vertex
+import io.github.sooniln.fastgraph.VertexChangeListener
+import io.github.sooniln.fastgraph.VertexFunction
 import io.github.sooniln.fastgraph.internal.throwIllegalVertex
 
 internal class LongArrayVertexProperty(
@@ -29,7 +30,7 @@ internal class LongArrayVertexProperty(
         graph.registerVertexChangeListener(this)
     }
 
-    override val type: Class<Long> = Long::class.java
+    override val type: TypeReference<Long> = TypeReference.of()
 
     override fun get(vertex: Vertex): Long {
         try {
@@ -89,7 +90,7 @@ internal class ImmutableLongArrayVertexProperty<G>(
         }
     }
 
-    override val type: Class<Long> = Long::class.java
+    override val type: TypeReference<Long> = TypeReference.of()
 
     override fun get(vertex: Vertex): Long {
         try {
@@ -128,7 +129,7 @@ internal class LongMapVertexProperty(
         graph.registerVertexChangeListener(this)
     }
 
-    override val type: Class<Long> = Long::class.java
+    override val type: TypeReference<Long> = TypeReference.of()
 
     override fun get(vertex: Vertex): Long {
         return property.getOrPut(vertex.id) { initializer.apply(vertex) }
@@ -170,7 +171,7 @@ internal class ImmutableLongMapVertexProperty(
         }
     }
 
-    override val type: Class<Long> = Long::class.java
+    override val type: TypeReference<Long> = TypeReference.of()
 
     override fun get(vertex: Vertex): Long {
         try {

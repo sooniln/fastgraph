@@ -1,18 +1,19 @@
 package io.github.sooniln.fastgraph.properties
 
-import io.github.sooniln.fastcollect.ShortArrayList
 import io.github.sooniln.fastcollect.Int2ShortHashMap
+import io.github.sooniln.fastcollect.ShortArrayList
 import io.github.sooniln.fastcollect.getOrPut
 import io.github.sooniln.fastcollect.lastIndex
 import io.github.sooniln.fastcollect.removeOrElse
 import io.github.sooniln.fastcollect.replaceOrSet
-import io.github.sooniln.fastgraph.Vertex
-import io.github.sooniln.fastgraph.VertexChangeListener
-import io.github.sooniln.fastgraph.VertexFunction
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.IndexedVertexGraph
 import io.github.sooniln.fastgraph.MutableVertexProperty
+import io.github.sooniln.fastgraph.TypeReference
+import io.github.sooniln.fastgraph.Vertex
+import io.github.sooniln.fastgraph.VertexChangeListener
+import io.github.sooniln.fastgraph.VertexFunction
 import io.github.sooniln.fastgraph.internal.throwIllegalVertex
 
 internal class ShortArrayVertexProperty(
@@ -29,7 +30,7 @@ internal class ShortArrayVertexProperty(
         graph.registerVertexChangeListener(this)
     }
 
-    override val type: Class<Short> = Short::class.java
+    override val type: TypeReference<Short> = TypeReference.of()
 
     override fun get(vertex: Vertex): Short {
         try {
@@ -89,7 +90,7 @@ internal class ImmutableShortArrayVertexProperty<G>(
         }
     }
 
-    override val type: Class<Short> = Short::class.java
+    override val type: TypeReference<Short> = TypeReference.of()
 
     override fun get(vertex: Vertex): Short {
         try {
@@ -128,7 +129,7 @@ internal class ShortMapVertexProperty(
         graph.registerVertexChangeListener(this)
     }
 
-    override val type: Class<Short> = Short::class.java
+    override val type: TypeReference<Short> = TypeReference.of()
 
     override fun get(vertex: Vertex): Short {
         return property.getOrPut(vertex.id) { initializer.apply(vertex) }
@@ -170,7 +171,7 @@ internal class ImmutableShortMapVertexProperty(
         }
     }
 
-    override val type: Class<Short> = Short::class.java
+    override val type: TypeReference<Short> = TypeReference.of()
 
     override fun get(vertex: Vertex): Short {
         try {

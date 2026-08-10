@@ -6,13 +6,14 @@ import io.github.sooniln.fastcollect.getOrPut
 import io.github.sooniln.fastcollect.lastIndex
 import io.github.sooniln.fastcollect.removeOrElse
 import io.github.sooniln.fastcollect.replaceOrSet
-import io.github.sooniln.fastgraph.Vertex
-import io.github.sooniln.fastgraph.VertexChangeListener
-import io.github.sooniln.fastgraph.VertexFunction
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.IndexedVertexGraph
 import io.github.sooniln.fastgraph.MutableVertexProperty
+import io.github.sooniln.fastgraph.TypeReference
+import io.github.sooniln.fastgraph.Vertex
+import io.github.sooniln.fastgraph.VertexChangeListener
+import io.github.sooniln.fastgraph.VertexFunction
 import io.github.sooniln.fastgraph.internal.throwIllegalVertex
 
 internal class ByteArrayVertexProperty(
@@ -29,7 +30,7 @@ internal class ByteArrayVertexProperty(
         graph.registerVertexChangeListener(this)
     }
 
-    override val type: Class<Byte> = Byte::class.java
+    override val type: TypeReference<Byte> = TypeReference.of()
 
     override fun get(vertex: Vertex): Byte {
         try {
@@ -89,7 +90,7 @@ internal class ImmutableByteArrayVertexProperty<G>(
         }
     }
 
-    override val type: Class<Byte> = Byte::class.java
+    override val type: TypeReference<Byte> = TypeReference.of()
 
     override fun get(vertex: Vertex): Byte {
         try {
@@ -128,7 +129,7 @@ internal class ByteMapVertexProperty(
         graph.registerVertexChangeListener(this)
     }
 
-    override val type: Class<Byte> = Byte::class.java
+    override val type: TypeReference<Byte> = TypeReference.of()
 
     override fun get(vertex: Vertex): Byte {
         return property.getOrPut(vertex.id) { initializer.apply(vertex) }
@@ -170,7 +171,7 @@ internal class ImmutableByteMapVertexProperty(
         }
     }
 
-    override val type: Class<Byte> = Byte::class.java
+    override val type: TypeReference<Byte> = TypeReference.of()
 
     override fun get(vertex: Vertex): Byte {
         try {

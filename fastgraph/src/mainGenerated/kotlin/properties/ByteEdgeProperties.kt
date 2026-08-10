@@ -13,6 +13,7 @@ import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.IndexedEdgeGraph
 import io.github.sooniln.fastgraph.MutableEdgeProperty
+import io.github.sooniln.fastgraph.TypeReference
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
 
 internal class ByteArrayEdgeProperty(
@@ -29,7 +30,7 @@ internal class ByteArrayEdgeProperty(
         graph.registerEdgeChangeListener(this)
     }
 
-    override val type: Class<Byte> = Byte::class.java
+    override val type: TypeReference<Byte> = TypeReference.of()
 
     override fun get(edge: Edge): Byte {
         try {
@@ -89,7 +90,7 @@ internal class ImmutableByteArrayEdgeProperty<G>(
         }
     }
 
-    override val type: Class<Byte> = Byte::class.java
+    override val type: TypeReference<Byte> = TypeReference.of()
 
     override fun get(edge: Edge): Byte {
         try {
@@ -128,7 +129,7 @@ internal class ByteMapEdgeProperty(
         graph.registerEdgeChangeListener(this)
     }
 
-    override val type: Class<Byte> = Byte::class.java
+    override val type: TypeReference<Byte> = TypeReference.of()
 
     override fun get(edge: Edge): Byte {
         return property.getOrPut(edge.id) { initializer.apply(edge) }
@@ -170,7 +171,7 @@ internal class ImmutableByteMapEdgeProperty(
         }
     }
 
-    override val type: Class<Byte> = Byte::class.java
+    override val type: TypeReference<Byte> = TypeReference.of()
 
     override fun get(edge: Edge): Byte {
         try {

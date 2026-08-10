@@ -1,7 +1,7 @@
 package io.github.sooniln.fastgraph.properties
 
-import io.github.sooniln.fastcollect.ShortArrayList
 import io.github.sooniln.fastcollect.Long2ShortHashMap
+import io.github.sooniln.fastcollect.ShortArrayList
 import io.github.sooniln.fastcollect.getOrPut
 import io.github.sooniln.fastcollect.lastIndex
 import io.github.sooniln.fastcollect.removeOrElse
@@ -13,6 +13,7 @@ import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.IndexedEdgeGraph
 import io.github.sooniln.fastgraph.MutableEdgeProperty
+import io.github.sooniln.fastgraph.TypeReference
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
 
 internal class ShortArrayEdgeProperty(
@@ -29,7 +30,7 @@ internal class ShortArrayEdgeProperty(
         graph.registerEdgeChangeListener(this)
     }
 
-    override val type: Class<Short> = Short::class.java
+    override val type: TypeReference<Short> = TypeReference.of()
 
     override fun get(edge: Edge): Short {
         try {
@@ -89,7 +90,7 @@ internal class ImmutableShortArrayEdgeProperty<G>(
         }
     }
 
-    override val type: Class<Short> = Short::class.java
+    override val type: TypeReference<Short> = TypeReference.of()
 
     override fun get(edge: Edge): Short {
         try {
@@ -128,7 +129,7 @@ internal class ShortMapEdgeProperty(
         graph.registerEdgeChangeListener(this)
     }
 
-    override val type: Class<Short> = Short::class.java
+    override val type: TypeReference<Short> = TypeReference.of()
 
     override fun get(edge: Edge): Short {
         return property.getOrPut(edge.id) { initializer.apply(edge) }
@@ -170,7 +171,7 @@ internal class ImmutableShortMapEdgeProperty(
         }
     }
 
-    override val type: Class<Short> = Short::class.java
+    override val type: TypeReference<Short> = TypeReference.of()
 
     override fun get(edge: Edge): Short {
         try {

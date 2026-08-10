@@ -5,7 +5,37 @@ import io.github.sooniln.fastcollect.IntArrayList
 import io.github.sooniln.fastcollect.emptyIntIterator
 import io.github.sooniln.fastcollect.getOrPut
 import io.github.sooniln.fastcollect.intIteratorOf
-import io.github.sooniln.fastgraph.*
+import io.github.sooniln.fastgraph.AbstractEdgeSet
+import io.github.sooniln.fastgraph.AbstractGraph
+import io.github.sooniln.fastgraph.AbstractIndexedEdgeSet
+import io.github.sooniln.fastgraph.AbstractIndexedVertexSet
+import io.github.sooniln.fastgraph.AbstractVertexSet
+import io.github.sooniln.fastgraph.Edge
+import io.github.sooniln.fastgraph.EdgeChangeListener
+import io.github.sooniln.fastgraph.EdgeConsumer
+import io.github.sooniln.fastgraph.EdgeFunction
+import io.github.sooniln.fastgraph.EdgeIterator
+import io.github.sooniln.fastgraph.EdgeReference
+import io.github.sooniln.fastgraph.EdgeSet
+import io.github.sooniln.fastgraph.ImmutableGraph
+import io.github.sooniln.fastgraph.IndexedEdgeGraph
+import io.github.sooniln.fastgraph.IndexedEdgeSet
+import io.github.sooniln.fastgraph.IndexedVertexGraph
+import io.github.sooniln.fastgraph.IndexedVertexSet
+import io.github.sooniln.fastgraph.InternalImmutableGraph
+import io.github.sooniln.fastgraph.MutableEdgeProperty
+import io.github.sooniln.fastgraph.MutableVertexProperty
+import io.github.sooniln.fastgraph.TypeReference
+import io.github.sooniln.fastgraph.Vertex
+import io.github.sooniln.fastgraph.VertexChangeListener
+import io.github.sooniln.fastgraph.VertexConsumer
+import io.github.sooniln.fastgraph.VertexFunction
+import io.github.sooniln.fastgraph.VertexIterator
+import io.github.sooniln.fastgraph.VertexReference
+import io.github.sooniln.fastgraph.VertexSet
+import io.github.sooniln.fastgraph.createEdgeProperty
+import io.github.sooniln.fastgraph.createVertexProperty
+import io.github.sooniln.fastgraph.vertexSetOf
 
 internal class ImmutableAdjacencyListNetwork private constructor(
     override val directed: Boolean,
@@ -83,14 +113,14 @@ internal class ImmutableAdjacencyListNetwork private constructor(
     }
 
     override fun <T> createVertexProperty(
-        type: Class<T>,
+        type: TypeReference<T>,
         defaultValueFunction: VertexFunction<T>
     ): MutableVertexProperty<T> {
         return createVertexProperty(this, type, defaultValueFunction)
     }
 
     override fun <T> createEdgeProperty(
-        type: Class<T>,
+        type: TypeReference<T>,
         defaultValueFunction: EdgeFunction<T>
     ): MutableEdgeProperty<T> {
         return createEdgeProperty(this, type, defaultValueFunction)

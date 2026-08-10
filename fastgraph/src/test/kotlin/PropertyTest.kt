@@ -36,25 +36,25 @@ class PropertyTest {
     }
 
     class PropertyCase<T>(
-        val type: Class<T>,
+        val type: TypeReference<T>,
         val defaultValue: T,
         val valueAt: (Int) -> T,
     ) {
-        override fun toString(): String = type.simpleName
+        override fun toString(): String = type.toString()
     }
 
     companion object {
         @JvmStatic
         fun propertyCases(): List<PropertyCase<*>> = listOf(
-            PropertyCase(Unit::class.java, Unit) { },
-            PropertyCase(Boolean::class.java, true) { index -> index % 2 == 0 },
-            PropertyCase(Byte::class.java, 1.toByte()) { index -> (2 shl index).toByte() },
-            PropertyCase(Short::class.java, 1.toShort()) { index -> (2 shl index).toShort() },
-            PropertyCase(Int::class.java, 1) { index -> 2 shl index },
-            PropertyCase(Long::class.java, 1L) { index -> 2L shl index },
-            PropertyCase(Float::class.java, 1f) { index -> (2 shl index).toFloat() },
-            PropertyCase(Double::class.java, 1.0) { index -> (2 shl index).toDouble() },
-            PropertyCase(String::class.java, "hello") { index -> "test$index" },
+            PropertyCase(TypeReference.of(), Unit) { },
+            PropertyCase(TypeReference.of(), true) { index -> index % 2 == 0 },
+            PropertyCase(TypeReference.of(), 1.toByte()) { index -> (2 shl index).toByte() },
+            PropertyCase(TypeReference.of(), 1.toShort()) { index -> (2 shl index).toShort() },
+            PropertyCase(TypeReference.of(), 1) { index -> 2 shl index },
+            PropertyCase(TypeReference.of(), 1L) { index -> 2L shl index },
+            PropertyCase(TypeReference.of(), 1f) { index -> (2 shl index).toFloat() },
+            PropertyCase(TypeReference.of(), 1.0) { index -> (2 shl index).toDouble() },
+            PropertyCase(TypeReference.of(), "hello") { index -> "test$index" },
         )
 
         @JvmStatic

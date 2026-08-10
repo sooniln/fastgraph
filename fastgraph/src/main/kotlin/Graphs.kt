@@ -9,6 +9,9 @@ import io.github.sooniln.fastgraph.internal.AdjacencyListGraph
 import io.github.sooniln.fastgraph.internal.AdjacencyListNetwork
 import io.github.sooniln.fastgraph.internal.TransposedGraph
 import io.github.sooniln.fastgraph.subgraph.Subgraphs
+import kotlin.reflect.KClass
+import kotlin.reflect.KType
+import kotlin.reflect.typeOf
 
 /**
  * An interface for read-only graph topology. A graph topology is composed of a set of vertices and a set of edges
@@ -220,7 +223,11 @@ public interface Graph {
      * The extension method of the same name allows for not passing in the [Class] parameter explicitly - this should be
      * simpler to use where possible.
      */
-    public fun <T> createVertexProperty(type: Class<T>, defaultValueFunction: VertexFunction<T>): MutableVertexProperty<T>
+    @JvmName("createVertexProperty")
+    public fun <T> createVertexProperty(
+        type: TypeReference<T>,
+        defaultValueFunction: VertexFunction<T>
+    ): MutableVertexProperty<T>
 
     /**
      * [Graph] represents only a topology, not any data associated with the vertices and edges of the topology. In order
@@ -237,7 +244,11 @@ public interface Graph {
      * The extension method of the same name allows for not passing in the [Class] parameter explicitly - this should be
      * simpler to use where possible.
      */
-    public fun <T> createEdgeProperty(type: Class<T>, defaultValueFunction: EdgeFunction<T>): MutableEdgeProperty<T>
+    @JvmName("createEdgeProperty")
+    public fun <T> createEdgeProperty(
+        type: TypeReference<T>,
+        defaultValueFunction: EdgeFunction<T>
+    ): MutableEdgeProperty<T>
 
     /**
      * Returns a stable reference to the given vertex. For more information about vertices and stable references to
@@ -421,7 +432,7 @@ public inline fun <reified T> Graph.createVertexProperty(): MutableVertexPropert
     // thanks to kotlin's decision to not have reasonable generic type information, this idiocy results. this also means
     // we're forced to stick with java's class type (instead of KType) and thus can't support multi-platform
     @Suppress("UNCHECKED_CAST")
-    return createVertexProperty(T::class.java as Class<T?>) { null }
+    return createVertexProperty(TypeReference.of<T?>()) { null }
 }
 
 /**
@@ -433,7 +444,7 @@ public inline fun <reified T> Graph.createEdgeProperty(): MutableEdgeProperty<T?
     // thanks to kotlin's decision to not have reasonable generic type information, this idiocy results. this also means
     // we're forced to stick with java's class type (instead of KType) and thus can't support multi-platform
     @Suppress("UNCHECKED_CAST")
-    return createEdgeProperty(T::class.java as Class<T?>) { null }
+    return createEdgeProperty(TypeReference.of<T?>()) { null }
 }
 
 /**
@@ -444,7 +455,7 @@ public inline fun <reified T> Graph.createEdgeProperty(): MutableEdgeProperty<T?
 public inline fun <reified T> Graph.createVertexProperty(
     defaultValueFunction: VertexFunction<T>
 ): MutableVertexProperty<T> {
-    return createVertexProperty(T::class.java, defaultValueFunction)
+    return createVertexProperty(TypeReference.of<T>(), defaultValueFunction)
 }
 
 /**
@@ -454,7 +465,7 @@ public inline fun <reified T> Graph.createVertexProperty(
 public inline fun <reified T> Graph.createEdgeProperty(
     defaultValueFunction: EdgeFunction<T>
 ): MutableEdgeProperty<T> {
-    return createEdgeProperty(T::class.java, defaultValueFunction)
+    return createEdgeProperty(TypeReference.of<T>(), defaultValueFunction)
 }
 
 /**
@@ -463,7 +474,7 @@ public inline fun <reified T> Graph.createEdgeProperty(
  */
 @JvmSynthetic
 public inline fun <reified T> Graph.createVertexProperty(defaultValue: T): MutableVertexProperty<T> {
-    return createVertexProperty(T::class.java) { defaultValue }
+    return createVertexProperty(TypeReference.of<T>()) { defaultValue }
 }
 
 /**
@@ -471,7 +482,7 @@ public inline fun <reified T> Graph.createVertexProperty(defaultValue: T): Mutab
  */
 @JvmSynthetic
 public inline fun <reified T> Graph.createEdgeProperty(defaultValue: T): MutableEdgeProperty<T> {
-    return createEdgeProperty(T::class.java) { defaultValue }
+    return createEdgeProperty(TypeReference.of<T>()) { defaultValue }
 }
 
 /**
@@ -719,8 +730,8 @@ public inline fun <reified V, reified E> buildValueGraph(
     val graph = mutableGraph(directed, multiEdge, indexEdges)
     val valueGraph = mutableValueGraph(
         graph,
-        graph.createVertexProperty(V::class.java, vertexInitializer),
-        graph.createEdgeProperty(E::class.java, edgeInitializer)
+        graph.createVertexProperty(TypeReference.of<V>(), vertexInitializer),
+        graph.createEdgeProperty(TypeReference.of<E>(), edgeInitializer)
     )
     ValueGraphBuilder(valueGraph).builder()
     return valueGraph
@@ -1010,4 +1021,77 @@ public abstract class AbstractGraph : Graph {
     /** Will only ever be invoked if `source` and `target` are valid. */
     @JvmName("getEdges")
     protected abstract fun getEdges(source: Vertex, target: Vertex): EdgeSet
+}
+
+@OptIn(ExperimentalStdlibApi::class)
+@JvmInline
+@JvmExposeBoxed
+public value class TypeReference<T> private constructor(internal val kType: KType?) {
+
+    @PublishedApi
+    internal constructor(kType: KType, kClass: KClass<T & Any>) : this(kType) {
+        require(kType.classifier == kClass)
+    }
+
+    override fun toString(): String = kType.toString()
+
+    public companion object {
+        /**
+         * A [TypeReference] for the primitive byte type. This does not allow nulls. Primarily intended for use from
+         * Java, since Kotlin code can invoke reified functions like [TypeReference.of].
+         */
+        @JvmStatic
+        @get:JvmName("byte")
+        public val byte: TypeReference<Byte> = of<Byte>()
+
+        /**
+         * A [TypeReference] for the primitive integer type. This does not allow nulls. Primarily intended for use from
+         * Java, since Kotlin code can invoke reified functions like [TypeReference.of].
+         */
+        @JvmStatic
+        @get:JvmName("int")
+        public val int: TypeReference<Int> = of<Int>()
+
+        /**
+         * A [TypeReference] for the primitive long type. This does not allow nulls. Primarily intended for use from
+         * Java, since Kotlin code can invoke reified functions like [TypeReference.of].
+         */
+        @JvmStatic
+        @get:JvmName("long")
+        public val long: TypeReference<Long> = of<Long>()
+
+        /**
+         * A [TypeReference] for the primitive float type. This does not allow nulls. Primarily intended for use from
+         * Java, since Kotlin code can invoke reified functions like [TypeReference.of].
+         */
+        @JvmStatic
+        @get:JvmName("float")
+        public val float: TypeReference<Float> = of<Float>()
+
+        /**
+         * A [TypeReference] for the primitive double type. This does not allow nulls. Primarily intended for use from
+         * Java, since Kotlin code can invoke reified functions like [TypeReference.of].
+         */
+        @JvmStatic
+        @get:JvmName("double")
+        public val double: TypeReference<Double> = of<Double>()
+
+        /**
+         * Constructs a new
+         */
+        @Suppress("UNCHECKED_CAST")
+        @JvmSynthetic
+        public inline fun <reified T> of(): TypeReference<T> {
+            return TypeReference(typeOf<T>(), T::class as KClass<T & Any>)
+        }
+
+        @Deprecated(
+            message = "Only intended for use from Java - will always result in a nullable type",
+            level = DeprecationLevel.HIDDEN
+        )
+        @JvmStatic
+        public fun <T : Any> of(clazz: Class<T>): TypeReference<T> {
+            return TypeReference(null)
+        }
+    }
 }

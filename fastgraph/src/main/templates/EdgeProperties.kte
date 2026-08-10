@@ -13,6 +13,7 @@ import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.IndexedEdgeGraph
 import io.github.sooniln.fastgraph.MutableEdgeProperty
+import io.github.sooniln.fastgraph.TypeReference
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
 
 internal class ${Type}ArrayEdgeProperty(
@@ -29,7 +30,7 @@ internal class ${Type}ArrayEdgeProperty(
         graph.registerEdgeChangeListener(this)
     }
 
-    override val type: Class<${Type}> = ${Type}::class.java
+    override val type: TypeReference<${Type}> = TypeReference.of()
 
     override fun get(edge: Edge): ${Type} {
         try {
@@ -89,7 +90,7 @@ internal class Immutable${Type}ArrayEdgeProperty<G>(
         }
     }
 
-    override val type: Class<${Type}> = ${Type}::class.java
+    override val type: TypeReference<${Type}> = TypeReference.of()
 
     override fun get(edge: Edge): ${Type} {
         try {
@@ -128,7 +129,7 @@ internal class ${Type}MapEdgeProperty(
         graph.registerEdgeChangeListener(this)
     }
 
-    override val type: Class<${Type}> = ${Type}::class.java
+    override val type: TypeReference<${Type}> = TypeReference.of()
 
     override fun get(edge: Edge): ${Type} {
         return property.getOrPut(edge.id) { initializer.apply(edge) }
@@ -170,7 +171,7 @@ internal class Immutable${Type}MapEdgeProperty(
         }
     }
 
-    override val type: Class<${Type}> = ${Type}::class.java
+    override val type: TypeReference<${Type}> = TypeReference.of()
 
     override fun get(edge: Edge): ${Type} {
         try {

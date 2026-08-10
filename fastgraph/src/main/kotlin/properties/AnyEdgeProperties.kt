@@ -11,11 +11,12 @@ import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.IndexedEdgeGraph
 import io.github.sooniln.fastgraph.MutableEdgeProperty
+import io.github.sooniln.fastgraph.TypeReference
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
 
 internal class ArrayEdgeProperty<T>(
     override val graph: IndexedEdgeGraph,
-    override val type: Class<T>,
+    override val type: TypeReference<T>,
     defaultValueFunction: EdgeFunction<T>,
 ) : MutableEdgeProperty<T>, EdgeChangeListener {
 
@@ -73,7 +74,7 @@ internal class ArrayEdgeProperty<T>(
 
 internal class ImmutableArrayEdgeProperty<G, T>(
     override val graph: G,
-    override val type: Class<T>,
+    override val type: TypeReference<T>,
     defaultValueFunction: EdgeFunction<T>,
 ) : MutableEdgeProperty<T> where G : ImmutableGraph, G : IndexedEdgeGraph {
 
@@ -114,7 +115,7 @@ internal class ImmutableArrayEdgeProperty<G, T>(
 
 internal class MapEdgeProperty<T>(
     override val graph: Graph,
-    override val type: Class<T>,
+    override val type: TypeReference<T>,
     defaultValueFunction: EdgeFunction<T>
 ) : MutableEdgeProperty<T>, EdgeChangeListener {
 
@@ -153,7 +154,7 @@ internal class MapEdgeProperty<T>(
 
 internal class ImmutableMapEdgeProperty<T>(
     override val graph: ImmutableGraph,
-    override val type: Class<T>,
+    override val type: TypeReference<T>,
     defaultValueFunction: EdgeFunction<T>
 ) : MutableEdgeProperty<T> {
 

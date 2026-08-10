@@ -8,11 +8,12 @@ import io.github.sooniln.fastgraph.EdgeFunction
 import io.github.sooniln.fastgraph.EdgePredicate
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.MutableEdgeProperty
+import io.github.sooniln.fastgraph.TypeReference
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
 
 internal class FilteredEdgeProperty<T>(
     override val graph: Graph,
-    override val type: Class<T>,
+    override val type: TypeReference<T>,
     private val initializer: EdgeFunction<T>,
     private val filter: EdgePredicate,
 ) : MutableEdgeProperty<T> {
