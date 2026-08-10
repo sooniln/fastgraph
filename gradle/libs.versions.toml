@@ -3,22 +3,27 @@
 # https://docs.gradle.org/current/userguide/platforms.html#sub::toml-dependencies-format
 
 [versions]
-assertJ = "3.27.6"
-fastutil = "8.5.18"
+assertJ = "3.27.7"
+dokka = "2.2.0"
+fastcollect = "3.0.1"
 guava = "33.5.0-jre"
 jgrapht = "1.5.2"
+jmh = "0.7.3"
 jol = "0.17"
 junit = "6.0.1"
+mavenPublish = "0.35.0"
 
 [libraries]
 assertJ = { module = "org.assertj:assertj-core", version.ref = "assertJ" }
-fastutil = { module = "it.unimi.dsi:fastutil-core", version.ref = "fastutil" }
+fastcollect = { module = "io.github.sooniln:fastcollect-kotlin-jvm", version.ref = "fastcollect" }
 guava = { module = "com.google.guava:guava", version.ref = "guava" }
 jgrapht = { module = "org.jgrapht:jgrapht-core", version.ref = "jgrapht" }
 jol = { module = "org.openjdk.jol:jol-core", version.ref = "jol" }
 junitCore = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
 junitParams = { module = "org.junit.jupiter:junit-jupiter-params", version.ref = "junit" }
 
-# Libraries can be bundled together for easier import
-[bundles]
-testing = ["assertJ", "junitCore", "junitParams"]
+[plugins]
+dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
+jmh = { id = "me.champeau.jmh", version.ref = "jmh" }
+mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublish" }
+

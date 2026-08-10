@@ -111,11 +111,11 @@ GuavaGraphBenchmark.bfsGuava                  avgt    4   903.669 ±  242.390  m
 JGraphSimpleGraphBenchmark.bfsJGraph          avgt    4   751.516 ±   92.338  ms/op
 JGraphNetworkBenchmark.bfsJGraph              avgt    4   748.076 ±   74.406  ms/op
 GuavaSimpleGraphBenchmark.bfsGuava            avgt    4   745.596 ±   94.911  ms/op
-JGraphBenchmark.bfsJGraph                     avgt    6   667.561 ±   53.290  ms/op
+JGraphGraphBenchmark.bfsJGraph                avgt    6   667.561 ±   53.290  ms/op
 GuavaNetworkBenchmark.bfs                     avgt    4   623.127 ±   41.933  ms/op
 JGraphSimpleGraphBenchmark.bfs                avgt    4   581.057 ±   51.654  ms/op
 JGraphNetworkBenchmark.bfs                    avgt    4   477.687 ±   36.511  ms/op
-JGraphBenchmark.bfs                           avgt    4   464.802 ±   45.972  ms/op
+JGraphGraphBenchmark.bfs                      avgt    4   464.802 ±   45.972  ms/op
 GuavaSimpleGraphBenchmark.bfs                 avgt    4   442.799 ±   64.068  ms/op
 GuavaGraphBenchmark.bfs                       avgt    4   412.511 ±   19.472  ms/op
 MutableSimpleGraphBenchmark.bfs               avgt    4   137.702 ±    1.948  ms/op
