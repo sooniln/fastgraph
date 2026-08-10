@@ -116,7 +116,7 @@ public fun <T> createVertexProperty(
     defaultValueFunction: VertexFunction<T>
 ): MutableVertexProperty<T> {
     return when (type.kType) {
-        Unit::class.java -> unitVertexProperty(graph) as MutableVertexProperty<T>
+        typeOf<Unit>() -> unitVertexProperty(graph) as MutableVertexProperty<T>
         typeOf<Boolean>() ->
             createMapped<Byte, Boolean>(
                 graph,

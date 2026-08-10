@@ -1023,6 +1023,7 @@ public abstract class AbstractGraph : Graph {
     protected abstract fun getEdges(source: Vertex, target: Vertex): EdgeSet
 }
 
+@Suppress("INAPPLICABLE_JVM_NAME")
 @OptIn(ExperimentalStdlibApi::class)
 @JvmInline
 @JvmExposeBoxed
@@ -1033,9 +1034,28 @@ public value class TypeReference<T> private constructor(internal val kType: KTyp
         require(kType.classifier == kClass)
     }
 
+    @JvmName("toString")
     override fun toString(): String = kType.toString()
 
     public companion object {
+
+        /**
+         * A [TypeReference] for the unit type. This represents an empty type that can only ever have a single value -
+         * useful if you need a meaningless type. Primarily intended for use from Java, since Kotlin code can invoke
+         * reified functions like [TypeReference.of].
+         */
+        @JvmStatic
+        @get:JvmName("unit")
+        public val unit: TypeReference<Unit> = of<Unit>()
+
+        /**
+         * A [TypeReference] for the primitive boolean type. This does not allow nulls. Primarily intended for use from
+         * Java, since Kotlin code can invoke reified functions like [TypeReference.of].
+         */
+        @JvmStatic
+        @get:JvmName("boolean")
+        public val boolean: TypeReference<Boolean> = of<Boolean>()
+
         /**
          * A [TypeReference] for the primitive byte type. This does not allow nulls. Primarily intended for use from
          * Java, since Kotlin code can invoke reified functions like [TypeReference.of].
@@ -1043,6 +1063,14 @@ public value class TypeReference<T> private constructor(internal val kType: KTyp
         @JvmStatic
         @get:JvmName("byte")
         public val byte: TypeReference<Byte> = of<Byte>()
+
+        /**
+         * A [TypeReference] for the primitive short type. This does not allow nulls. Primarily intended for use from
+         * Java, since Kotlin code can invoke reified functions like [TypeReference.of].
+         */
+        @JvmStatic
+        @get:JvmName("short")
+        public val short: TypeReference<Short> = of<Short>()
 
         /**
          * A [TypeReference] for the primitive integer type. This does not allow nulls. Primarily intended for use from

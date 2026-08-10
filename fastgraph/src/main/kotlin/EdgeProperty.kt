@@ -115,7 +115,7 @@ public fun <T> createEdgeProperty(
     defaultValueFunction: EdgeFunction<T>
 ): MutableEdgeProperty<T> {
     return when (type.kType) {
-        Unit::class.java -> unitEdgeProperty(graph) as MutableEdgeProperty<T>
+        typeOf<Unit>() -> unitEdgeProperty(graph) as MutableEdgeProperty<T>
         typeOf<Boolean>() ->
             createMapped<Byte, Boolean>(
                 graph,
