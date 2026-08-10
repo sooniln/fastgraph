@@ -13,9 +13,6 @@ out/
 !**/src/main/**/out/
 !**/src/test/**/out/
 
-### AI ###
-.claude
-
 ### Kotlin ###
 .kotlin
 
@@ -43,3 +40,13 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+### AI ###
+.claude
+CLAUDE.local.md
+
+### JMH ###
+benchmark-results
+
+### hsdis ###
+hsdis-*.dll
