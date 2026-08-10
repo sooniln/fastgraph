@@ -611,7 +611,7 @@ public final class io/github/sooniln/fastgraph/TypeReference {
 	public static fun hashCode-impl (Lkotlin/reflect/KType;)I
 	public static final fun int ()Lkotlin/reflect/KType;
 	public static final fun long ()Lkotlin/reflect/KType;
-	public static final synthetic fun of-3IIxVMU (Ljava/lang/Class;)Lkotlin/reflect/KType;
+	public static final fun obj ()Lkotlin/reflect/KType;
 	public static final fun short ()Lkotlin/reflect/KType;
 	public fun toString ()Ljava/lang/String;
 	public static fun toString (Lkotlin/reflect/KType;)Ljava/lang/String;
@@ -626,7 +626,7 @@ public final class io/github/sooniln/fastgraph/TypeReference$Companion {
 	public final fun float ()Lkotlin/reflect/KType;
 	public final fun int ()Lkotlin/reflect/KType;
 	public final fun long ()Lkotlin/reflect/KType;
-	public final synthetic fun of-3IIxVMU (Ljava/lang/Class;)Lkotlin/reflect/KType;
+	public final fun obj ()Lkotlin/reflect/KType;
 	public final fun short ()Lkotlin/reflect/KType;
 	public final fun unit ()Lkotlin/reflect/KType;
 }

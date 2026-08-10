@@ -1023,6 +1023,17 @@ public abstract class AbstractGraph : Graph {
     protected abstract fun getEdges(source: Vertex, target: Vertex): EdgeSet
 }
 
+/**
+ * A platform-agnostic representation of type. Primarily used with [VertexProperty] and [EdgeProperty], so that a
+ * property can know what type it is storing, and behave appropriately. Kotlin clients should rarely if ever need to
+ * interact with this class, since all reified overloads handle this automatically. Since Java clients cannot invoke
+ * reified methods, they may need to use this class to pass in type information to [Graph.createVertexProperty] and
+ * [Graph.createEdgeProperty] directly.
+ *
+ * Java clients can use [unit], [boolean], [byte], [short], [int], [long], [float], or [double] to indicate the type of
+ * primitive property they want. If Java clients want a normal Object property (which allows null values), use [obj].
+ * Prefer never to use [obj] from Kotlin - not only is it unnecessary, but it loses information.
+ */
 @Suppress("INAPPLICABLE_JVM_NAME")
 @OptIn(ExperimentalStdlibApi::class)
 @JvmInline
@@ -1105,21 +1116,20 @@ public value class TypeReference<T> private constructor(internal val kType: KTyp
         public val double: TypeReference<Double> = of<Double>()
 
         /**
+         * A [TypeReference] for any nullable object type. Primarily intended for use from Java, since Kotlin code can
+         * invoke reified functions like [TypeReference.of].
+         */
+        @JvmStatic
+        @JvmName("obj")
+        public fun <T : Any> obj(): TypeReference<T> = TypeReference(null)
+
+        /**
          * Constructs a new
          */
         @Suppress("UNCHECKED_CAST")
         @JvmSynthetic
         public inline fun <reified T> of(): TypeReference<T> {
             return TypeReference(typeOf<T>(), T::class as KClass<T & Any>)
-        }
-
-        @Deprecated(
-            message = "Only intended for use from Java - will always result in a nullable type",
-            level = DeprecationLevel.HIDDEN
-        )
-        @JvmStatic
-        public fun <T : Any> of(clazz: Class<T>): TypeReference<T> {
-            return TypeReference(null)
         }
     }
 }
