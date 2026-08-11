@@ -6,11 +6,23 @@
 package io.github.sooniln.fastgraph
 
 import io.github.sooniln.fastgraph.properties.ArrayEdgeProperty
+import io.github.sooniln.fastgraph.properties.BooleanArrayEdgeProperty
+import io.github.sooniln.fastgraph.properties.BooleanMapEdgeProperty
 import io.github.sooniln.fastgraph.properties.ByteArrayEdgeProperty
 import io.github.sooniln.fastgraph.properties.ByteMapEdgeProperty
+import io.github.sooniln.fastgraph.properties.DoubleArrayEdgeProperty
+import io.github.sooniln.fastgraph.properties.DoubleMapEdgeProperty
+import io.github.sooniln.fastgraph.properties.FloatArrayEdgeProperty
+import io.github.sooniln.fastgraph.properties.FloatMapEdgeProperty
 import io.github.sooniln.fastgraph.properties.ImmutableArrayEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableBooleanArrayEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableBooleanMapEdgeProperty
 import io.github.sooniln.fastgraph.properties.ImmutableByteArrayEdgeProperty
 import io.github.sooniln.fastgraph.properties.ImmutableByteMapEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableDoubleArrayEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableDoubleMapEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableFloatArrayEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableFloatMapEdgeProperty
 import io.github.sooniln.fastgraph.properties.ImmutableIntArrayEdgeProperty
 import io.github.sooniln.fastgraph.properties.ImmutableIntMapEdgeProperty
 import io.github.sooniln.fastgraph.properties.ImmutableLongArrayEdgeProperty
@@ -114,166 +126,200 @@ public fun <T> createEdgeProperty(
     type: TypeReference<T>,
     defaultValueFunction: EdgeFunction<T>
 ): MutableEdgeProperty<T> {
-    return when (type.kType) {
-        typeOf<Unit>() -> unitEdgeProperty(graph) as MutableEdgeProperty<T>
-        typeOf<Boolean>() ->
-            createMapped<Byte, Boolean>(
-                graph,
-                defaultValueFunction as EdgeFunction<Boolean>,
-                { it != 0.toByte() },
-                { if (it) 1 else 0 }) as MutableEdgeProperty<T>
+    if (type.kType == typeOf<Unit>()) {
+        return unitEdgeProperty(graph) as MutableEdgeProperty<T>
+    }
 
-        typeOf<Float>() ->
-            createMapped<Int, Float>(
-                graph,
-                defaultValueFunction as EdgeFunction<Float>,
-                { Float.fromBits(it) },
-                { it.toRawBits() }) as MutableEdgeProperty<T>
+    return if (graph is ImmutableGraph) {
+        if (graph.isEmpty()) {
+            emptyEdgeProperty(graph, type)
+        } else if (graph is IndexedEdgeGraph) {
+            when (type.kType) {
+                typeOf<Boolean>() ->
+                    ImmutableBooleanArrayEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Boolean>
+                    ) as MutableEdgeProperty<T>
 
-        typeOf<Double>() ->
-            createMapped<Long, Double>(
-                graph,
-                defaultValueFunction as EdgeFunction<Double>,
-                { Double.fromBits(it) },
-                { it.toRawBits() }) as MutableEdgeProperty<T>
+                typeOf<Byte>() ->
+                    ImmutableByteArrayEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Byte>
+                    ) as MutableEdgeProperty<T>
 
-        else -> {
-            if (graph is ImmutableGraph) {
-                if (graph.isEmpty()) {
-                    emptyEdgeProperty(graph, type)
-                } else if (graph is IndexedEdgeGraph) {
-                    when (type.kType) {
-                        typeOf<Byte>() ->
-                            ImmutableByteArrayEdgeProperty(
-                                graph,
-                                defaultValueFunction as EdgeFunction<Byte>
-                            ) as MutableEdgeProperty<T>
+                typeOf<Short>() ->
+                    ImmutableShortArrayEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Short>
+                    ) as MutableEdgeProperty<T>
 
-                        typeOf<Short>() ->
-                            ImmutableShortArrayEdgeProperty(
-                                graph,
-                                defaultValueFunction as EdgeFunction<Short>
-                            ) as MutableEdgeProperty<T>
+                typeOf<Int>() ->
+                    ImmutableIntArrayEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Int>
+                    ) as MutableEdgeProperty<T>
 
-                        typeOf<Int>() ->
-                            ImmutableIntArrayEdgeProperty(
-                                graph,
-                                defaultValueFunction as EdgeFunction<Int>
-                            ) as MutableEdgeProperty<T>
+                typeOf<Long>() ->
+                    ImmutableLongArrayEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Long>
+                    ) as MutableEdgeProperty<T>
 
-                        typeOf<Long>() ->
-                            ImmutableLongArrayEdgeProperty(
-                                graph,
-                                defaultValueFunction as EdgeFunction<Long>
-                            ) as MutableEdgeProperty<T>
+                typeOf<Float>() ->
+                    ImmutableFloatArrayEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Float>
+                    ) as MutableEdgeProperty<T>
 
-                        else -> ImmutableArrayEdgeProperty(graph, type, defaultValueFunction)
-                    }
-                } else {
-                    when (type.kType) {
-                        typeOf<Byte>() ->
-                            ImmutableByteMapEdgeProperty(
-                                graph,
-                                defaultValueFunction as EdgeFunction<Byte>
-                            ) as MutableEdgeProperty<T>
+                typeOf<Double>() ->
+                    ImmutableDoubleArrayEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Double>
+                    ) as MutableEdgeProperty<T>
 
-                        typeOf<Short>() ->
-                            ImmutableShortMapEdgeProperty(
-                                graph,
-                                defaultValueFunction as EdgeFunction<Short>
-                            ) as MutableEdgeProperty<T>
+                else -> ImmutableArrayEdgeProperty(graph, type, defaultValueFunction)
+            }
+        } else {
+            when (type.kType) {
+                typeOf<Boolean>() ->
+                    ImmutableBooleanMapEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Boolean>
+                    ) as MutableEdgeProperty<T>
 
-                        typeOf<Int>() ->
-                            ImmutableIntMapEdgeProperty(
-                                graph,
-                                defaultValueFunction as EdgeFunction<Int>
-                            ) as MutableEdgeProperty<T>
+                typeOf<Byte>() ->
+                    ImmutableByteMapEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Byte>
+                    ) as MutableEdgeProperty<T>
 
-                        typeOf<Long>() ->
-                            ImmutableLongMapEdgeProperty(
-                                graph,
-                                defaultValueFunction as EdgeFunction<Long>
-                            ) as MutableEdgeProperty<T>
+                typeOf<Short>() ->
+                    ImmutableShortMapEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Short>
+                    ) as MutableEdgeProperty<T>
 
-                        else -> ImmutableMapEdgeProperty(graph, type, defaultValueFunction)
-                    }
-                }
-            } else {
-                if (graph is IndexedEdgeGraph) {
-                    when (type.kType) {
-                        typeOf<Byte>() ->
-                            ByteArrayEdgeProperty(
-                                graph,
-                                defaultValueFunction as EdgeFunction<Byte>
-                            ) as MutableEdgeProperty<T>
+                typeOf<Int>() ->
+                    ImmutableIntMapEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Int>
+                    ) as MutableEdgeProperty<T>
 
-                        typeOf<Short>() ->
-                            ShortArrayEdgeProperty(
-                                graph,
-                                defaultValueFunction as EdgeFunction<Short>
-                            ) as MutableEdgeProperty<T>
+                typeOf<Long>() ->
+                    ImmutableLongMapEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Long>
+                    ) as MutableEdgeProperty<T>
 
-                        typeOf<Int>() ->
-                            IntArrayEdgeProperty(
-                                graph,
-                                defaultValueFunction as EdgeFunction<Int>
-                            ) as MutableEdgeProperty<T>
+                typeOf<Float>() ->
+                    ImmutableFloatMapEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Float>
+                    ) as MutableEdgeProperty<T>
 
-                        typeOf<Long>() ->
-                            LongArrayEdgeProperty(
-                                graph,
-                                defaultValueFunction as EdgeFunction<Long>
-                            ) as MutableEdgeProperty<T>
+                typeOf<Double>() ->
+                    ImmutableDoubleMapEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Double>
+                    ) as MutableEdgeProperty<T>
 
-                        else -> ArrayEdgeProperty(graph, type, defaultValueFunction)
-                    }
-                } else {
-                    when (type.kType) {
-                        typeOf<Byte>() ->
-                            ByteMapEdgeProperty(
-                                graph,
-                                defaultValueFunction as EdgeFunction<Byte>
-                            ) as MutableEdgeProperty<T>
-
-                        typeOf<Short>() ->
-                            ShortMapEdgeProperty(
-                                graph,
-                                defaultValueFunction as EdgeFunction<Short>
-                            ) as MutableEdgeProperty<T>
-
-                        typeOf<Int>() ->
-                            IntMapEdgeProperty(
-                                graph,
-                                defaultValueFunction as EdgeFunction<Int>
-                            ) as MutableEdgeProperty<T>
-
-                        typeOf<Long>() ->
-                            LongMapEdgeProperty(
-                                graph,
-                                defaultValueFunction as EdgeFunction<Long>
-                            ) as MutableEdgeProperty<T>
-
-                        else -> MapEdgeProperty(graph, type, defaultValueFunction)
-                    }
-                }
+                else -> ImmutableMapEdgeProperty(graph, type, defaultValueFunction)
             }
         }
-    }
-}
+    } else {
+        if (graph is IndexedEdgeGraph) {
+            when (type.kType) {
+                typeOf<Boolean>() ->
+                    BooleanArrayEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Boolean>
+                    ) as MutableEdgeProperty<T>
 
-private inline fun <reified V, reified O> createMapped(
-    graph: Graph,
-    defaultValueFunction: EdgeFunction<O>,
-    crossinline transform: (V) -> O,
-    crossinline reverseTransform: (O) -> V
-): MutableEdgeProperty<O> {
-    val property = createEdgeProperty(graph, TypeReference.of()) { reverseTransform(defaultValueFunction.apply(it)) }
-    return object : MutableEdgeProperty<O> {
-        override val graph: Graph get() = property.graph
-        override val type: TypeReference<O> get() = TypeReference.of()
-        override fun get(edge: Edge): O = transform(property[edge])
-        override fun set(edge: Edge, value: O) { property[edge] = reverseTransform(value)}
-        override fun put(edge: Edge, value: O) = transform(property.put(edge, reverseTransform(value)))
+                typeOf<Byte>() ->
+                    ByteArrayEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Byte>
+                    ) as MutableEdgeProperty<T>
+
+                typeOf<Short>() ->
+                    ShortArrayEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Short>
+                    ) as MutableEdgeProperty<T>
+
+                typeOf<Int>() ->
+                    IntArrayEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Int>
+                    ) as MutableEdgeProperty<T>
+
+                typeOf<Long>() ->
+                    LongArrayEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Long>
+                    ) as MutableEdgeProperty<T>
+
+                typeOf<Float>() ->
+                    FloatArrayEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Float>
+                    ) as MutableEdgeProperty<T>
+
+                typeOf<Double>() ->
+                    DoubleArrayEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Double>
+                    ) as MutableEdgeProperty<T>
+
+                else -> ArrayEdgeProperty(graph, type, defaultValueFunction)
+            }
+        } else {
+            when (type.kType) {
+                typeOf<Boolean>() ->
+                    BooleanMapEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Boolean>
+                    ) as MutableEdgeProperty<T>
+
+                typeOf<Byte>() ->
+                    ByteMapEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Byte>
+                    ) as MutableEdgeProperty<T>
+
+                typeOf<Short>() ->
+                    ShortMapEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Short>
+                    ) as MutableEdgeProperty<T>
+
+                typeOf<Int>() ->
+                    IntMapEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Int>
+                    ) as MutableEdgeProperty<T>
+
+                typeOf<Long>() ->
+                    LongMapEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Long>
+                    ) as MutableEdgeProperty<T>
+
+                typeOf<Float>() ->
+                    FloatMapEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Float>
+                    ) as MutableEdgeProperty<T>
+
+                typeOf<Double>() ->
+                    DoubleMapEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Double>
+                    ) as MutableEdgeProperty<T>
+
+                else -> MapEdgeProperty(graph, type, defaultValueFunction)
+            }
+        }
     }
 }
 
@@ -355,9 +401,4 @@ internal fun <T> emptyEdgeProperty(graph: ImmutableGraph, type: TypeReference<T>
 
         override fun set(edge: Edge, value: T) = throw IllegalArgumentException()
     }
-}
-
-/** Returns an empty edge property to be associated with an empty [ImmutableGraph]. */
-internal inline fun <reified T> emptyEdgeProperty(graph: ImmutableGraph): MutableEdgeProperty<T> {
-    return emptyEdgeProperty(graph, TypeReference.of())
 }

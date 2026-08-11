@@ -4,7 +4,18 @@ node or point) and edge (not arc or link).
 
 # Topology and Data
 
-Topology information is stored separately from data (values associated with vertices and edges).
+Topology information is represented by the Graph interface and its subclasses. There is no data directly stored with the
+topology. Instead, data is store in VertexProperty and EdgeProperty instances, which are created on demand through the
+Graph interface (createVertexProperty/createEdgeProperty). Keeping topology and data separate brings us numerous
+benefits and is one of the cornerstones of this library.
+
+## Code Generation
+
+This library uses code generation from templates so that it is unnecessary to maintain multiple copies of almost
+identical code. The GenerateMain gradle task is responsible for taking as input the template files under
+src/main/templates and generating output into src/mainGenerated - it is generally executed automatically as a
+dependency of other compile tasks. Changes should thus always be made to the template files rather than the generated
+output.
 
 # Java APIs
 
@@ -39,3 +50,15 @@ The @JvmSynthetic annotation is used to hide methods/properties from Java, so @J
 something annotated with @JvmSynthetic. Generally, for any public method/property marked with @JvmSynthetic, there
 should be an alternate API for a Java client to invoke the same functionality (@JvmSynthetic is often used on extension
 methods which provide syntactic sugar for Kotlin clients and are not idiomatic to use from Java for example).
+
+## Benchmarking
+
+Local benchmarking for development should use tasks from the jmh subproject which run JVM benchmarks using JMH. It's
+also usually more efficient to filter benchmarks to only the relevant classes and/or methods.
+
+Use the "jmh" task to run all JMH benchmarks. Flags to control JMH:
+* -PjmhIncludes='<regex>' to run only benchmarks which match the regular expression
+* -P-i=<number> to set the number of iterations
+* -P-wi=<number> to set the number of warmup iterations
+
+Previous JMH benchmark results are stored in JSON format in a timestamped file in the jmh/benchmark-results directory.

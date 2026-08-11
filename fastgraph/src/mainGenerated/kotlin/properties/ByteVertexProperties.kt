@@ -30,11 +30,11 @@ internal class ByteArrayVertexProperty(
         graph.registerVertexChangeListener(this)
     }
 
-    override val type: TypeReference<Byte> = TypeReference.of()
+    override val type: TypeReference<Byte> get() = TypeReference.of()
 
     override fun get(vertex: Vertex): Byte {
         try {
-            return property[vertex.id]
+            return read(property[vertex.id])
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
         }
@@ -42,7 +42,7 @@ internal class ByteArrayVertexProperty(
 
     override fun set(vertex: Vertex, value: Byte) {
         try {
-            property[vertex.id] = value
+            property[vertex.id] = write(value)
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
         }
@@ -50,7 +50,7 @@ internal class ByteArrayVertexProperty(
 
     override fun put(vertex: Vertex, value: Byte): Byte {
         try {
-            return property.replace(vertex.id, value)
+            return read(property.replace(vertex.id, write(value)))
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
         }
@@ -58,7 +58,7 @@ internal class ByteArrayVertexProperty(
 
     override fun onVertexAdded(vertex: Vertex) {
         check(vertex.id == property.size)
-        property.add(initializer.apply(vertex))
+        property.add(write(initializer.apply(vertex)))
     }
 
     override fun onVertexRemoved(vertex: Vertex) {
@@ -73,6 +73,9 @@ internal class ByteArrayVertexProperty(
 
     override fun ensureVertexCapacity(vertexCapacity: Int) = property.ensureCapacity(vertexCapacity)
     override fun trimToSize() = property.trimToSize()
+
+    private fun read(it: Byte): Byte { return it }
+    private fun write(it: Byte): Byte { return it }
 }
 
 internal class ImmutableByteArrayVertexProperty<G>(
@@ -80,21 +83,15 @@ internal class ImmutableByteArrayVertexProperty<G>(
     defaultValueFunction: VertexFunction<Byte>,
 ) : MutableVertexProperty<Byte> where G : ImmutableGraph, G : IndexedVertexGraph {
 
-    private val property = ByteArrayList()
-
-    init {
-        property.ensureCapacity(graph.vertices.size)
-        graph.vertices.foreach { vertex ->
-            assert(vertex.id == property.size)
-            property.add(defaultValueFunction.apply(vertex))
-        }
+    private val property = ByteArray(graph.vertices.size) { vertexId ->
+        write(defaultValueFunction.apply(Vertex(vertexId)))
     }
 
-    override val type: TypeReference<Byte> = TypeReference.of()
+    override val type: TypeReference<Byte> get() = TypeReference.of()
 
     override fun get(vertex: Vertex): Byte {
         try {
-            return property[vertex.id]
+            return read(property[vertex.id])
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
         }
@@ -102,7 +99,7 @@ internal class ImmutableByteArrayVertexProperty<G>(
 
     override fun set(vertex: Vertex, value: Byte) {
         try {
-            property[vertex.id] = value
+            property[vertex.id] = write(value)
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
         }
@@ -110,11 +107,16 @@ internal class ImmutableByteArrayVertexProperty<G>(
 
     override fun put(vertex: Vertex, value: Byte): Byte {
         try {
-            return property.replace(vertex.id, value)
+            val oldValue = read(property[vertex.id])
+            property[vertex.id] = write(value)
+            return oldValue
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
         }
     }
+
+    private fun read(it: Byte): Byte { return it }
+    private fun write(it: Byte): Byte { return it }
 }
 
 internal class ByteMapVertexProperty(
@@ -129,18 +131,18 @@ internal class ByteMapVertexProperty(
         graph.registerVertexChangeListener(this)
     }
 
-    override val type: TypeReference<Byte> = TypeReference.of()
+    override val type: TypeReference<Byte> get() = TypeReference.of()
 
     override fun get(vertex: Vertex): Byte {
-        return property.getOrPut(vertex.id) { initializer.apply(vertex) }
+        return read(property.getOrPut(vertex.id) { write(initializer.apply(vertex)) })
     }
 
     override fun set(vertex: Vertex, value: Byte) {
-        property[vertex.id] = value
+        property[vertex.id] = write(value)
     }
 
     override fun put(vertex: Vertex, value: Byte): Byte {
-        return property.replaceOrSet(vertex.id, value) { initializer.apply(vertex) }
+        return read(property.replaceOrSet(vertex.id, write(value)) { write(initializer.apply(vertex)) })
     }
 
     override fun onVertexAdded(vertex: Vertex) {}
@@ -155,6 +157,9 @@ internal class ByteMapVertexProperty(
     }
 
     override fun trimToSize() = property.trimToSize()
+
+    private fun read(it: Byte): Byte { return it }
+    private fun write(it: Byte): Byte { return it }
 }
 
 internal class ImmutableByteMapVertexProperty(
@@ -167,29 +172,32 @@ internal class ImmutableByteMapVertexProperty(
     init {
         property.ensureCapacity(graph.vertices.size)
         graph.vertices.foreach { vertex ->
-            property[vertex.id] = defaultValueFunction.apply(vertex)
+            property[vertex.id] = write(defaultValueFunction.apply(vertex))
         }
     }
 
-    override val type: TypeReference<Byte> = TypeReference.of()
+    override val type: TypeReference<Byte> get() = TypeReference.of()
 
     override fun get(vertex: Vertex): Byte {
         try {
-            return property.getValue(vertex.id)
+            return read(property.getValue(vertex.id))
         } catch (e: NoSuchElementException) {
             throwIllegalVertex(vertex, e)
         }
     }
 
     override fun set(vertex: Vertex, value: Byte) {
-        property[vertex.id] = value
+        property[vertex.id] = write(value)
     }
 
     override fun put(vertex: Vertex, value: Byte): Byte {
         try {
-            return property.replace(vertex.id, value)
+            return read(property.replace(vertex.id, write(value)))
         } catch (e: NoSuchElementException) {
             throwIllegalVertex(vertex, e)
         }
     }
+
+    private fun read(it: Byte): Byte { return it }
+    private fun write(it: Byte): Byte { return it }
 }

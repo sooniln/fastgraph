@@ -1032,7 +1032,8 @@ public abstract class AbstractGraph : Graph {
  *
  * Java clients can use [unit], [boolean], [byte], [short], [int], [long], [float], or [double] to indicate the type of
  * primitive property they want. If Java clients want a normal Object property (which allows null values), use [obj].
- * Prefer never to use [obj] from Kotlin - not only is it unnecessary, but it loses information.
+ * Prefer never to use [obj] from Kotlin - not only is it unnecessary, but it loses information as the property is no
+ * longer aware of what type it is storing, which can lead to performance losses.
  */
 @Suppress("INAPPLICABLE_JVM_NAME")
 @OptIn(ExperimentalStdlibApi::class)
@@ -1124,7 +1125,7 @@ public value class TypeReference<T> private constructor(internal val kType: KTyp
         public fun <T : Any> obj(): TypeReference<T> = TypeReference(null)
 
         /**
-         * Constructs a new
+         * Constructs a new [TypeReference] of the given type.
          */
         @Suppress("UNCHECKED_CAST")
         @JvmSynthetic

@@ -1,6 +1,7 @@
 package io.github.sooniln.fastgraph.internal
 
 import io.github.sooniln.fastcollect.LongArrayList
+import io.github.sooniln.fastcollect.indices
 import io.github.sooniln.fastcollect.lastIndex
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeReference
@@ -75,7 +76,7 @@ internal value class EdgeValueArrayList private constructor(private val arrayLis
     inline fun removeAt(index: Int): EdgeValue = EdgeValue(arrayList.removeAt(index))
     inline fun clear() = arrayList.clear()
 
-    override fun toString(): String = arrayList.joinToString(", ", "[", "]") { EdgeValue(it).toString() }
+    override fun toString(): String = Iterable { arrayList.iterator() }.joinToString(", ", "[", "]") { EdgeValue(it).toString() }
 }
 
 @Suppress("OVERRIDE_BY_INLINE", "NOTHING_TO_INLINE")

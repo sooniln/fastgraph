@@ -1,8 +1,6 @@
-import org.gradle.kotlin.dsl.kotlin
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.abi.BinariesSource
 import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
-import kotlin.text.lowercase
 import java.nio.file.Path as NioPath
 
 plugins {
@@ -14,150 +12,11 @@ plugins {
 
 repositories {
     mavenCentral()
+    mavenLocal()
 }
 
 group = "io.github.sooniln"
 version = "1.0.0"
-
-private data class TemplateInstantiation(
-    val inputFile: String,
-    val expansions: List<Map<String, Any>>,
-    val outputFile: (Map<String, Any>) -> String,
-)
-
-private fun Map<String, Any>.generateFullExpansion(): Map<String, Any> {
-    val map = this
-    return buildMap {
-        putAll(map)
-
-        val type = map["Type"] as String?
-        if (type != null) {
-            putIfAbsent("lowerType", type.lowercase())
-
-            val isFPType = type == "Float" || type == "Double"
-            putIfAbsent("isFPType", isFPType)
-            if (isFPType) {
-                val nonFPType = if (type == "Float") "Int" else "Long"
-                putIfAbsent("NonFPType", nonFPType)
-                putIfAbsent("lowerNonFPType", nonFPType.lowercase())
-            }
-        }
-
-        val kvType = map["KVType"] as String?
-        if (kvType != null) {
-            putIfAbsent("lowerKVType", kvType.lowercase())
-            putIfAbsent("Name", "${kvType}2${kvType}")
-            putIfAbsent("lowerName", "${get("lowerKVType")}2${kvType}")
-
-            val arrayType = map["ArrayType"] as String?
-            if (arrayType != null) {
-                putIfAbsent("lowerArrayType", arrayType.lowercase())
-            }
-        }
-
-        val keyType = map["KeyType"] as String?
-        if (keyType != null) {
-            putIfAbsent("lowerKeyType", keyType.lowercase())
-
-            val isFPKey = keyType == "Float" || keyType == "Double"
-            putIfAbsent("isFPKey", isFPKey)
-            if (isFPKey) {
-                val nonFPKeyType = if (keyType == "Float") "Int" else "Long"
-                putIfAbsent("NonFPKeyType", nonFPKeyType)
-                putIfAbsent("lowerNonFPKeyType", nonFPKeyType.lowercase())
-            }
-        }
-
-        val valueType = map["ValueType"] as String?
-        if (valueType != null) {
-            putIfAbsent("lowerValueType", valueType.lowercase())
-
-            val isFPValue = valueType == "Float" || valueType == "Double"
-            putIfAbsent("isFPValue", isFPValue)
-            if (isFPValue) {
-                val nonFPValueType = if (valueType == "Float") "Int" else "Long"
-                putIfAbsent("NonFPValueType", nonFPValueType)
-                putIfAbsent("lowerNonFPValueType", nonFPValueType.lowercase())
-            }
-        }
-
-        if (keyType != null && valueType != null) {
-            val isReferenceValue = map["isReferenceValue"] as Boolean? ?: false
-            putIfAbsent("isReferenceValue", isReferenceValue)
-
-            if (isReferenceValue) {
-                putIfAbsent("Name", "${keyType}2Any")
-                putIfAbsent("lowerName", "${get("lowerKeyType")}2Any")
-                putIfAbsent("ValueCollectionType", "Collection")
-                putIfAbsent("ValueIteratorType", "Iterator")
-                putIfAbsent("Nullable", "?")
-                putIfAbsent("Generics", "<$valueType>")
-                putIfAbsent("StarGenerics", "<*>")
-            } else {
-                putIfAbsent("Name", "${keyType}2${valueType}")
-                putIfAbsent("lowerName", "${get("lowerKeyType")}2${valueType}")
-                putIfAbsent("ValueCollectionType", "${valueType}Collection")
-                putIfAbsent("ValueIteratorType", "${valueType}Iterator")
-                putIfAbsent("Nullable", "")
-                putIfAbsent("Generics", "")
-                putIfAbsent("StarGenerics", "")
-            }
-
-            val isFPKeyOrValue = get("isFPKey") as Boolean || get("isFPValue") as Boolean
-            putIfAbsent("isFPKeyOrValue", isFPKeyOrValue)
-            if (isFPKeyOrValue) {
-                val nonFPKeyType = getOrElse("NonFPKeyType") { getValue("KeyType") } as String
-                val nonFPValueType = getOrElse("NonFPValueType") { getValue("ValueType") } as String
-
-                put("NonFPName", "${nonFPKeyType}2${nonFPValueType}")
-                putIfAbsent("lowerNonFPName", "${get("lowernonFPKeyType")}2${valueType}")
-            }
-        }
-    }
-}
-
-private fun Sync.generate(sourceSet: String, templates: List<TemplateInstantiation>) {
-    templates.forEach { template ->
-        template.expansions.forEach { expansion ->
-            val fullExpansion = expansion.generateFullExpansion()
-            val path = NioPath.of(template.outputFile(fullExpansion))
-            val outputFolder = (path.parent ?: NioPath.of(".")).toString()
-            val outputFile = path.fileName.toString()
-            check(outputFile.endsWith(".kt")) { "$outputFile must end with .kt" }
-            into(outputFolder) {
-                from("src/$sourceSet/templates/${template.inputFile}")
-                rename { outputFile }
-                expand(*fullExpansion.toList().toTypedArray())
-            }
-        }
-    }
-}
-
-tasks.register<Sync>("GenerateMain") {
-    description = "Generates source code for templates in main."
-    group = "build"
-    into("src/mainGenerated/kotlin")
-
-    generate("main",
-        listOf(
-            TemplateInstantiation(
-                "EdgeProperties.kte",
-                listOf(
-                    mapOf("Type" to "Byte"),
-                    mapOf("Type" to "Short"),
-                    mapOf("Type" to "Int"),
-                    mapOf("Type" to "Long"),
-                )) { expansion -> "properties/${expansion["Type"]}EdgeProperties.kt" },
-            TemplateInstantiation(
-                "VertexProperties.kte",
-                listOf(
-                    mapOf("Type" to "Byte"),
-                    mapOf("Type" to "Short"),
-                    mapOf("Type" to "Int"),
-                    mapOf("Type" to "Long"),
-                )) { expansion -> "properties/${expansion["Type"]}VertexProperties.kt" },
-        ))
-}
 
 kotlin {
     jvmToolchain(17)
@@ -184,6 +43,38 @@ dependencies {
     testImplementation(libs.junitParams)
     testImplementation(kotlin("reflect"))
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+tasks.register<Sync>("GenerateMain") {
+    description = "Generates source code for templates in main."
+    group = "build"
+    into("src/mainGenerated/kotlin")
+
+    generate("main",
+        listOf(
+            TemplateInstantiation(
+                "EdgeProperties.kte",
+                listOf(
+                    mapOf("Type" to "Boolean", "StorageType" to "Byte", "ReadLambda" to "{ return it != 0.toByte() }", "WriteLambda" to "{ return if (it) 1 else 0 }"),
+                    mapOf("Type" to "Byte"),
+                    mapOf("Type" to "Short", "StorageType" to "Int", "ReadLambda" to "{ return it.toShort() }", "WriteLambda" to "{ return it.toInt() }"),
+                    mapOf("Type" to "Int"),
+                    mapOf("Type" to "Long"),
+                    mapOf("Type" to "Float"),
+                    mapOf("Type" to "Double"),
+                )) { expansion -> "properties/${expansion["Type"]}EdgeProperties.kt" },
+            TemplateInstantiation(
+                "VertexProperties.kte",
+                listOf(
+                    mapOf("Type" to "Boolean", "StorageType" to "Byte", "ReadLambda" to "{ return it != 0.toByte() }", "WriteLambda" to "{ return if (it) 1 else 0 }"),
+                    mapOf("Type" to "Byte"),
+                    mapOf("Type" to "Short", "StorageType" to "Int", "ReadLambda" to "{ return it.toShort() }", "WriteLambda" to "{ return it.toInt() }"),
+                    mapOf("Type" to "Int"),
+                    mapOf("Type" to "Long"),
+                    mapOf("Type" to "Float"),
+                    mapOf("Type" to "Double"),
+                )) { expansion -> "properties/${expansion["Type"]}VertexProperties.kt" },
+        ))
 }
 
 sourceSets {
@@ -255,6 +146,51 @@ mavenPublishing {
             url = "https://github.com/sooniln/fastgraph/"
             connection = "scm:git:git://github.com/sooniln/fastgraph.git"
             developerConnection = "scm:git:ssh://git@github.com/sooniln/fastgraph.git"
+        }
+    }
+}
+
+private data class TemplateInstantiation(
+    val inputFile: String,
+    val expansions: List<Map<String, Any>>,
+    val outputFile: (Map<String, Any>) -> String,
+)
+
+private fun Map<String, Any>.generateFullExpansion(): Map<String, Any> {
+    val map = this
+    return buildMap {
+        putAll(map)
+
+        val type = map["Type"] as String?
+        if (type != null) {
+            putIfAbsent("StorageType", type)
+            putIfAbsent("ReadLambda", "{ return it }")
+            putIfAbsent("WriteLambda", "{ return it }")
+
+            val isFPType = type == "Float" || type == "Double"
+            putIfAbsent("isFPType", isFPType)
+            if (isFPType) {
+                val nonFPType = if (type == "Float") "Int" else "Long"
+                putIfAbsent("NonFPType", nonFPType)
+                putIfAbsent("lowerNonFPType", nonFPType.lowercase())
+            }
+        }
+    }
+}
+
+private fun Sync.generate(sourceSet: String, templates: List<TemplateInstantiation>) {
+    templates.forEach { template ->
+        template.expansions.forEach { expansion ->
+            val fullExpansion = expansion.generateFullExpansion()
+            val path = NioPath.of(template.outputFile(fullExpansion))
+            val outputFolder = (path.parent ?: NioPath.of(".")).toString()
+            val outputFile = path.fileName.toString()
+            check(outputFile.endsWith(".kt")) { "$outputFile must end with .kt" }
+            into(outputFolder) {
+                from("src/$sourceSet/templates/${template.inputFile}")
+                rename { outputFile }
+                expand(*fullExpansion.toList().toTypedArray())
+            }
         }
     }
 }

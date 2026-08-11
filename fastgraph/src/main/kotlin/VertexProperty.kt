@@ -6,11 +6,23 @@
 package io.github.sooniln.fastgraph
 
 import io.github.sooniln.fastgraph.properties.ArrayVertexProperty
+import io.github.sooniln.fastgraph.properties.BooleanArrayVertexProperty
+import io.github.sooniln.fastgraph.properties.BooleanMapVertexProperty
 import io.github.sooniln.fastgraph.properties.ByteArrayVertexProperty
 import io.github.sooniln.fastgraph.properties.ByteMapVertexProperty
+import io.github.sooniln.fastgraph.properties.DoubleArrayVertexProperty
+import io.github.sooniln.fastgraph.properties.DoubleMapVertexProperty
+import io.github.sooniln.fastgraph.properties.FloatArrayVertexProperty
+import io.github.sooniln.fastgraph.properties.FloatMapVertexProperty
 import io.github.sooniln.fastgraph.properties.ImmutableArrayVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableBooleanArrayVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableBooleanMapVertexProperty
 import io.github.sooniln.fastgraph.properties.ImmutableByteArrayVertexProperty
 import io.github.sooniln.fastgraph.properties.ImmutableByteMapVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableDoubleArrayVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableDoubleMapVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableFloatArrayVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableFloatMapVertexProperty
 import io.github.sooniln.fastgraph.properties.ImmutableIntArrayVertexProperty
 import io.github.sooniln.fastgraph.properties.ImmutableIntMapVertexProperty
 import io.github.sooniln.fastgraph.properties.ImmutableLongArrayVertexProperty
@@ -115,166 +127,200 @@ public fun <T> createVertexProperty(
     type: TypeReference<T>,
     defaultValueFunction: VertexFunction<T>
 ): MutableVertexProperty<T> {
-    return when (type.kType) {
-        typeOf<Unit>() -> unitVertexProperty(graph) as MutableVertexProperty<T>
-        typeOf<Boolean>() ->
-            createMapped<Byte, Boolean>(
-                graph,
-                defaultValueFunction as VertexFunction<Boolean>,
-                { it != 0.toByte() },
-                { if (it) 1 else 0 }) as MutableVertexProperty<T>
+    if (type.kType == typeOf<Unit>()) {
+        return unitVertexProperty(graph) as MutableVertexProperty<T>
+    }
 
-        typeOf<Float>() ->
-            createMapped<Int, Float>(
-                graph,
-                defaultValueFunction as VertexFunction<Float>,
-                { Float.fromBits(it) },
-                { it.toRawBits() }) as MutableVertexProperty<T>
+    return if (graph is ImmutableGraph) {
+        if (graph.isEmpty()) {
+            emptyVertexProperty(graph, type)
+        } else if (graph is IndexedVertexGraph) {
+            when (type.kType) {
+                typeOf<Boolean>() ->
+                    ImmutableBooleanArrayVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Boolean>
+                    ) as MutableVertexProperty<T>
 
-        typeOf<Double>() ->
-            createMapped<Long, Double>(
-                graph,
-                defaultValueFunction as VertexFunction<Double>,
-                { Double.fromBits(it) },
-                { it.toRawBits() }) as MutableVertexProperty<T>
+                typeOf<Byte>() ->
+                    ImmutableByteArrayVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Byte>
+                    ) as MutableVertexProperty<T>
 
-        else -> {
-            if (graph is ImmutableGraph) {
-                if (graph.isEmpty()) {
-                    emptyVertexProperty(graph, type)
-                } else if (graph is IndexedVertexGraph) {
-                    when (type.kType) {
-                        typeOf<Byte>() ->
-                            ImmutableByteArrayVertexProperty(
-                                graph,
-                                defaultValueFunction as VertexFunction<Byte>
-                            ) as MutableVertexProperty<T>
+                typeOf<Short>() ->
+                    ImmutableShortArrayVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Short>
+                    ) as MutableVertexProperty<T>
 
-                        typeOf<Short>() ->
-                            ImmutableShortArrayVertexProperty(
-                                graph,
-                                defaultValueFunction as VertexFunction<Short>
-                            ) as MutableVertexProperty<T>
+                typeOf<Int>() ->
+                    ImmutableIntArrayVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Int>
+                    ) as MutableVertexProperty<T>
 
-                        typeOf<Int>() ->
-                            ImmutableIntArrayVertexProperty(
-                                graph,
-                                defaultValueFunction as VertexFunction<Int>
-                            ) as MutableVertexProperty<T>
+                typeOf<Long>() ->
+                    ImmutableLongArrayVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Long>
+                    ) as MutableVertexProperty<T>
 
-                        typeOf<Long>() ->
-                            ImmutableLongArrayVertexProperty(
-                                graph,
-                                defaultValueFunction as VertexFunction<Long>
-                            ) as MutableVertexProperty<T>
+                typeOf<Float>() ->
+                    ImmutableFloatArrayVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Float>
+                    ) as MutableVertexProperty<T>
 
-                        else -> ImmutableArrayVertexProperty(graph, type, defaultValueFunction)
-                    }
-                } else {
-                    when (type.kType) {
-                        typeOf<Byte>() ->
-                            ImmutableByteMapVertexProperty(
-                                graph,
-                                defaultValueFunction as VertexFunction<Byte>
-                            ) as MutableVertexProperty<T>
+                typeOf<Double>() ->
+                    ImmutableDoubleArrayVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Double>
+                    ) as MutableVertexProperty<T>
 
-                        typeOf<Short>() ->
-                            ImmutableShortMapVertexProperty(
-                                graph,
-                                defaultValueFunction as VertexFunction<Short>
-                            ) as MutableVertexProperty<T>
+                else -> ImmutableArrayVertexProperty(graph, type, defaultValueFunction)
+            }
+        } else {
+            when (type.kType) {
+                typeOf<Boolean>() ->
+                    ImmutableBooleanMapVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Boolean>
+                    ) as MutableVertexProperty<T>
 
-                        typeOf<Int>() ->
-                            ImmutableIntMapVertexProperty(
-                                graph,
-                                defaultValueFunction as VertexFunction<Int>
-                            ) as MutableVertexProperty<T>
+                typeOf<Byte>() ->
+                    ImmutableByteMapVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Byte>
+                    ) as MutableVertexProperty<T>
 
-                        typeOf<Long>() ->
-                            ImmutableLongMapVertexProperty(
-                                graph,
-                                defaultValueFunction as VertexFunction<Long>
-                            ) as MutableVertexProperty<T>
+                typeOf<Short>() ->
+                    ImmutableShortMapVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Short>
+                    ) as MutableVertexProperty<T>
 
-                        else -> ImmutableMapVertexProperty(graph, type, defaultValueFunction)
-                    }
-                }
-            } else {
-                if (graph is IndexedVertexGraph) {
-                    when (type.kType) {
-                        typeOf<Byte>() ->
-                            ByteArrayVertexProperty(
-                                graph,
-                                defaultValueFunction as VertexFunction<Byte>
-                            ) as MutableVertexProperty<T>
+                typeOf<Int>() ->
+                    ImmutableIntMapVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Int>
+                    ) as MutableVertexProperty<T>
 
-                        typeOf<Short>() ->
-                            ShortArrayVertexProperty(
-                                graph,
-                                defaultValueFunction as VertexFunction<Short>
-                            ) as MutableVertexProperty<T>
+                typeOf<Long>() ->
+                    ImmutableLongMapVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Long>
+                    ) as MutableVertexProperty<T>
 
-                        typeOf<Int>() ->
-                            IntArrayVertexProperty(
-                                graph,
-                                defaultValueFunction as VertexFunction<Int>
-                            ) as MutableVertexProperty<T>
+                typeOf<Float>() ->
+                    ImmutableFloatMapVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Float>
+                    ) as MutableVertexProperty<T>
 
-                        typeOf<Long>() ->
-                            LongArrayVertexProperty(
-                                graph,
-                                defaultValueFunction as VertexFunction<Long>
-                            ) as MutableVertexProperty<T>
+                typeOf<Double>() ->
+                    ImmutableDoubleMapVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Double>
+                    ) as MutableVertexProperty<T>
 
-                        else -> ArrayVertexProperty(graph, type, defaultValueFunction)
-                    }
-                } else {
-                    when (type.kType) {
-                        typeOf<Byte>() ->
-                            ByteMapVertexProperty(
-                                graph,
-                                defaultValueFunction as VertexFunction<Byte>
-                            ) as MutableVertexProperty<T>
-
-                        typeOf<Short>() ->
-                            ShortMapVertexProperty(
-                                graph,
-                                defaultValueFunction as VertexFunction<Short>
-                            ) as MutableVertexProperty<T>
-
-                        typeOf<Int>() ->
-                            IntMapVertexProperty(
-                                graph,
-                                defaultValueFunction as VertexFunction<Int>
-                            ) as MutableVertexProperty<T>
-
-                        typeOf<Long>() ->
-                            LongMapVertexProperty(
-                                graph,
-                                defaultValueFunction as VertexFunction<Long>
-                            ) as MutableVertexProperty<T>
-
-                        else -> MapVertexProperty(graph, type, defaultValueFunction)
-                    }
-                }
+                else -> ImmutableMapVertexProperty(graph, type, defaultValueFunction)
             }
         }
-    }
-}
+    } else {
+        if (graph is IndexedVertexGraph) {
+            when (type.kType) {
+                typeOf<Boolean>() ->
+                    BooleanArrayVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Boolean>
+                    ) as MutableVertexProperty<T>
 
-private inline fun <reified V, reified O> createMapped(
-    graph: Graph,
-    defaultValueFunction: VertexFunction<O>,
-    crossinline transform: (V) -> O,
-    crossinline reverseTransform: (O) -> V
-): MutableVertexProperty<O> {
-    val property = createVertexProperty(graph, TypeReference.of()) { reverseTransform(defaultValueFunction.apply(it)) }
-    return object : MutableVertexProperty<O> {
-        override val graph: Graph get() = property.graph
-        override val type: TypeReference<O> get() = TypeReference.of()
-        override fun get(vertex: Vertex): O = transform(property[vertex])
-        override fun set(vertex: Vertex, value: O) { property[vertex] = reverseTransform(value)}
-        override fun put(vertex: Vertex, value: O) = transform(property.put(vertex, reverseTransform(value)))
+                typeOf<Byte>() ->
+                    ByteArrayVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Byte>
+                    ) as MutableVertexProperty<T>
+
+                typeOf<Short>() ->
+                    ShortArrayVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Short>
+                    ) as MutableVertexProperty<T>
+
+                typeOf<Int>() ->
+                    IntArrayVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Int>
+                    ) as MutableVertexProperty<T>
+
+                typeOf<Long>() ->
+                    LongArrayVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Long>
+                    ) as MutableVertexProperty<T>
+
+                typeOf<Float>() ->
+                    FloatArrayVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Float>
+                    ) as MutableVertexProperty<T>
+
+                typeOf<Double>() ->
+                    DoubleArrayVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Double>
+                    ) as MutableVertexProperty<T>
+
+                else -> ArrayVertexProperty(graph, type, defaultValueFunction)
+            }
+        } else {
+            when (type.kType) {
+                typeOf<Boolean>() ->
+                    BooleanMapVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Boolean>
+                    ) as MutableVertexProperty<T>
+
+                typeOf<Byte>() ->
+                    ByteMapVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Byte>
+                    ) as MutableVertexProperty<T>
+
+                typeOf<Short>() ->
+                    ShortMapVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Short>
+                    ) as MutableVertexProperty<T>
+
+                typeOf<Int>() ->
+                    IntMapVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Int>
+                    ) as MutableVertexProperty<T>
+
+                typeOf<Long>() ->
+                    LongMapVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Long>
+                    ) as MutableVertexProperty<T>
+
+                typeOf<Float>() ->
+                    FloatMapVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Float>
+                    ) as MutableVertexProperty<T>
+
+                typeOf<Double>() ->
+                    DoubleMapVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Double>
+                    ) as MutableVertexProperty<T>
+
+                else -> MapVertexProperty(graph, type, defaultValueFunction)
+            }
+        }
     }
 }
 
@@ -356,10 +402,5 @@ internal fun <T> emptyVertexProperty(graph: ImmutableGraph, type: TypeReference<
 
         override fun set(vertex: Vertex, value: T) = throw IllegalArgumentException()
     }
-}
-
-/** Returns an empty vertex property to be associated with an empty [ImmutableGraph]. */
-internal inline fun <reified T> emptyVertexProperty(graph: ImmutableGraph): MutableVertexProperty<T> {
-    return emptyVertexProperty(graph, TypeReference.of<T>())
 }
 

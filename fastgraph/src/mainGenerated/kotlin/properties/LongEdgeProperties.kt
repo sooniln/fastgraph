@@ -30,11 +30,11 @@ internal class LongArrayEdgeProperty(
         graph.registerEdgeChangeListener(this)
     }
 
-    override val type: TypeReference<Long> = TypeReference.of()
+    override val type: TypeReference<Long> get() = TypeReference.of()
 
     override fun get(edge: Edge): Long {
         try {
-            return property[edge.lowBits]
+            return read(property[edge.lowBits])
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
@@ -42,7 +42,7 @@ internal class LongArrayEdgeProperty(
 
     override fun set(edge: Edge, value: Long) {
         try {
-            property[edge.lowBits] = value
+            property[edge.lowBits] = write(value)
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
@@ -50,7 +50,7 @@ internal class LongArrayEdgeProperty(
 
     override fun put(edge: Edge, value: Long): Long {
         try {
-            return property.replace(edge.lowBits, value)
+            return read(property.replace(edge.lowBits, write(value)))
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
@@ -58,7 +58,7 @@ internal class LongArrayEdgeProperty(
 
     override fun onEdgeAdded(edge: Edge) {
         check(edge.lowBits == property.size)
-        property.add(initializer.apply(edge))
+        property.add(write(initializer.apply(edge)))
     }
 
     override fun onEdgeRemoved(edge: Edge) {
@@ -73,6 +73,9 @@ internal class LongArrayEdgeProperty(
 
     override fun ensureEdgeCapacity(edgeCapacity: Int) = property.ensureCapacity(edgeCapacity)
     override fun trimToSize() = property.trimToSize()
+
+    private fun read(it: Long): Long { return it }
+    private fun write(it: Long): Long { return it }
 }
 
 internal class ImmutableLongArrayEdgeProperty<G>(
@@ -80,21 +83,15 @@ internal class ImmutableLongArrayEdgeProperty<G>(
     defaultValueFunction: EdgeFunction<Long>,
 ) : MutableEdgeProperty<Long> where G : ImmutableGraph, G : IndexedEdgeGraph {
 
-    private val property = LongArrayList()
-
-    init {
-        property.ensureCapacity(graph.edges.size)
-        graph.edges.foreach { edge ->
-            assert(edge.lowBits == property.size)
-            property.add(defaultValueFunction.apply(edge))
-        }
+    private val property = LongArray(graph.edges.size) { edgeId ->
+        write(defaultValueFunction.apply(graph.edges[edgeId]))
     }
 
-    override val type: TypeReference<Long> = TypeReference.of()
+    override val type: TypeReference<Long> get() = TypeReference.of()
 
     override fun get(edge: Edge): Long {
         try {
-            return property[edge.lowBits]
+            return read(property[edge.lowBits])
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
@@ -102,7 +99,7 @@ internal class ImmutableLongArrayEdgeProperty<G>(
 
     override fun set(edge: Edge, value: Long) {
         try {
-            property[edge.lowBits] = value
+            property[edge.lowBits] = write(value)
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
@@ -110,11 +107,16 @@ internal class ImmutableLongArrayEdgeProperty<G>(
 
     override fun put(edge: Edge, value: Long): Long {
         try {
-            return property.replace(edge.lowBits, value)
+            val oldValue = read(property[edge.lowBits])
+            property[edge.lowBits] = write(value)
+            return oldValue
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
     }
+
+    private fun read(it: Long): Long { return it }
+    private fun write(it: Long): Long { return it }
 }
 
 internal class LongMapEdgeProperty(
@@ -129,18 +131,18 @@ internal class LongMapEdgeProperty(
         graph.registerEdgeChangeListener(this)
     }
 
-    override val type: TypeReference<Long> = TypeReference.of()
+    override val type: TypeReference<Long> get() = TypeReference.of()
 
     override fun get(edge: Edge): Long {
-        return property.getOrPut(edge.id) { initializer.apply(edge) }
+        return read(property.getOrPut(edge.id) { write(initializer.apply(edge)) })
     }
 
     override fun set(edge: Edge, value: Long) {
-        property[edge.id] = value
+        property[edge.id] = write(value)
     }
 
     override fun put(edge: Edge, value: Long): Long {
-        return property.replaceOrSet(edge.id, value) { initializer.apply(edge) }
+        return read(property.replaceOrSet(edge.id, write(value)) { write(initializer.apply(edge)) })
     }
 
     override fun onEdgeAdded(edge: Edge) {}
@@ -155,6 +157,9 @@ internal class LongMapEdgeProperty(
     }
 
     override fun trimToSize() = property.trimToSize()
+
+    private fun read(it: Long): Long { return it }
+    private fun write(it: Long): Long { return it }
 }
 
 internal class ImmutableLongMapEdgeProperty(
@@ -167,29 +172,32 @@ internal class ImmutableLongMapEdgeProperty(
     init {
         property.ensureCapacity(graph.edges.size)
         graph.edges.foreach { edge ->
-            property[edge.id] = defaultValueFunction.apply(edge)
+            property[edge.id] = write(defaultValueFunction.apply(edge))
         }
     }
 
-    override val type: TypeReference<Long> = TypeReference.of()
+    override val type: TypeReference<Long> get() = TypeReference.of()
 
     override fun get(edge: Edge): Long {
         try {
-            return property.getValue(edge.id)
+            return read(property.getValue(edge.id))
         } catch (e: NoSuchElementException) {
             throwIllegalEdge(graph, edge, e)
         }
     }
 
     override fun set(edge: Edge, value: Long) {
-        property[edge.id] = value
+        property[edge.id] = write(value)
     }
 
     override fun put(edge: Edge, value: Long): Long {
         try {
-            return property.replace(edge.id, value)
+            return read(property.replace(edge.id, write(value)))
         } catch (e: NoSuchElementException) {
             throwIllegalEdge(graph, edge, e)
         }
     }
+
+    private fun read(it: Long): Long { return it }
+    private fun write(it: Long): Long { return it }
 }

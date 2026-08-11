@@ -1,7 +1,7 @@
 package io.github.sooniln.fastgraph.properties
 
-import io.github.sooniln.fastcollect.IntArrayList
-import io.github.sooniln.fastcollect.Long2IntHashMap
+import io.github.sooniln.fastcollect.ByteArrayList
+import io.github.sooniln.fastcollect.Long2ByteHashMap
 import io.github.sooniln.fastcollect.getOrPut
 import io.github.sooniln.fastcollect.lastIndex
 import io.github.sooniln.fastcollect.removeOrElse
@@ -16,12 +16,12 @@ import io.github.sooniln.fastgraph.MutableEdgeProperty
 import io.github.sooniln.fastgraph.TypeReference
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
 
-internal class ShortArrayEdgeProperty(
+internal class BooleanArrayEdgeProperty(
     override val graph: IndexedEdgeGraph,
-    defaultValueFunction: EdgeFunction<Short>,
-) : MutableEdgeProperty<Short>, EdgeChangeListener {
+    defaultValueFunction: EdgeFunction<Boolean>,
+) : MutableEdgeProperty<Boolean>, EdgeChangeListener {
 
-    private val property = IntArrayList()
+    private val property = ByteArrayList()
     private val initializer = defaultValueFunction
 
     init {
@@ -30,9 +30,9 @@ internal class ShortArrayEdgeProperty(
         graph.registerEdgeChangeListener(this)
     }
 
-    override val type: TypeReference<Short> get() = TypeReference.of()
+    override val type: TypeReference<Boolean> get() = TypeReference.of()
 
-    override fun get(edge: Edge): Short {
+    override fun get(edge: Edge): Boolean {
         try {
             return read(property[edge.lowBits])
         } catch (e: IndexOutOfBoundsException) {
@@ -40,7 +40,7 @@ internal class ShortArrayEdgeProperty(
         }
     }
 
-    override fun set(edge: Edge, value: Short) {
+    override fun set(edge: Edge, value: Boolean) {
         try {
             property[edge.lowBits] = write(value)
         } catch (e: IndexOutOfBoundsException) {
@@ -48,7 +48,7 @@ internal class ShortArrayEdgeProperty(
         }
     }
 
-    override fun put(edge: Edge, value: Short): Short {
+    override fun put(edge: Edge, value: Boolean): Boolean {
         try {
             return read(property.replace(edge.lowBits, write(value)))
         } catch (e: IndexOutOfBoundsException) {
@@ -74,22 +74,22 @@ internal class ShortArrayEdgeProperty(
     override fun ensureEdgeCapacity(edgeCapacity: Int) = property.ensureCapacity(edgeCapacity)
     override fun trimToSize() = property.trimToSize()
 
-    private fun read(it: Int): Short { return it.toShort() }
-    private fun write(it: Short): Int { return it.toInt() }
+    private fun read(it: Byte): Boolean { return it != 0.toByte() }
+    private fun write(it: Boolean): Byte { return if (it) 1 else 0 }
 }
 
-internal class ImmutableShortArrayEdgeProperty<G>(
+internal class ImmutableBooleanArrayEdgeProperty<G>(
     override val graph: G,
-    defaultValueFunction: EdgeFunction<Short>,
-) : MutableEdgeProperty<Short> where G : ImmutableGraph, G : IndexedEdgeGraph {
+    defaultValueFunction: EdgeFunction<Boolean>,
+) : MutableEdgeProperty<Boolean> where G : ImmutableGraph, G : IndexedEdgeGraph {
 
-    private val property = IntArray(graph.edges.size) { edgeId ->
+    private val property = ByteArray(graph.edges.size) { edgeId ->
         write(defaultValueFunction.apply(graph.edges[edgeId]))
     }
 
-    override val type: TypeReference<Short> get() = TypeReference.of()
+    override val type: TypeReference<Boolean> get() = TypeReference.of()
 
-    override fun get(edge: Edge): Short {
+    override fun get(edge: Edge): Boolean {
         try {
             return read(property[edge.lowBits])
         } catch (e: IndexOutOfBoundsException) {
@@ -97,7 +97,7 @@ internal class ImmutableShortArrayEdgeProperty<G>(
         }
     }
 
-    override fun set(edge: Edge, value: Short) {
+    override fun set(edge: Edge, value: Boolean) {
         try {
             property[edge.lowBits] = write(value)
         } catch (e: IndexOutOfBoundsException) {
@@ -105,7 +105,7 @@ internal class ImmutableShortArrayEdgeProperty<G>(
         }
     }
 
-    override fun put(edge: Edge, value: Short): Short {
+    override fun put(edge: Edge, value: Boolean): Boolean {
         try {
             val oldValue = read(property[edge.lowBits])
             property[edge.lowBits] = write(value)
@@ -115,33 +115,33 @@ internal class ImmutableShortArrayEdgeProperty<G>(
         }
     }
 
-    private fun read(it: Int): Short { return it.toShort() }
-    private fun write(it: Short): Int { return it.toInt() }
+    private fun read(it: Byte): Boolean { return it != 0.toByte() }
+    private fun write(it: Boolean): Byte { return if (it) 1 else 0 }
 }
 
-internal class ShortMapEdgeProperty(
+internal class BooleanMapEdgeProperty(
     override val graph: Graph,
-    defaultValueFunction: EdgeFunction<Short>
-) : MutableEdgeProperty<Short>, EdgeChangeListener {
+    defaultValueFunction: EdgeFunction<Boolean>
+) : MutableEdgeProperty<Boolean>, EdgeChangeListener {
 
-    private val property = Long2IntHashMap()
+    private val property = Long2ByteHashMap()
     private val initializer = defaultValueFunction
 
     init {
         graph.registerEdgeChangeListener(this)
     }
 
-    override val type: TypeReference<Short> get() = TypeReference.of()
+    override val type: TypeReference<Boolean> get() = TypeReference.of()
 
-    override fun get(edge: Edge): Short {
+    override fun get(edge: Edge): Boolean {
         return read(property.getOrPut(edge.id) { write(initializer.apply(edge)) })
     }
 
-    override fun set(edge: Edge, value: Short) {
+    override fun set(edge: Edge, value: Boolean) {
         property[edge.id] = write(value)
     }
 
-    override fun put(edge: Edge, value: Short): Short {
+    override fun put(edge: Edge, value: Boolean): Boolean {
         return read(property.replaceOrSet(edge.id, write(value)) { write(initializer.apply(edge)) })
     }
 
@@ -158,16 +158,16 @@ internal class ShortMapEdgeProperty(
 
     override fun trimToSize() = property.trimToSize()
 
-    private fun read(it: Int): Short { return it.toShort() }
-    private fun write(it: Short): Int { return it.toInt() }
+    private fun read(it: Byte): Boolean { return it != 0.toByte() }
+    private fun write(it: Boolean): Byte { return if (it) 1 else 0 }
 }
 
-internal class ImmutableShortMapEdgeProperty(
+internal class ImmutableBooleanMapEdgeProperty(
     override val graph: ImmutableGraph,
-    defaultValueFunction: EdgeFunction<Short>
-) : MutableEdgeProperty<Short> {
+    defaultValueFunction: EdgeFunction<Boolean>
+) : MutableEdgeProperty<Boolean> {
 
-    private val property = Long2IntHashMap()
+    private val property = Long2ByteHashMap()
 
     init {
         property.ensureCapacity(graph.edges.size)
@@ -176,9 +176,9 @@ internal class ImmutableShortMapEdgeProperty(
         }
     }
 
-    override val type: TypeReference<Short> get() = TypeReference.of()
+    override val type: TypeReference<Boolean> get() = TypeReference.of()
 
-    override fun get(edge: Edge): Short {
+    override fun get(edge: Edge): Boolean {
         try {
             return read(property.getValue(edge.id))
         } catch (e: NoSuchElementException) {
@@ -186,11 +186,11 @@ internal class ImmutableShortMapEdgeProperty(
         }
     }
 
-    override fun set(edge: Edge, value: Short) {
+    override fun set(edge: Edge, value: Boolean) {
         property[edge.id] = write(value)
     }
 
-    override fun put(edge: Edge, value: Short): Short {
+    override fun put(edge: Edge, value: Boolean): Boolean {
         try {
             return read(property.replace(edge.id, write(value)))
         } catch (e: NoSuchElementException) {
@@ -198,6 +198,6 @@ internal class ImmutableShortMapEdgeProperty(
         }
     }
 
-    private fun read(it: Int): Short { return it.toShort() }
-    private fun write(it: Short): Int { return it.toInt() }
+    private fun read(it: Byte): Boolean { return it != 0.toByte() }
+    private fun write(it: Boolean): Byte { return if (it) 1 else 0 }
 }

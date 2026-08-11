@@ -1,7 +1,7 @@
 package io.github.sooniln.fastgraph.properties
 
-import io.github.sooniln.fastcollect.Int2ShortHashMap
-import io.github.sooniln.fastcollect.ShortArrayList
+import io.github.sooniln.fastcollect.Int2IntHashMap
+import io.github.sooniln.fastcollect.IntArrayList
 import io.github.sooniln.fastcollect.getOrPut
 import io.github.sooniln.fastcollect.lastIndex
 import io.github.sooniln.fastcollect.removeOrElse
@@ -21,7 +21,7 @@ internal class ShortArrayVertexProperty(
     defaultValueFunction: VertexFunction<Short>,
 ) : MutableVertexProperty<Short>, VertexChangeListener {
 
-    private val property = ShortArrayList()
+    private val property = IntArrayList()
     private val initializer = defaultValueFunction
 
     init {
@@ -30,11 +30,11 @@ internal class ShortArrayVertexProperty(
         graph.registerVertexChangeListener(this)
     }
 
-    override val type: TypeReference<Short> = TypeReference.of()
+    override val type: TypeReference<Short> get() = TypeReference.of()
 
     override fun get(vertex: Vertex): Short {
         try {
-            return property[vertex.id]
+            return read(property[vertex.id])
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
         }
@@ -42,7 +42,7 @@ internal class ShortArrayVertexProperty(
 
     override fun set(vertex: Vertex, value: Short) {
         try {
-            property[vertex.id] = value
+            property[vertex.id] = write(value)
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
         }
@@ -50,7 +50,7 @@ internal class ShortArrayVertexProperty(
 
     override fun put(vertex: Vertex, value: Short): Short {
         try {
-            return property.replace(vertex.id, value)
+            return read(property.replace(vertex.id, write(value)))
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
         }
@@ -58,7 +58,7 @@ internal class ShortArrayVertexProperty(
 
     override fun onVertexAdded(vertex: Vertex) {
         check(vertex.id == property.size)
-        property.add(initializer.apply(vertex))
+        property.add(write(initializer.apply(vertex)))
     }
 
     override fun onVertexRemoved(vertex: Vertex) {
@@ -73,6 +73,9 @@ internal class ShortArrayVertexProperty(
 
     override fun ensureVertexCapacity(vertexCapacity: Int) = property.ensureCapacity(vertexCapacity)
     override fun trimToSize() = property.trimToSize()
+
+    private fun read(it: Int): Short { return it.toShort() }
+    private fun write(it: Short): Int { return it.toInt() }
 }
 
 internal class ImmutableShortArrayVertexProperty<G>(
@@ -80,21 +83,15 @@ internal class ImmutableShortArrayVertexProperty<G>(
     defaultValueFunction: VertexFunction<Short>,
 ) : MutableVertexProperty<Short> where G : ImmutableGraph, G : IndexedVertexGraph {
 
-    private val property = ShortArrayList()
-
-    init {
-        property.ensureCapacity(graph.vertices.size)
-        graph.vertices.foreach { vertex ->
-            assert(vertex.id == property.size)
-            property.add(defaultValueFunction.apply(vertex))
-        }
+    private val property = IntArray(graph.vertices.size) { vertexId ->
+        write(defaultValueFunction.apply(Vertex(vertexId)))
     }
 
-    override val type: TypeReference<Short> = TypeReference.of()
+    override val type: TypeReference<Short> get() = TypeReference.of()
 
     override fun get(vertex: Vertex): Short {
         try {
-            return property[vertex.id]
+            return read(property[vertex.id])
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
         }
@@ -102,7 +99,7 @@ internal class ImmutableShortArrayVertexProperty<G>(
 
     override fun set(vertex: Vertex, value: Short) {
         try {
-            property[vertex.id] = value
+            property[vertex.id] = write(value)
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
         }
@@ -110,11 +107,16 @@ internal class ImmutableShortArrayVertexProperty<G>(
 
     override fun put(vertex: Vertex, value: Short): Short {
         try {
-            return property.replace(vertex.id, value)
+            val oldValue = read(property[vertex.id])
+            property[vertex.id] = write(value)
+            return oldValue
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
         }
     }
+
+    private fun read(it: Int): Short { return it.toShort() }
+    private fun write(it: Short): Int { return it.toInt() }
 }
 
 internal class ShortMapVertexProperty(
@@ -122,25 +124,25 @@ internal class ShortMapVertexProperty(
     defaultValueFunction: VertexFunction<Short>
 ) : MutableVertexProperty<Short>, VertexChangeListener {
 
-    private val property = Int2ShortHashMap()
+    private val property = Int2IntHashMap()
     private val initializer = defaultValueFunction
 
     init {
         graph.registerVertexChangeListener(this)
     }
 
-    override val type: TypeReference<Short> = TypeReference.of()
+    override val type: TypeReference<Short> get() = TypeReference.of()
 
     override fun get(vertex: Vertex): Short {
-        return property.getOrPut(vertex.id) { initializer.apply(vertex) }
+        return read(property.getOrPut(vertex.id) { write(initializer.apply(vertex)) })
     }
 
     override fun set(vertex: Vertex, value: Short) {
-        property[vertex.id] = value
+        property[vertex.id] = write(value)
     }
 
     override fun put(vertex: Vertex, value: Short): Short {
-        return property.replaceOrSet(vertex.id, value) { initializer.apply(vertex) }
+        return read(property.replaceOrSet(vertex.id, write(value)) { write(initializer.apply(vertex)) })
     }
 
     override fun onVertexAdded(vertex: Vertex) {}
@@ -155,6 +157,9 @@ internal class ShortMapVertexProperty(
     }
 
     override fun trimToSize() = property.trimToSize()
+
+    private fun read(it: Int): Short { return it.toShort() }
+    private fun write(it: Short): Int { return it.toInt() }
 }
 
 internal class ImmutableShortMapVertexProperty(
@@ -162,34 +167,37 @@ internal class ImmutableShortMapVertexProperty(
     defaultValueFunction: VertexFunction<Short>
 ) : MutableVertexProperty<Short> {
 
-    private val property = Int2ShortHashMap()
+    private val property = Int2IntHashMap()
 
     init {
         property.ensureCapacity(graph.vertices.size)
         graph.vertices.foreach { vertex ->
-            property[vertex.id] = defaultValueFunction.apply(vertex)
+            property[vertex.id] = write(defaultValueFunction.apply(vertex))
         }
     }
 
-    override val type: TypeReference<Short> = TypeReference.of()
+    override val type: TypeReference<Short> get() = TypeReference.of()
 
     override fun get(vertex: Vertex): Short {
         try {
-            return property.getValue(vertex.id)
+            return read(property.getValue(vertex.id))
         } catch (e: NoSuchElementException) {
             throwIllegalVertex(vertex, e)
         }
     }
 
     override fun set(vertex: Vertex, value: Short) {
-        property[vertex.id] = value
+        property[vertex.id] = write(value)
     }
 
     override fun put(vertex: Vertex, value: Short): Short {
         try {
-            return property.replace(vertex.id, value)
+            return read(property.replace(vertex.id, write(value)))
         } catch (e: NoSuchElementException) {
             throwIllegalVertex(vertex, e)
         }
     }
+
+    private fun read(it: Int): Short { return it.toShort() }
+    private fun write(it: Short): Int { return it.toInt() }
 }

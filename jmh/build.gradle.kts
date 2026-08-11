@@ -1,5 +1,4 @@
 import me.champeau.jmh.JMHTask
-import org.gradle.kotlin.dsl.kotlin
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -11,6 +10,7 @@ plugins {
 repositories {
     mavenCentral()
     google()
+    mavenLocal()
 }
 
 dependencies {

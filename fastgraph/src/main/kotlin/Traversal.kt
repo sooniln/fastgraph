@@ -1,6 +1,7 @@
 package io.github.sooniln.fastgraph
 
 import io.github.sooniln.fastcollect.IntArrayDeque
+import io.github.sooniln.fastcollect.last
 
 public object Traversal {
     /**
@@ -53,6 +54,13 @@ public object Traversal {
         private val visited = graph.createVertexProperty { false }
         private val queue = IntArrayDeque(startVertices.size)
 
+        private val visitor: VertexConsumer = { vertex ->
+            if (!visited[vertex]) {
+                queue.addLast(vertex.id)
+                visited[vertex] = true
+            }
+        }
+
         init {
             require(startVertices.isNotEmpty())
             startVertices.foreach { vertex ->
@@ -66,12 +74,7 @@ public object Traversal {
 
         override fun next(): Vertex {
             val next = Vertex(queue.removeFirst())
-            graph.successors(next).foreach { vertex ->
-                if (!visited[vertex]) {
-                    queue.addLast(vertex.id)
-                    visited[vertex] = true
-                }
-            }
+            graph.successors(next).foreach(visitor)
             return next
         }
     }
@@ -80,6 +83,12 @@ public object Traversal {
 
         private val visited = graph.createVertexProperty { false }
         private val queue = IntArrayDeque(startVertices.size)
+
+        private val visitor: VertexConsumer = { vertex ->
+            if (!visited[vertex]) {
+                queue.addLast(vertex.id)
+            }
+        }
 
         init {
             require(startVertices.isNotEmpty())
@@ -92,11 +101,7 @@ public object Traversal {
         override fun next(): Vertex {
             val next = Vertex(queue.removeLast())
             visited[next] = true
-            graph.successors(next).foreach { vertex ->
-                if (!visited[vertex]) {
-                    queue.addLast(vertex.id)
-                }
-            }
+            graph.successors(next).foreach(visitor)
 
             drain()
             return next

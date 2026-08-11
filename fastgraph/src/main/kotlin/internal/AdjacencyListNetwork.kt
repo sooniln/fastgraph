@@ -550,7 +550,7 @@ internal class AdjacencyListNetwork(
             }
 
             override fun foreach(action: EdgeAdjacencyConsumer) {
-                edgeIds.forEach { edgeId -> action.accept(EdgeAdjacency(target, edgeId)) }
+                edgeIds.foreach { edgeId -> action.accept(EdgeAdjacency(target, edgeId)) }
             }
 
             override fun toString(): String = iterator().asSequence().joinToString(", ", "[", "]")

@@ -30,11 +30,11 @@ internal class LongArrayVertexProperty(
         graph.registerVertexChangeListener(this)
     }
 
-    override val type: TypeReference<Long> = TypeReference.of()
+    override val type: TypeReference<Long> get() = TypeReference.of()
 
     override fun get(vertex: Vertex): Long {
         try {
-            return property[vertex.id]
+            return read(property[vertex.id])
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
         }
@@ -42,7 +42,7 @@ internal class LongArrayVertexProperty(
 
     override fun set(vertex: Vertex, value: Long) {
         try {
-            property[vertex.id] = value
+            property[vertex.id] = write(value)
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
         }
@@ -50,7 +50,7 @@ internal class LongArrayVertexProperty(
 
     override fun put(vertex: Vertex, value: Long): Long {
         try {
-            return property.replace(vertex.id, value)
+            return read(property.replace(vertex.id, write(value)))
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
         }
@@ -58,7 +58,7 @@ internal class LongArrayVertexProperty(
 
     override fun onVertexAdded(vertex: Vertex) {
         check(vertex.id == property.size)
-        property.add(initializer.apply(vertex))
+        property.add(write(initializer.apply(vertex)))
     }
 
     override fun onVertexRemoved(vertex: Vertex) {
@@ -73,6 +73,9 @@ internal class LongArrayVertexProperty(
 
     override fun ensureVertexCapacity(vertexCapacity: Int) = property.ensureCapacity(vertexCapacity)
     override fun trimToSize() = property.trimToSize()
+
+    private fun read(it: Long): Long { return it }
+    private fun write(it: Long): Long { return it }
 }
 
 internal class ImmutableLongArrayVertexProperty<G>(
@@ -80,21 +83,15 @@ internal class ImmutableLongArrayVertexProperty<G>(
     defaultValueFunction: VertexFunction<Long>,
 ) : MutableVertexProperty<Long> where G : ImmutableGraph, G : IndexedVertexGraph {
 
-    private val property = LongArrayList()
-
-    init {
-        property.ensureCapacity(graph.vertices.size)
-        graph.vertices.foreach { vertex ->
-            assert(vertex.id == property.size)
-            property.add(defaultValueFunction.apply(vertex))
-        }
+    private val property = LongArray(graph.vertices.size) { vertexId ->
+        write(defaultValueFunction.apply(Vertex(vertexId)))
     }
 
-    override val type: TypeReference<Long> = TypeReference.of()
+    override val type: TypeReference<Long> get() = TypeReference.of()
 
     override fun get(vertex: Vertex): Long {
         try {
-            return property[vertex.id]
+            return read(property[vertex.id])
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
         }
@@ -102,7 +99,7 @@ internal class ImmutableLongArrayVertexProperty<G>(
 
     override fun set(vertex: Vertex, value: Long) {
         try {
-            property[vertex.id] = value
+            property[vertex.id] = write(value)
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
         }
@@ -110,11 +107,16 @@ internal class ImmutableLongArrayVertexProperty<G>(
 
     override fun put(vertex: Vertex, value: Long): Long {
         try {
-            return property.replace(vertex.id, value)
+            val oldValue = read(property[vertex.id])
+            property[vertex.id] = write(value)
+            return oldValue
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
         }
     }
+
+    private fun read(it: Long): Long { return it }
+    private fun write(it: Long): Long { return it }
 }
 
 internal class LongMapVertexProperty(
@@ -129,18 +131,18 @@ internal class LongMapVertexProperty(
         graph.registerVertexChangeListener(this)
     }
 
-    override val type: TypeReference<Long> = TypeReference.of()
+    override val type: TypeReference<Long> get() = TypeReference.of()
 
     override fun get(vertex: Vertex): Long {
-        return property.getOrPut(vertex.id) { initializer.apply(vertex) }
+        return read(property.getOrPut(vertex.id) { write(initializer.apply(vertex)) })
     }
 
     override fun set(vertex: Vertex, value: Long) {
-        property[vertex.id] = value
+        property[vertex.id] = write(value)
     }
 
     override fun put(vertex: Vertex, value: Long): Long {
-        return property.replaceOrSet(vertex.id, value) { initializer.apply(vertex) }
+        return read(property.replaceOrSet(vertex.id, write(value)) { write(initializer.apply(vertex)) })
     }
 
     override fun onVertexAdded(vertex: Vertex) {}
@@ -155,6 +157,9 @@ internal class LongMapVertexProperty(
     }
 
     override fun trimToSize() = property.trimToSize()
+
+    private fun read(it: Long): Long { return it }
+    private fun write(it: Long): Long { return it }
 }
 
 internal class ImmutableLongMapVertexProperty(
@@ -167,29 +172,32 @@ internal class ImmutableLongMapVertexProperty(
     init {
         property.ensureCapacity(graph.vertices.size)
         graph.vertices.foreach { vertex ->
-            property[vertex.id] = defaultValueFunction.apply(vertex)
+            property[vertex.id] = write(defaultValueFunction.apply(vertex))
         }
     }
 
-    override val type: TypeReference<Long> = TypeReference.of()
+    override val type: TypeReference<Long> get() = TypeReference.of()
 
     override fun get(vertex: Vertex): Long {
         try {
-            return property.getValue(vertex.id)
+            return read(property.getValue(vertex.id))
         } catch (e: NoSuchElementException) {
             throwIllegalVertex(vertex, e)
         }
     }
 
     override fun set(vertex: Vertex, value: Long) {
-        property[vertex.id] = value
+        property[vertex.id] = write(value)
     }
 
     override fun put(vertex: Vertex, value: Long): Long {
         try {
-            return property.replace(vertex.id, value)
+            return read(property.replace(vertex.id, write(value)))
         } catch (e: NoSuchElementException) {
             throwIllegalVertex(vertex, e)
         }
     }
+
+    private fun read(it: Long): Long { return it }
+    private fun write(it: Long): Long { return it }
 }

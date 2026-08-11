@@ -30,11 +30,11 @@ internal class ByteArrayEdgeProperty(
         graph.registerEdgeChangeListener(this)
     }
 
-    override val type: TypeReference<Byte> = TypeReference.of()
+    override val type: TypeReference<Byte> get() = TypeReference.of()
 
     override fun get(edge: Edge): Byte {
         try {
-            return property[edge.lowBits]
+            return read(property[edge.lowBits])
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
@@ -42,7 +42,7 @@ internal class ByteArrayEdgeProperty(
 
     override fun set(edge: Edge, value: Byte) {
         try {
-            property[edge.lowBits] = value
+            property[edge.lowBits] = write(value)
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
@@ -50,7 +50,7 @@ internal class ByteArrayEdgeProperty(
 
     override fun put(edge: Edge, value: Byte): Byte {
         try {
-            return property.replace(edge.lowBits, value)
+            return read(property.replace(edge.lowBits, write(value)))
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
@@ -58,7 +58,7 @@ internal class ByteArrayEdgeProperty(
 
     override fun onEdgeAdded(edge: Edge) {
         check(edge.lowBits == property.size)
-        property.add(initializer.apply(edge))
+        property.add(write(initializer.apply(edge)))
     }
 
     override fun onEdgeRemoved(edge: Edge) {
@@ -73,6 +73,9 @@ internal class ByteArrayEdgeProperty(
 
     override fun ensureEdgeCapacity(edgeCapacity: Int) = property.ensureCapacity(edgeCapacity)
     override fun trimToSize() = property.trimToSize()
+
+    private fun read(it: Byte): Byte { return it }
+    private fun write(it: Byte): Byte { return it }
 }
 
 internal class ImmutableByteArrayEdgeProperty<G>(
@@ -80,21 +83,15 @@ internal class ImmutableByteArrayEdgeProperty<G>(
     defaultValueFunction: EdgeFunction<Byte>,
 ) : MutableEdgeProperty<Byte> where G : ImmutableGraph, G : IndexedEdgeGraph {
 
-    private val property = ByteArrayList()
-
-    init {
-        property.ensureCapacity(graph.edges.size)
-        graph.edges.foreach { edge ->
-            assert(edge.lowBits == property.size)
-            property.add(defaultValueFunction.apply(edge))
-        }
+    private val property = ByteArray(graph.edges.size) { edgeId ->
+        write(defaultValueFunction.apply(graph.edges[edgeId]))
     }
 
-    override val type: TypeReference<Byte> = TypeReference.of()
+    override val type: TypeReference<Byte> get() = TypeReference.of()
 
     override fun get(edge: Edge): Byte {
         try {
-            return property[edge.lowBits]
+            return read(property[edge.lowBits])
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
@@ -102,7 +99,7 @@ internal class ImmutableByteArrayEdgeProperty<G>(
 
     override fun set(edge: Edge, value: Byte) {
         try {
-            property[edge.lowBits] = value
+            property[edge.lowBits] = write(value)
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
@@ -110,11 +107,16 @@ internal class ImmutableByteArrayEdgeProperty<G>(
 
     override fun put(edge: Edge, value: Byte): Byte {
         try {
-            return property.replace(edge.lowBits, value)
+            val oldValue = read(property[edge.lowBits])
+            property[edge.lowBits] = write(value)
+            return oldValue
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
     }
+
+    private fun read(it: Byte): Byte { return it }
+    private fun write(it: Byte): Byte { return it }
 }
 
 internal class ByteMapEdgeProperty(
@@ -129,18 +131,18 @@ internal class ByteMapEdgeProperty(
         graph.registerEdgeChangeListener(this)
     }
 
-    override val type: TypeReference<Byte> = TypeReference.of()
+    override val type: TypeReference<Byte> get() = TypeReference.of()
 
     override fun get(edge: Edge): Byte {
-        return property.getOrPut(edge.id) { initializer.apply(edge) }
+        return read(property.getOrPut(edge.id) { write(initializer.apply(edge)) })
     }
 
     override fun set(edge: Edge, value: Byte) {
-        property[edge.id] = value
+        property[edge.id] = write(value)
     }
 
     override fun put(edge: Edge, value: Byte): Byte {
-        return property.replaceOrSet(edge.id, value) { initializer.apply(edge) }
+        return read(property.replaceOrSet(edge.id, write(value)) { write(initializer.apply(edge)) })
     }
 
     override fun onEdgeAdded(edge: Edge) {}
@@ -155,6 +157,9 @@ internal class ByteMapEdgeProperty(
     }
 
     override fun trimToSize() = property.trimToSize()
+
+    private fun read(it: Byte): Byte { return it }
+    private fun write(it: Byte): Byte { return it }
 }
 
 internal class ImmutableByteMapEdgeProperty(
@@ -167,29 +172,32 @@ internal class ImmutableByteMapEdgeProperty(
     init {
         property.ensureCapacity(graph.edges.size)
         graph.edges.foreach { edge ->
-            property[edge.id] = defaultValueFunction.apply(edge)
+            property[edge.id] = write(defaultValueFunction.apply(edge))
         }
     }
 
-    override val type: TypeReference<Byte> = TypeReference.of()
+    override val type: TypeReference<Byte> get() = TypeReference.of()
 
     override fun get(edge: Edge): Byte {
         try {
-            return property.getValue(edge.id)
+            return read(property.getValue(edge.id))
         } catch (e: NoSuchElementException) {
             throwIllegalEdge(graph, edge, e)
         }
     }
 
     override fun set(edge: Edge, value: Byte) {
-        property[edge.id] = value
+        property[edge.id] = write(value)
     }
 
     override fun put(edge: Edge, value: Byte): Byte {
         try {
-            return property.replace(edge.id, value)
+            return read(property.replace(edge.id, write(value)))
         } catch (e: NoSuchElementException) {
             throwIllegalEdge(graph, edge, e)
         }
     }
+
+    private fun read(it: Byte): Byte { return it }
+    private fun write(it: Byte): Byte { return it }
 }
