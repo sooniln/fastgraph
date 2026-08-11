@@ -9,9 +9,6 @@ import io.github.sooniln.fastgraph.internal.AdjacencyListGraph
 import io.github.sooniln.fastgraph.internal.AdjacencyListNetwork
 import io.github.sooniln.fastgraph.internal.TransposedGraph
 import io.github.sooniln.fastgraph.subgraph.Subgraphs
-import kotlin.reflect.KClass
-import kotlin.reflect.KType
-import kotlin.reflect.typeOf
 
 /**
  * An interface for read-only graph topology. A graph topology is composed of a set of vertices and a set of edges
@@ -27,14 +24,11 @@ import kotlin.reflect.typeOf
  *
  * In this library, graphs that support multi-edges are referred to as networks.
  *
- * Not every implementation of this interface is required to support all of these properties - the expectation is that
- * the client can specify which of these properties it requires via a factory method / builder interface and an
- * appropriate implementation is chosen accordingly.
- *
  * [Vertex] and [Edge] objects in graphs do not store what graph they are associated with - clients are required to
  * track what vertices belong to which graph, and to not mix up vertices or edges belonging to different graphs. Graph
  * implementations are expected (but not required) to make a best effort to throw [IllegalArgumentException] if they are
- * supplied a vertex/edge that belongs to a different graph.
+ * supplied a vertex/edge that belongs to a different graph. Clients must expect some implementations to forgo these
+ * checks for performance.
  *
  * [Vertex] and [Edge] references are unstable - that is they may be invalidated as the graph changes. For more details
  * on unstable vs stable references, see [VertexReference] and [EdgeReference].
@@ -756,15 +750,16 @@ public inline fun <reified V, reified E> buildValueGraph(
  * guaranteed to implement [IndexedVertexGraph].
  *
  * There are several parameters that help control the specific graph implementation chosen:
- *   * `supportMultiEdge`: If set to true, ensures that the returned mutable graph supports adding multi-edges
+ *   * [multiEdge]: If set to true, ensures that the returned mutable graph supports adding multi-edges
  *   (multiple edges that connect the same pair of vertices in the same direction). If a client attempts to add a
  *   multi-edge to a [Graph] implementation that does not support multi-edges, [IllegalArgumentException] will be
  *   thrown.
- *   * `indexEdges`: If set to true, uses additional memory to assign an index to every edge in order to speed up
+ *   * [indexEdges]: If set to true, uses additional memory to assign an index to every edge in order to speed up
  *   edge and edge property access and iteration. While this increases the amount of memory required to store edge
- *   topology, it can reduce the amount of memory needed to store edge properties, and thus in some circumstances
- *   may actually result in less overall memory usage. If set to true, the returned mutable graph is guaranteed to
- *   also implement [IndexedEdgeGraph].
+ *   topology, it substantially speeds up access, and will reduce the amount of memory needed to store edge properties.
+ *   While you should always measure to be sure, with even a single edge property present it usually uses less memory
+ *   AND is faster to set [indexEdges]. If set to true, the returned mutable graph is guaranteed to also implement
+ *   [IndexedEdgeGraph].
  *
  * The implementation returned by this method guarantees that [Vertex] and [Edge] references are stable in the case
  * of additive mutations to the topology (i.e. adding a vertex or edge will not invalidate any existing
@@ -852,8 +847,8 @@ public fun Graph.transpose(): Graph = transpose(this)
  *     b. Vertex/edge references are unsupported on the subgraph and will throw [UnsupportedOperationException].
  *     c. The returned subgraph is not immutable regardless of whether the parent is immutable.
  */
-public fun subgraph(graph: Graph, inducingVertices: VertexSet, inducingEdges: EdgeSet): Graph {
-    return Subgraphs.subgraph(graph, inducingVertices, inducingEdges)
+public fun Graph.subgraph(vertices: VertexSet, edges: EdgeSet): Graph {
+    return Subgraphs.subgraph(this, vertices, edges)
 }
 
 /**
@@ -883,8 +878,8 @@ public fun subgraph(graph: Graph, inducingVertices: VertexSet, inducingEdges: Ed
  *     b. Vertex/edge references are unsupported on the subgraph and will throw [UnsupportedOperationException].
  *     c. The returned subgraph is not immutable regardless of whether the parent is immutable.
  */
-public fun subgraph(graph: Graph, inducingVertices: VertexSet, edgeFilter: EdgePredicate = { true }): Graph {
-    return Subgraphs.subgraph(graph, inducingVertices, edgeFilter)
+public fun Graph.subgraph(vertices: VertexSet, edgeFilter: EdgePredicate): Graph {
+    return Subgraphs.subgraph(this, vertices, edgeFilter)
 }
 
 /**
@@ -914,24 +909,12 @@ public fun subgraph(graph: Graph, inducingVertices: VertexSet, edgeFilter: EdgeP
  *     b. Vertex/edge references are unsupported on the subgraph and will throw [UnsupportedOperationException].
  *     c. The returned subgraph is not immutable regardless of whether the parent is immutable.
  */
-public fun subgraph(graph: Graph, vertexFilter: VertexPredicate, edgeFilter: EdgePredicate = { true }): Graph {
-    return Subgraphs.subgraph(graph, vertexFilter, edgeFilter)
+public fun Graph.subgraph(vertexFilter: VertexPredicate, edgeFilter: EdgePredicate = { true}): Graph {
+    return Subgraphs.subgraph(this, vertexFilter, edgeFilter)
 }
 
 /** See [subgraph]. */
-@JvmSynthetic
-@JvmName("#subgraph")
-public fun Graph.subgraph(vertices: VertexSet, edges: EdgeSet): Graph = subgraph(this, vertices, edges)
-
-/** See [subgraph]. */
-@JvmSynthetic
-@JvmName("#subgraph")
-public fun Graph.subgraph(vertices: VertexSet, edgeFilter: EdgePredicate): Graph = subgraph(this, vertices, edgeFilter)
-
-/** See [subgraph]. */
-@JvmSynthetic
-@JvmName("#subgraph")
-public fun Graph.subgraph(vertexFilter: VertexPredicate, edgeFilter: EdgePredicate): Graph = subgraph(this, vertexFilter, edgeFilter)
+public fun Graph.filterEdges(edgeFilter: EdgePredicate): Graph = subgraph(vertices, edgeFilter)
 
 /** A base class that provides some basic functionality to implement [Graph]. */
 @Suppress("INAPPLICABLE_JVM_NAME")
@@ -1021,116 +1004,4 @@ public abstract class AbstractGraph : Graph {
     /** Will only ever be invoked if `source` and `target` are valid. */
     @JvmName("getEdges")
     protected abstract fun getEdges(source: Vertex, target: Vertex): EdgeSet
-}
-
-/**
- * A platform-agnostic representation of type. Primarily used with [VertexProperty] and [EdgeProperty], so that a
- * property can know what type it is storing, and behave appropriately. Kotlin clients should rarely if ever need to
- * interact with this class, since all reified overloads handle this automatically. Since Java clients cannot invoke
- * reified methods, they may need to use this class to pass in type information to [Graph.createVertexProperty] and
- * [Graph.createEdgeProperty] directly.
- *
- * Java clients can use [unit], [boolean], [byte], [short], [int], [long], [float], or [double] to indicate the type of
- * primitive property they want. If Java clients want a normal Object property (which allows null values), use [obj].
- * Prefer never to use [obj] from Kotlin - not only is it unnecessary, but it loses information as the property is no
- * longer aware of what type it is storing, which can lead to performance losses.
- */
-@Suppress("INAPPLICABLE_JVM_NAME")
-@OptIn(ExperimentalStdlibApi::class)
-@JvmInline
-@JvmExposeBoxed
-public value class TypeReference<T> private constructor(internal val kType: KType?) {
-
-    @PublishedApi
-    internal constructor(kType: KType, kClass: KClass<T & Any>) : this(kType) {
-        require(kType.classifier == kClass)
-    }
-
-    @JvmName("toString")
-    override fun toString(): String = kType.toString()
-
-    public companion object {
-
-        /**
-         * A [TypeReference] for the unit type. This represents an empty type that can only ever have a single value -
-         * useful if you need a meaningless type. Primarily intended for use from Java, since Kotlin code can invoke
-         * reified functions like [TypeReference.of].
-         */
-        @JvmStatic
-        @get:JvmName("unit")
-        public val unit: TypeReference<Unit> = of<Unit>()
-
-        /**
-         * A [TypeReference] for the primitive boolean type. This does not allow nulls. Primarily intended for use from
-         * Java, since Kotlin code can invoke reified functions like [TypeReference.of].
-         */
-        @JvmStatic
-        @get:JvmName("boolean")
-        public val boolean: TypeReference<Boolean> = of<Boolean>()
-
-        /**
-         * A [TypeReference] for the primitive byte type. This does not allow nulls. Primarily intended for use from
-         * Java, since Kotlin code can invoke reified functions like [TypeReference.of].
-         */
-        @JvmStatic
-        @get:JvmName("byte")
-        public val byte: TypeReference<Byte> = of<Byte>()
-
-        /**
-         * A [TypeReference] for the primitive short type. This does not allow nulls. Primarily intended for use from
-         * Java, since Kotlin code can invoke reified functions like [TypeReference.of].
-         */
-        @JvmStatic
-        @get:JvmName("short")
-        public val short: TypeReference<Short> = of<Short>()
-
-        /**
-         * A [TypeReference] for the primitive integer type. This does not allow nulls. Primarily intended for use from
-         * Java, since Kotlin code can invoke reified functions like [TypeReference.of].
-         */
-        @JvmStatic
-        @get:JvmName("int")
-        public val int: TypeReference<Int> = of<Int>()
-
-        /**
-         * A [TypeReference] for the primitive long type. This does not allow nulls. Primarily intended for use from
-         * Java, since Kotlin code can invoke reified functions like [TypeReference.of].
-         */
-        @JvmStatic
-        @get:JvmName("long")
-        public val long: TypeReference<Long> = of<Long>()
-
-        /**
-         * A [TypeReference] for the primitive float type. This does not allow nulls. Primarily intended for use from
-         * Java, since Kotlin code can invoke reified functions like [TypeReference.of].
-         */
-        @JvmStatic
-        @get:JvmName("float")
-        public val float: TypeReference<Float> = of<Float>()
-
-        /**
-         * A [TypeReference] for the primitive double type. This does not allow nulls. Primarily intended for use from
-         * Java, since Kotlin code can invoke reified functions like [TypeReference.of].
-         */
-        @JvmStatic
-        @get:JvmName("double")
-        public val double: TypeReference<Double> = of<Double>()
-
-        /**
-         * A [TypeReference] for any nullable object type. Primarily intended for use from Java, since Kotlin code can
-         * invoke reified functions like [TypeReference.of].
-         */
-        @JvmStatic
-        @JvmName("obj")
-        public fun <T : Any> obj(): TypeReference<T> = TypeReference(null)
-
-        /**
-         * Constructs a new [TypeReference] of the given type.
-         */
-        @Suppress("UNCHECKED_CAST")
-        @JvmSynthetic
-        public inline fun <reified T> of(): TypeReference<T> {
-            return TypeReference(typeOf<T>(), T::class as KClass<T & Any>)
-        }
-    }
 }

@@ -65,7 +65,7 @@ class UndirectedNetworkTest {
             assertThat(graph.vertices.contains(v2)).isTrue
             assertThat(graph.vertices.contains(v3)).isTrue
 
-            assertThrows<IllegalArgumentException> { graph.vertices.contains(Vertex(99)) }
+            assertThat(graph.vertices.contains(Vertex(99))).isFalse
 
             assertThat(v0.value).isEqualTo("v0")
             assertThat(v1.value).isEqualTo("v1")
@@ -286,7 +286,7 @@ class UndirectedNetworkTest {
             assertThat(graph.edges.contains(e3)).isTrue
             assertThat(graph.edges.contains(e4)).isTrue
 
-            assertThrows<IllegalArgumentException> { graph.edges.contains(Edge(99L)) }
+            assertThat(graph.edges.contains(Edge(99L))).isFalse
 
             assertThat(e0.value).isEqualTo(1.5f)
             assertThat(e1.value).isEqualTo(2.0f)

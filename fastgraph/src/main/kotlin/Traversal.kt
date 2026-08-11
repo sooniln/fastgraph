@@ -73,16 +73,9 @@ public object Traversal {
         private val visited = graph.createVertexProperty { false }
         private val queue = IntArrayDeque(startVertices.size)
 
-        private val visitor: VertexConsumer = { vertex ->
-            if (!visited[vertex]) {
-                queue.addLast(vertex.id)
-                visited[vertex] = true
-            }
-        }
-
         init {
             require(startVertices.isNotEmpty())
-            startVertices.foreach { vertex ->
+            for (vertex in startVertices) {
                 require(graph.vertices.contains(vertex))
                 queue.addLast(vertex.id)
                 visited[vertex] = true
@@ -93,7 +86,12 @@ public object Traversal {
 
         override fun next(): Vertex {
             val next = Vertex(queue.removeFirst())
-            graph.successors(next).foreach(visitor)
+            for (vertex in graph.successors(next)) {
+                if (!visited[vertex]) {
+                    queue.addLast(vertex.id)
+                    visited[vertex] = true
+                }
+            }
             return next
         }
     }
@@ -103,15 +101,9 @@ public object Traversal {
         private val visited = graph.createVertexProperty { false }
         private val queue = IntArrayDeque(startVertices.size)
 
-        private val visitor: VertexConsumer = { vertex ->
-            if (!visited[vertex]) {
-                queue.addLast(vertex.id)
-            }
-        }
-
         init {
             require(startVertices.isNotEmpty())
-            startVertices.foreach { vertex ->
+            for (vertex in startVertices) {
                 require(graph.vertices.contains(vertex))
                 queue.addLast(vertex.id)
             }
@@ -120,7 +112,11 @@ public object Traversal {
         override fun next(): Vertex {
             val next = Vertex(queue.removeLast())
             visited[next] = true
-            graph.successors(next).foreach(visitor)
+            for (vertex in graph.successors(next)) {
+                if (!visited[vertex]) {
+                    queue.addLast(vertex.id)
+                }
+            }
 
             drain()
             return next
@@ -141,16 +137,9 @@ public object Traversal {
         private val expanded = graph.createVertexProperty { false }
         private val queue = IntArrayDeque(startVertices.size)
 
-        private val visitor: VertexConsumer = { vertex ->
-            if (!visited[vertex]) {
-                queue.addLast(vertex.id)
-                visited[vertex] = true
-            }
-        }
-
         init {
             require(startVertices.isNotEmpty())
-            startVertices.foreach { vertex ->
+            for (vertex in startVertices) {
                 require(graph.vertices.contains(vertex))
                 queue.addLast(vertex.id)
                 visited[vertex] = true
@@ -164,7 +153,12 @@ public object Traversal {
                 val top = Vertex(queue.last())
                 if (!expanded[top]) {
                     expanded[top] = true
-                    graph.successors(top).foreach(visitor)
+                    for (vertex in graph.successors(top)) {
+                        if (!visited[vertex]) {
+                            queue.addLast(vertex.id)
+                            visited[vertex] = true
+                        }
+                    }
                 } else {
                     queue.removeLast()
                     return top

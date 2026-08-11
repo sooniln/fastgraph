@@ -35,6 +35,7 @@ import io.github.sooniln.fastgraph.VertexSet
 import io.github.sooniln.fastgraph.asVertexSet
 import io.github.sooniln.fastgraph.createEdgeProperty
 import io.github.sooniln.fastgraph.createVertexProperty
+import io.github.sooniln.fastgraph.indices
 import io.github.sooniln.fastgraph.listeners.EdgeChangeListenerManager
 import io.github.sooniln.fastgraph.listeners.VertexChangeListenerManager
 import io.github.sooniln.fastgraph.references.EdgeReferenceManager
@@ -284,8 +285,13 @@ internal class AdjacencyListNetwork(
 
     override val edges: MutableIndexedEdgeSet = object : AbstractMutableIndexedEdgeSet(this@AdjacencyListNetwork) {
         override val size: Int get() = edgeValues.size
-        override fun toEdgeId(edge: Edge): Int = edge.edgeId
-        override fun toEdge(edgeId: Int): Edge = canonicalEdge(edgeId)
+        override fun get(index: Int): Edge {
+            if (index !in indices) throw IndexOutOfBoundsException()
+            return canonicalEdge(index)
+        }
+        override fun indexOf(element: Edge): Int {
+            return if (element.id in indices) element.edgeId else -1
+        }
     }
 
     override fun edgeSource(edge: Edge): Vertex = edgeValues[edge.edgeId].source

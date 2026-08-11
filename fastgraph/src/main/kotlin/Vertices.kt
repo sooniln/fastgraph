@@ -281,7 +281,7 @@ public interface IndexedVertexSet : VertexSet {
         private var index = 0
         override fun hasNext(): Boolean = index < size
         override fun next(): Vertex {
-            require(index < size)
+            if (index >= size) throw NoSuchElementException()
             return get(index++)
         }
     }
@@ -384,8 +384,7 @@ public abstract class AbstractIndexedVertexSet : IndexedVertexSet, AbstractVerte
 
     @JvmName("contains")
     override fun contains(element: Vertex): Boolean {
-        require(element.id in indices)
-        return true
+        return element.id in indices
     }
 
     @JvmName("get")
@@ -396,8 +395,7 @@ public abstract class AbstractIndexedVertexSet : IndexedVertexSet, AbstractVerte
 
     @JvmName("indexOf")
     override fun indexOf(element: Vertex): Int {
-        require(element.id in indices)
-        return element.id
+        return if (element.id in indices) element.id else -1
     }
 }
 
@@ -413,13 +411,13 @@ public abstract class AbstractMutableIndexedVertexSet(private val graph: Mutable
 
         override fun hasNext(): Boolean = index < size
         override fun next(): Vertex {
-            require(index < size)
+            if (index >= size) throw NoSuchElementException()
             previous = index++
             return Vertex(previous)
         }
 
         override fun remove() {
-            if (previous == -1) throw IllegalStateException()
+            check(previous != -1)
             graph.removeVertex(Vertex(previous))
             index = previous
             previous = -1

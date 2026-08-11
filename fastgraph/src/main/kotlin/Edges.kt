@@ -258,7 +258,7 @@ public interface IndexedEdgeSet : EdgeSet {
         private var index = 0
         override fun hasNext(): Boolean = index < size
         override fun next(): Edge {
-            require(index < size)
+            if (index >= size) throw NoSuchElementException()
             return get(index++)
         }
     }
@@ -362,29 +362,9 @@ public abstract class AbstractIndexedEdgeSet : IndexedEdgeSet, AbstractEdgeSet()
     override fun iterator(): EdgeIterator = super.iterator()
     override fun containsAll(elements: Collection<Edge>): Boolean = super<IndexedEdgeSet>.containsAll(elements)
 
-    @JvmName("toEdgeId")
-    protected abstract fun toEdgeId(edge: Edge): Int
-
-    @JvmName("toEdge")
-    protected abstract fun toEdge(edgeId: Int): Edge
-
     @JvmName("contains")
     override fun contains(element: Edge): Boolean {
-        require(toEdgeId(element) in indices)
-        return true
-    }
-
-    @JvmName("get")
-    override fun get(index: Int): Edge {
-        if (index !in indices) throw IndexOutOfBoundsException()
-        return toEdge(index)
-    }
-
-    @JvmName("indexOf")
-    override fun indexOf(element: Edge): Int {
-        val index = toEdgeId(element)
-        require(index in indices)
-        return index
+        return indexOf(element) in indices
     }
 }
 
@@ -397,14 +377,14 @@ internal abstract class AbstractMutableIndexedEdgeSet(private val graph: Mutable
 
         override fun hasNext(): Boolean = index < size
         override fun next(): Edge {
-            require(index < size)
+            if (index >= size) throw NoSuchElementException()
             previous = index++
-            return toEdge(previous)
+            return get(previous)
         }
 
         override fun remove() {
-            if (previous == -1) throw IllegalStateException()
-            graph.removeEdge(toEdge(previous))
+            check (previous != -1)
+            graph.removeEdge(get(previous))
             index = previous
             previous = -1
         }

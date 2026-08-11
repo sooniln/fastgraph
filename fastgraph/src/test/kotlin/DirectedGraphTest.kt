@@ -70,7 +70,7 @@ class DirectedGraphTest {
             assertThat(graph.vertices.contains(v2)).isTrue
             assertThat(graph.vertices.contains(v3)).isTrue
 
-            assertThrows<IllegalArgumentException> { graph.vertices.contains(Vertex(99)) }
+            assertThat(graph.vertices.contains(Vertex(99))).isFalse
 
             assertThat(v0.value).isEqualTo("v0")
             assertThat(v1.value).isEqualTo("v1")
