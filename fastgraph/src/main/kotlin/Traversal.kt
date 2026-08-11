@@ -47,7 +47,26 @@ public object Traversal {
         }
     }
 
-    // TODO: depthFirstPostOrder
+    /**
+     * Returns an iterable that will return vertices from the given graph in depth-first post-order iteration order,
+     * beginning from the given vertex.
+     */
+    @JvmStatic
+    @JvmName("depthFirstPostOrder")
+    public fun depthFirstPostOrder(graph: Graph, initialVertex: Vertex): VertexIterable {
+        return depthFirstPostOrder(graph, vertexSetOf(initialVertex))
+    }
+
+    /**
+     * Returns an iterable that will return vertices from the given graph in depth-first post-order iteration order,
+     * beginning from the given vertices.
+     */
+    @JvmStatic
+    public fun depthFirstPostOrder(graph: Graph, initialVertices: VertexSet): VertexIterable {
+        return object : VertexIterable {
+            override fun iterator(): VertexIterator = DFPostOrderIterator(graph, initialVertices)
+        }
+    }
 
     private class BFIterator(private val graph: Graph, startVertices: VertexSet) : VertexIterator {
 
@@ -112,6 +131,44 @@ public object Traversal {
         private fun drain() {
             while (!queue.isEmpty() && visited[Vertex(queue.last())]) {
                 queue.removeLast()
+            }
+        }
+    }
+
+    private class DFPostOrderIterator(private val graph: Graph, startVertices: VertexSet) : VertexIterator {
+
+        private val visited = graph.createVertexProperty { false }
+        private val expanded = graph.createVertexProperty { false }
+        private val queue = IntArrayDeque(startVertices.size)
+
+        private val visitor: VertexConsumer = { vertex ->
+            if (!visited[vertex]) {
+                queue.addLast(vertex.id)
+                visited[vertex] = true
+            }
+        }
+
+        init {
+            require(startVertices.isNotEmpty())
+            startVertices.foreach { vertex ->
+                require(graph.vertices.contains(vertex))
+                queue.addLast(vertex.id)
+                visited[vertex] = true
+            }
+        }
+
+        override fun hasNext(): Boolean = !queue.isEmpty()
+
+        override fun next(): Vertex {
+            while (true) {
+                val top = Vertex(queue.last())
+                if (!expanded[top]) {
+                    expanded[top] = true
+                    graph.successors(top).foreach(visitor)
+                } else {
+                    queue.removeLast()
+                    return top
+                }
             }
         }
     }

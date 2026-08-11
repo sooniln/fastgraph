@@ -592,6 +592,8 @@ public final class io/github/sooniln/fastgraph/Traversal {
 	public static final field INSTANCE Lio/github/sooniln/fastgraph/Traversal;
 	public static final fun breadthFirst (Lio/github/sooniln/fastgraph/Graph;I)Lio/github/sooniln/fastgraph/VertexIterable;
 	public static final fun breadthFirst (Lio/github/sooniln/fastgraph/Graph;Lio/github/sooniln/fastgraph/VertexSet;)Lio/github/sooniln/fastgraph/VertexIterable;
+	public static final fun depthFirstPostOrder (Lio/github/sooniln/fastgraph/Graph;I)Lio/github/sooniln/fastgraph/VertexIterable;
+	public static final fun depthFirstPostOrder (Lio/github/sooniln/fastgraph/Graph;Lio/github/sooniln/fastgraph/VertexSet;)Lio/github/sooniln/fastgraph/VertexIterable;
 	public static final fun depthFirstPreOrder (Lio/github/sooniln/fastgraph/Graph;I)Lio/github/sooniln/fastgraph/VertexIterable;
 	public static final fun depthFirstPreOrder (Lio/github/sooniln/fastgraph/Graph;Lio/github/sooniln/fastgraph/VertexSet;)Lio/github/sooniln/fastgraph/VertexIterable;
 }

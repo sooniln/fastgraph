@@ -108,4 +108,44 @@ class TraversalTest {
 
         assertThrows<IllegalArgumentException> { Traversal.depthFirstPreOrder(graph, Vertex(99)).iterator() }
     }
+
+    @ParameterizedTest(name = "directed={0}")
+    @ValueSource(booleans = [true, false])
+    fun depthFirstPostOrderSingleVertex(directed: Boolean) {
+        constructGraph(directed)
+
+        val result = Traversal.depthFirstPostOrder(graph, v0).toList()
+
+        assertThat(result).hasSize(4)
+        assertThat(result.last()).isEqualTo(v0)
+        assertThat(result).containsExactlyInAnyOrder(v0, v1, v2, v3)
+        assertThat(result).doesNotContain(v4)
+    }
+
+    @ParameterizedTest(name = "directed={0}")
+    @ValueSource(booleans = [true, false])
+    fun depthFirstPostOrderMultipleVertices(directed: Boolean) {
+        constructGraph(directed)
+
+        val result = Traversal.depthFirstPostOrder(graph, vertexSetOf(v0, v4)).toList()
+
+        assertThat(result).hasSize(5)
+        assertThat(result).containsExactlyInAnyOrder(v0, v1, v2, v3, v4)
+    }
+
+    @ParameterizedTest(name = "directed={0}")
+    @ValueSource(booleans = [true, false])
+    fun depthFirstPostOrderRequiresNonEmptyStart(directed: Boolean) {
+        constructGraph(directed)
+
+        assertThrows<IllegalArgumentException> { Traversal.depthFirstPostOrder(graph, emptyVertexSet()).iterator() }
+    }
+
+    @ParameterizedTest(name = "directed={0}")
+    @ValueSource(booleans = [true, false])
+    fun depthFirstPostOrderRequiresVertexInGraph(directed: Boolean) {
+        constructGraph(directed)
+
+        assertThrows<IllegalArgumentException> { Traversal.depthFirstPostOrder(graph, Vertex(99)).iterator() }
+    }
 }
