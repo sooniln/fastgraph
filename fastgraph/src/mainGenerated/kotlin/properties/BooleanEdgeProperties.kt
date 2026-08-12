@@ -13,8 +13,9 @@ import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.IndexedEdgeGraph
 import io.github.sooniln.fastgraph.MutableEdgeProperty
-import io.github.sooniln.fastgraph.TypeReference
+import io.github.sooniln.fastgraph.StaticType
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
+import io.github.sooniln.fastgraph.staticTypeOf
 
 internal class BooleanArrayEdgeProperty(
     override val graph: IndexedEdgeGraph,
@@ -30,7 +31,7 @@ internal class BooleanArrayEdgeProperty(
         graph.registerEdgeChangeListener(this)
     }
 
-    override val type: TypeReference<Boolean> get() = TypeReference.of()
+    override val type: StaticType<Boolean> get() = staticTypeOf()
 
     override fun get(edge: Edge): Boolean {
         try {
@@ -87,7 +88,7 @@ internal class ImmutableBooleanArrayEdgeProperty<G>(
         write(defaultValueFunction.apply(graph.edges[edgeId]))
     }
 
-    override val type: TypeReference<Boolean> get() = TypeReference.of()
+    override val type: StaticType<Boolean> get() = staticTypeOf()
 
     override fun get(edge: Edge): Boolean {
         try {
@@ -131,7 +132,7 @@ internal class BooleanMapEdgeProperty(
         graph.registerEdgeChangeListener(this)
     }
 
-    override val type: TypeReference<Boolean> get() = TypeReference.of()
+    override val type: StaticType<Boolean> get() = staticTypeOf()
 
     override fun get(edge: Edge): Boolean {
         return read(property.getOrPut(edge.id) { write(initializer.apply(edge)) })
@@ -156,6 +157,7 @@ internal class BooleanMapEdgeProperty(
         property[newEdge.id] = oldValue
     }
 
+    override fun ensureEdgeCapacity(edgeCapacity: Int) = property.ensureCapacity(edgeCapacity)
     override fun trimToSize() = property.trimToSize()
 
     private fun read(it: Byte): Boolean { return it != 0.toByte() }
@@ -176,7 +178,7 @@ internal class ImmutableBooleanMapEdgeProperty(
         }
     }
 
-    override val type: TypeReference<Boolean> get() = TypeReference.of()
+    override val type: StaticType<Boolean> get() = staticTypeOf()
 
     override fun get(edge: Edge): Boolean {
         try {

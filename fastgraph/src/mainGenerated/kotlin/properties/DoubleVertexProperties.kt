@@ -10,11 +10,12 @@ import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.IndexedVertexGraph
 import io.github.sooniln.fastgraph.MutableVertexProperty
-import io.github.sooniln.fastgraph.TypeReference
+import io.github.sooniln.fastgraph.StaticType
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
 import io.github.sooniln.fastgraph.VertexFunction
 import io.github.sooniln.fastgraph.internal.throwIllegalVertex
+import io.github.sooniln.fastgraph.staticTypeOf
 
 internal class DoubleArrayVertexProperty(
     override val graph: IndexedVertexGraph,
@@ -30,7 +31,7 @@ internal class DoubleArrayVertexProperty(
         graph.registerVertexChangeListener(this)
     }
 
-    override val type: TypeReference<Double> get() = TypeReference.of()
+    override val type: StaticType<Double> get() = staticTypeOf()
 
     override fun get(vertex: Vertex): Double {
         try {
@@ -87,7 +88,7 @@ internal class ImmutableDoubleArrayVertexProperty<G>(
         write(defaultValueFunction.apply(Vertex(vertexId)))
     }
 
-    override val type: TypeReference<Double> get() = TypeReference.of()
+    override val type: StaticType<Double> get() = staticTypeOf()
 
     override fun get(vertex: Vertex): Double {
         try {
@@ -131,7 +132,7 @@ internal class DoubleMapVertexProperty(
         graph.registerVertexChangeListener(this)
     }
 
-    override val type: TypeReference<Double> get() = TypeReference.of()
+    override val type: StaticType<Double> get() = staticTypeOf()
 
     override fun get(vertex: Vertex): Double {
         return read(property.getOrPut(vertex.id) { write(initializer.apply(vertex)) })
@@ -156,6 +157,7 @@ internal class DoubleMapVertexProperty(
         property[newVertex.id] = oldValue
     }
 
+    override fun ensureVertexCapacity(vertexCapacity: Int) = property.ensureCapacity(vertexCapacity)
     override fun trimToSize() = property.trimToSize()
 
     private fun read(it: Double): Double { return it }
@@ -176,7 +178,7 @@ internal class ImmutableDoubleMapVertexProperty(
         }
     }
 
-    override val type: TypeReference<Double> get() = TypeReference.of()
+    override val type: StaticType<Double> get() = staticTypeOf()
 
     override fun get(vertex: Vertex): Double {
         try {

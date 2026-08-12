@@ -18,7 +18,7 @@ import io.github.sooniln.fastgraph.IndexedVertexSet
 import io.github.sooniln.fastgraph.InternalImmutableGraph
 import io.github.sooniln.fastgraph.MutableEdgeProperty
 import io.github.sooniln.fastgraph.MutableVertexProperty
-import io.github.sooniln.fastgraph.TypeReference
+import io.github.sooniln.fastgraph.StaticType
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
 import io.github.sooniln.fastgraph.VertexConsumer
@@ -178,14 +178,14 @@ internal class ImmutableAdjacencyListGraph private constructor(
     }
 
     override fun <T> createVertexProperty(
-        type: TypeReference<T>,
+        type: StaticType<T>,
         defaultValueFunction: VertexFunction<T>
     ): MutableVertexProperty<T> {
         return createVertexProperty(this, type, defaultValueFunction)
     }
 
     override fun <T> createEdgeProperty(
-        type: TypeReference<T>,
+        type: StaticType<T>,
         defaultValueFunction: EdgeFunction<T>
     ): MutableEdgeProperty<T> {
         return createEdgeProperty(this, type, defaultValueFunction)

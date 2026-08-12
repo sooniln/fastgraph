@@ -19,7 +19,7 @@ import io.github.sooniln.fastgraph.MutableEdgeSet
 import io.github.sooniln.fastgraph.MutableGraph
 import io.github.sooniln.fastgraph.MutableIndexedVertexSet
 import io.github.sooniln.fastgraph.MutableVertexProperty
-import io.github.sooniln.fastgraph.TypeReference
+import io.github.sooniln.fastgraph.StaticType
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
 import io.github.sooniln.fastgraph.VertexFunction
@@ -367,12 +367,12 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
     }
 
     override fun <T> createVertexProperty(
-        type: TypeReference<T>,
+        type: StaticType<T>,
         defaultValueFunction: VertexFunction<T>
     ): MutableVertexProperty<T> = createVertexProperty(this, type, defaultValueFunction)
 
     override fun <T> createEdgeProperty(
-        type: TypeReference<T>,
+        type: StaticType<T>,
         defaultValueFunction: EdgeFunction<T>
     ): MutableEdgeProperty<T> = createEdgeProperty(this, type, defaultValueFunction)
 

@@ -9,8 +9,6 @@ plugins {
 
 repositories {
     mavenCentral()
-    google()
-    mavenLocal()
 }
 
 dependencies {

@@ -4,7 +4,7 @@ import io.github.sooniln.fastcollect.IntHashSet
 import io.github.sooniln.fastgraph.AbstractVertexSet
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.MutableVertexProperty
-import io.github.sooniln.fastgraph.TypeReference
+import io.github.sooniln.fastgraph.StaticType
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
 import io.github.sooniln.fastgraph.VertexConsumer
@@ -59,7 +59,7 @@ internal class InducingVertices(parent: Graph, inducers: VertexSet) : SubgraphVe
     }
 
     override fun <T> createVertexProperty(
-        type: TypeReference<T>,
+        type: StaticType<T>,
         defaultValueFunction: VertexFunction<T>
     ): MutableVertexProperty<T> = createVertexProperty(graph, type, defaultValueFunction)
 

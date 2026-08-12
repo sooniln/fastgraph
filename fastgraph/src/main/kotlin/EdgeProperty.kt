@@ -55,7 +55,7 @@ public interface EdgeProperty<out V> {
 
     /** The type of this property. */
     @get:JvmName("getType")
-    public val type: TypeReference<@UnsafeVariance V>
+    public val type: StaticType<@UnsafeVariance V>
 
     /**
      * Retrieves the value associated with the given edge, but has undefined behavior if the edge does not belong to
@@ -67,23 +67,23 @@ public interface EdgeProperty<out V> {
 
 /** See [EdgeProperty.get]. */
 @JvmSynthetic
-public operator fun <V> EdgeProperty<V>.get(edgeReference: EdgeReference): V = get(edgeReference.unstable)
+public operator fun <E> EdgeProperty<E>.get(edgeReference: EdgeReference): E = get(edgeReference.unstable)
 
 /** A mutable specialization of [EdgeProperty]. */
 @Suppress("INAPPLICABLE_JVM_NAME")
-public interface MutableEdgeProperty<V> : EdgeProperty<V> {
+public interface MutableEdgeProperty<E> : EdgeProperty<E> {
     /**
      * Sets the value associated with the given edge, but has undefined behavior if the edge does not belong to [graph].
      */
     @JvmName("set")
-    public operator fun set(edge: Edge, value: V)
+    public operator fun set(edge: Edge, value: E)
 
     /**
      * Sets the value associated with the given edge and returns the previous value, but has undefined behavior if the
      * edge does not belong to [graph].
      */
     @JvmName("put")
-    public fun put(edge: Edge, value: V): V {
+    public fun put(edge: Edge, value: E): E {
         val oldValue = get(edge)
         set(edge, value)
         return oldValue
@@ -92,12 +92,12 @@ public interface MutableEdgeProperty<V> : EdgeProperty<V> {
 
 /** See [MutableEdgeProperty.set]. */
 @JvmSynthetic
-public operator fun <V> MutableEdgeProperty<V>.set(edgeReference: EdgeReference, value: V): Unit =
+public operator fun <E> MutableEdgeProperty<E>.set(edgeReference: EdgeReference, value: E): Unit =
     set(edgeReference.unstable, value)
 
 /** See [MutableEdgeProperty.put]. */
 @JvmSynthetic
-public fun <V> MutableEdgeProperty<V>.put(edgeReference: EdgeReference, value: V): V =
+public fun <E> MutableEdgeProperty<E>.put(edgeReference: EdgeReference, value: E): E =
     put(edgeReference.unstable, value)
 
 /**
@@ -108,7 +108,7 @@ public fun <V> MutableEdgeProperty<V>.put(edgeReference: EdgeReference, value: V
 public fun unitEdgeProperty(graph: Graph): MutableEdgeProperty<Unit> {
     return object : MutableEdgeProperty<Unit> {
         override val graph: Graph get() = graph
-        override val type: TypeReference<Unit> get() = TypeReference.of()
+        override val type: StaticType<Unit> get() = staticTypeOf()
         override fun get(edge: Edge): Unit = Unit
         override fun set(edge: Edge, value: Unit) {}
     }
@@ -123,7 +123,7 @@ public fun unitEdgeProperty(graph: Graph): MutableEdgeProperty<Unit> {
 @JvmName("createEdgeProperty")
 public fun <T> createEdgeProperty(
     graph: Graph,
-    type: TypeReference<T>,
+    type: StaticType<T>,
     defaultValueFunction: EdgeFunction<T>
 ): MutableEdgeProperty<T> {
     if (type.kType == typeOf<Unit>()) {
@@ -325,13 +325,14 @@ public fun <T> createEdgeProperty(
 
 /**
  * Creates a new [EdgeProperty] which is a transformation of this [EdgeProperty]. The new [EdgeProperty] applies the
- * given [transform] on every [EdgeProperty.get] invocation.
+ * given [transform] on every [EdgeProperty.get] invocation. The new [EdgeProperty] thus does not actually store any
+ * data, and references the input property indefinitely.
  */
 @JvmName("map")
-public fun <V, O> map(property: EdgeProperty<V>, type: TypeReference<O>, transform: (V) -> O): EdgeProperty<O> {
+public fun <E, O> map(property: EdgeProperty<E>, type: StaticType<O>, transform: (E) -> O): EdgeProperty<O> {
     return object : EdgeProperty<O> {
         override val graph: Graph get() = property.graph
-        override val type: TypeReference<O> get() = type
+        override val type: StaticType<O> get() = type
         override fun get(edge: Edge): O  = transform(property[edge])
     }
 }
@@ -339,30 +340,32 @@ public fun <V, O> map(property: EdgeProperty<V>, type: TypeReference<O>, transfo
 /** See [map]. */
 @JvmSynthetic
 @JvmName("#map")
-public fun <V, O> EdgeProperty<V>.map(type: TypeReference<O>, transform: (V) -> O): EdgeProperty<O> {
+public fun <E, O> EdgeProperty<E>.map(type: StaticType<O>, transform: (E) -> O): EdgeProperty<O> {
     return map(this, type, transform)
 }
 
 /** See [map]. */
 @JvmSynthetic
-public inline fun <V, reified O> EdgeProperty<V>.map(noinline transform: (V) -> O): EdgeProperty<O> {
-    return map(this, TypeReference.of(), transform)
+public inline fun <E, reified O> EdgeProperty<E>.map(noinline transform: (E) -> O): EdgeProperty<O> {
+    return map(this, staticTypeOf(), transform)
 }
 
 /**
- * Creates a new [EdgeProperty] which is a transformation of this [EdgeProperty]. The new [EdgeProperty]
- * applies the given [transform] on every [EdgeProperty.get] invocation.
+ * Creates a new [MutableEdgeProperty] which is a transformation of this [MutableEdgeProperty]. The new
+ * [MutableEdgeProperty] applies the given [transform]/[reverseTransform] on every
+ * [MutableEdgeProperty.get]/[MutableEdgeProperty.set] invocation. The new [EdgeProperty] thus does not actually store
+ * any data, and references the input property indefinitely.
  */
 @JvmName("map")
-public fun <V, O> map(
-    property: MutableEdgeProperty<V>,
-    type: TypeReference<O>,
-    transform: (V) -> O,
-    reverseTransform: (O) -> V
+public fun <E, O> map(
+    property: MutableEdgeProperty<E>,
+    type: StaticType<O>,
+    transform: (E) -> O,
+    reverseTransform: (O) -> E
 ): MutableEdgeProperty<O> {
     return object : MutableEdgeProperty<O> {
         override val graph: Graph get() = property.graph
-        override val type: TypeReference<O> get() = type
+        override val type: StaticType<O> get() = type
         override fun get(edge: Edge): O = transform(property[edge])
         override fun set(edge: Edge, value: O) { property[edge] = reverseTransform(value)}
         override fun put(edge: Edge, value: O) = transform(property.put(edge, reverseTransform(value)))
@@ -372,30 +375,64 @@ public fun <V, O> map(
 /** See [map]. */
 @JvmSynthetic
 @JvmName("#mutableEdgePropertyMap")
-public fun <V, O> MutableEdgeProperty<V>.map(
-    type: TypeReference<O>,
-    transform: (V) -> O,
-    reverseTransform: (O) -> V
+public fun <E, O> MutableEdgeProperty<E>.map(
+    type: StaticType<O>,
+    transform: (E) -> O,
+    reverseTransform: (O) -> E
 ): MutableEdgeProperty<O> {
     return map(this, type, transform, reverseTransform)
 }
 
 /** See [map]. */
 @JvmSynthetic
-public inline fun <V, reified O> MutableEdgeProperty<V>.map(
-    noinline transform: (V) -> O,
-    noinline reverseTransform: (O) -> V
+public inline fun <E, reified O> MutableEdgeProperty<E>.map(
+    noinline transform: (E) -> O,
+    noinline reverseTransform: (O) -> E
 ): MutableEdgeProperty<O> {
-    return map(this, TypeReference.of(), transform, reverseTransform)
+    return map(this, staticTypeOf(), transform, reverseTransform)
+}
+
+/**
+ * Convenience function that sets the value of this property to the value from the given property for every edge in the
+ * graph.
+ */
+public fun <E> MutableEdgeProperty<E>.copyFrom(other: EdgeProperty<E>) {
+    for (edge in graph.edges) {
+        set(edge, other[edge])
+    }
+}
+
+/**
+ * Convenience function that casts an [EdgeProperty] to the given type safely (types must match). Does not support
+ * casting to super-types - although this may be legal, this function does not have access to enough information to do
+ * so safely.
+ */
+@Suppress("UNCHECKED_CAST")
+public inline fun <reified E> EdgeProperty<*>.safeCast(): EdgeProperty<E> {
+    val desiredType = typeOf<E>()
+    if (!type.mayCastTo(desiredType)) throw TypeCastException("$type cannot be safely cast to $desiredType")
+    return this as EdgeProperty<E>
+}
+
+/**
+ * Convenience function that casts a [MutableEdgeProperty] to the given type safely (types must match). Does not support
+ * casting to super-types - although this may be legal, this function does not have access to enough information to do
+ * so safely.
+ */
+@Suppress("UNCHECKED_CAST")
+public inline fun <reified E> MutableEdgeProperty<*>.safeCast(): MutableEdgeProperty<E> {
+    val desiredType = typeOf<E>()
+    if (!type.mayCastTo(desiredType)) throw TypeCastException("$type cannot be safely cast to $desiredType")
+    return this as MutableEdgeProperty<E>
 }
 
 /** Returns an empty edge property to be associated with an empty [ImmutableGraph]. */
-internal fun <T> emptyEdgeProperty(graph: ImmutableGraph, type: TypeReference<T>): MutableEdgeProperty<T> {
+internal fun <T> emptyEdgeProperty(graph: ImmutableGraph, type: StaticType<T>): MutableEdgeProperty<T> {
     require(graph.edges.isEmpty())
 
     return object : MutableEdgeProperty<T> {
         override val graph: Graph get() = graph
-        override val type: TypeReference<T> get() = type
+        override val type: StaticType<T> get() = type
 
         override fun get(edge: Edge): T = throw IllegalArgumentException()
 

@@ -8,7 +8,7 @@ import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.IndexedVertexGraph
 import io.github.sooniln.fastgraph.MutableVertexProperty
-import io.github.sooniln.fastgraph.TypeReference
+import io.github.sooniln.fastgraph.StaticType
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
 import io.github.sooniln.fastgraph.VertexFunction
@@ -16,7 +16,7 @@ import io.github.sooniln.fastgraph.internal.throwIllegalVertex
 
 internal class ArrayVertexProperty<T>(
     override val graph: IndexedVertexGraph,
-    override val type: TypeReference<T>,
+    override val type: StaticType<T>,
     defaultValueFunction: VertexFunction<T>,
 ) : MutableVertexProperty<T>, VertexChangeListener {
 
@@ -74,7 +74,7 @@ internal class ArrayVertexProperty<T>(
 
 internal class ImmutableArrayVertexProperty<G, T>(
     override val graph: G,
-    override val type: TypeReference<T>,
+    override val type: StaticType<T>,
     defaultValueFunction: VertexFunction<T>,
 ) : MutableVertexProperty<T> where G : ImmutableGraph, G : IndexedVertexGraph {
 
@@ -115,7 +115,7 @@ internal class ImmutableArrayVertexProperty<G, T>(
 
 internal class MapVertexProperty<T>(
     override val graph: Graph,
-    override val type: TypeReference<T>,
+    override val type: StaticType<T>,
     defaultValueFunction: VertexFunction<T>
 ) : MutableVertexProperty<T>, VertexChangeListener {
 
@@ -154,7 +154,7 @@ internal class MapVertexProperty<T>(
 
 internal class ImmutableMapVertexProperty<T>(
     override val graph: ImmutableGraph,
-    override val type: TypeReference<T>,
+    override val type: StaticType<T>,
     defaultValueFunction: VertexFunction<T>
 ) : MutableVertexProperty<T> {
 

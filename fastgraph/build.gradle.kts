@@ -12,7 +12,6 @@ plugins {
 
 repositories {
     mavenCentral()
-    mavenLocal()
 }
 
 group = "io.github.sooniln"

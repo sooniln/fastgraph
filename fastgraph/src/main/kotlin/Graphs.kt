@@ -219,7 +219,7 @@ public interface Graph {
      */
     @JvmName("createVertexProperty")
     public fun <T> createVertexProperty(
-        type: TypeReference<T>,
+        type: StaticType<T>,
         defaultValueFunction: VertexFunction<T>
     ): MutableVertexProperty<T>
 
@@ -240,7 +240,7 @@ public interface Graph {
      */
     @JvmName("createEdgeProperty")
     public fun <T> createEdgeProperty(
-        type: TypeReference<T>,
+        type: StaticType<T>,
         defaultValueFunction: EdgeFunction<T>
     ): MutableEdgeProperty<T>
 
@@ -426,7 +426,7 @@ public inline fun <reified T> Graph.createVertexProperty(): MutableVertexPropert
     // thanks to kotlin's decision to not have reasonable generic type information, this idiocy results. this also means
     // we're forced to stick with java's class type (instead of KType) and thus can't support multi-platform
     @Suppress("UNCHECKED_CAST")
-    return createVertexProperty(TypeReference.of<T?>()) { null }
+    return createVertexProperty(staticTypeOf<T?>()) { null }
 }
 
 /**
@@ -438,7 +438,7 @@ public inline fun <reified T> Graph.createEdgeProperty(): MutableEdgeProperty<T?
     // thanks to kotlin's decision to not have reasonable generic type information, this idiocy results. this also means
     // we're forced to stick with java's class type (instead of KType) and thus can't support multi-platform
     @Suppress("UNCHECKED_CAST")
-    return createEdgeProperty(TypeReference.of<T?>()) { null }
+    return createEdgeProperty(staticTypeOf<T?>()) { null }
 }
 
 /**
@@ -449,7 +449,7 @@ public inline fun <reified T> Graph.createEdgeProperty(): MutableEdgeProperty<T?
 public inline fun <reified T> Graph.createVertexProperty(
     defaultValueFunction: VertexFunction<T>
 ): MutableVertexProperty<T> {
-    return createVertexProperty(TypeReference.of<T>(), defaultValueFunction)
+    return createVertexProperty(staticTypeOf<T>(), defaultValueFunction)
 }
 
 /**
@@ -459,7 +459,7 @@ public inline fun <reified T> Graph.createVertexProperty(
 public inline fun <reified T> Graph.createEdgeProperty(
     defaultValueFunction: EdgeFunction<T>
 ): MutableEdgeProperty<T> {
-    return createEdgeProperty(TypeReference.of<T>(), defaultValueFunction)
+    return createEdgeProperty(staticTypeOf<T>(), defaultValueFunction)
 }
 
 /**
@@ -468,7 +468,7 @@ public inline fun <reified T> Graph.createEdgeProperty(
  */
 @JvmSynthetic
 public inline fun <reified T> Graph.createVertexProperty(defaultValue: T): MutableVertexProperty<T> {
-    return createVertexProperty(TypeReference.of<T>()) { defaultValue }
+    return createVertexProperty(staticTypeOf<T>()) { defaultValue }
 }
 
 /**
@@ -476,7 +476,7 @@ public inline fun <reified T> Graph.createVertexProperty(defaultValue: T): Mutab
  */
 @JvmSynthetic
 public inline fun <reified T> Graph.createEdgeProperty(defaultValue: T): MutableEdgeProperty<T> {
-    return createEdgeProperty(TypeReference.of<T>()) { defaultValue }
+    return createEdgeProperty(staticTypeOf<T>()) { defaultValue }
 }
 
 /**
@@ -724,8 +724,8 @@ public inline fun <reified V, reified E> buildValueGraph(
     val graph = mutableGraph(directed, multiEdge, indexEdges)
     val valueGraph = mutableValueGraph(
         graph,
-        graph.createVertexProperty(TypeReference.of<V>(), vertexInitializer),
-        graph.createEdgeProperty(TypeReference.of<E>(), edgeInitializer)
+        graph.createVertexProperty(staticTypeOf<V>(), vertexInitializer),
+        graph.createEdgeProperty(staticTypeOf<E>(), edgeInitializer)
     )
     ValueGraphBuilder(valueGraph).builder()
     return valueGraph
@@ -915,6 +915,20 @@ public fun Graph.subgraph(vertexFilter: VertexPredicate, edgeFilter: EdgePredica
 
 /** See [subgraph]. */
 public fun Graph.filterEdges(edgeFilter: EdgePredicate): Graph = subgraph(vertices, edgeFilter)
+
+/** An integer property that simply returns the [Vertex.id] for every vertex. */
+public val Graph.vertexIdProperty: VertexProperty<Int> get() = object : VertexProperty<Int> {
+    override val graph: Graph get() = this@vertexIdProperty
+    override val type: StaticType<Int> get() = staticTypeOf()
+    override fun get(vertex: Vertex): Int = vertex.id
+}
+
+/** A long property that simply returns the [Edge.id] for every edge. */
+public val Graph.edgeIdProperty: EdgeProperty<Long> get() = object : EdgeProperty<Long> {
+    override val graph: Graph get() = this@edgeIdProperty
+    override val type: StaticType<Long> get() = staticTypeOf()
+    override fun get(edge: Edge): Long = edge.id
+}
 
 /** A base class that provides some basic functionality to implement [Graph]. */
 @Suppress("INAPPLICABLE_JVM_NAME")

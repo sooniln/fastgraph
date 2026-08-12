@@ -11,7 +11,7 @@ import io.github.sooniln.fastgraph.EdgeReference
 import io.github.sooniln.fastgraph.EdgeSet
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.MutableEdgeProperty
-import io.github.sooniln.fastgraph.TypeReference
+import io.github.sooniln.fastgraph.StaticType
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
 import io.github.sooniln.fastgraph.asEdgeIterator
@@ -70,7 +70,7 @@ internal class InducingEdges(
     }
 
     override fun <T> createEdgeProperty(
-        type: TypeReference<T>,
+        type: StaticType<T>,
         defaultValueFunction: EdgeFunction<T>
     ): MutableEdgeProperty<T> = createEdgeProperty(graph, type, defaultValueFunction)
 

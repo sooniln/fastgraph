@@ -55,7 +55,7 @@ public interface VertexProperty<out V> {
 
     /** The type of this property. */
     @get:JvmName("getType")
-    public val type: TypeReference<@UnsafeVariance V>
+    public val type: StaticType<@UnsafeVariance V>
 
     /**
      * Retrieves the value associated with the given vertex, but has undefined behavior if the vertex does not belong to
@@ -109,7 +109,7 @@ public fun <V> MutableVertexProperty<V>.put(vertexReference: VertexReference, va
 public fun unitVertexProperty(graph: Graph): MutableVertexProperty<Unit> {
     return object : MutableVertexProperty<Unit> {
         override val graph: Graph get() = graph
-        override val type: TypeReference<Unit> get() = TypeReference.of()
+        override val type: StaticType<Unit> get() = staticTypeOf()
         override fun get(vertex: Vertex): Unit = Unit
         override fun set(vertex: Vertex, value: Unit) {}
     }
@@ -124,7 +124,7 @@ public fun unitVertexProperty(graph: Graph): MutableVertexProperty<Unit> {
 @JvmName("createVertexProperty")
 public fun <T> createVertexProperty(
     graph: Graph,
-    type: TypeReference<T>,
+    type: StaticType<T>,
     defaultValueFunction: VertexFunction<T>
 ): MutableVertexProperty<T> {
     if (type.kType == typeOf<Unit>()) {
@@ -325,14 +325,15 @@ public fun <T> createVertexProperty(
 }
 
 /**
- * Creates a new [VertexProperty] which is a transformation of this [VertexProperty]. The new [VertexProperty]
- * applies the given [transform] on every [VertexProperty.get] invocation.
+ * Creates a new [VertexProperty] which is a transformation of this [VertexProperty]. The new [VertexProperty] applies
+ * the given [transform] on every [VertexProperty.get] invocation. The new [VertexProperty] thus does not actually store
+ * any data, and references the input property indefinitely.
  */
 @JvmName("map")
-public fun <V, O> map(property: VertexProperty<V>, type: TypeReference<O>, transform: (V) -> O): VertexProperty<O> {
+public fun <V, O> map(property: VertexProperty<V>, type: StaticType<O>, transform: (V) -> O): VertexProperty<O> {
     return object : VertexProperty<O> {
         override val graph: Graph get() = property.graph
-        override val type: TypeReference<O> get() = type
+        override val type: StaticType<O> get() = type
         override fun get(vertex: Vertex): O = transform(property[vertex])
     }
 }
@@ -340,30 +341,32 @@ public fun <V, O> map(property: VertexProperty<V>, type: TypeReference<O>, trans
 /** See [map]. */
 @JvmSynthetic
 @JvmName("#vertexPropertyMap")
-public fun <V, O> VertexProperty<V>.map(type: TypeReference<O>, transform: (V) -> O): VertexProperty<O> {
+public fun <V, O> VertexProperty<V>.map(type: StaticType<O>, transform: (V) -> O): VertexProperty<O> {
     return map(this, type, transform)
 }
 
 /** See [map]. */
 @JvmSynthetic
 public inline fun <V, reified O> VertexProperty<V>.map(noinline transform: (V) -> O): VertexProperty<O> {
-    return map(this, TypeReference.of(), transform)
+    return map(this, staticTypeOf(), transform)
 }
 
 /**
- * Creates a new [VertexProperty] which is a transformation of this [VertexProperty]. The new [VertexProperty]
- * applies the given [transform] on every [VertexProperty.get] invocation.
+ * Creates a new [MutableVertexProperty] which is a transformation of this [MutableVertexProperty]. The new
+ * [MutableVertexProperty] applies the given [transform]/[reverseTransform] on every
+ * [MutableVertexProperty.get]/[MutableVertexProperty.set] invocation. The new [VertexProperty] thus does not actually
+ * store any data, and references the input property indefinitely.
  */
 @JvmName("map")
 public fun <V, O> map(
     property: MutableVertexProperty<V>,
-    type: TypeReference<O>,
+    type: StaticType<O>,
     transform: (V) -> O,
     reverseTransform: (O) -> V
 ): MutableVertexProperty<O> {
     return object : MutableVertexProperty<O> {
         override val graph: Graph get() = property.graph
-        override val type: TypeReference<O> get() = type
+        override val type: StaticType<O> get() = type
         override fun get(vertex: Vertex): O = transform(property[vertex])
         override fun set(vertex: Vertex, value: O) { property[vertex] = reverseTransform(value)}
         override fun put(vertex: Vertex, value: O) = transform(property.put(vertex, reverseTransform(value)))
@@ -374,7 +377,7 @@ public fun <V, O> map(
 @JvmSynthetic
 @JvmName("#mutableVertexPropertyMap")
 public fun <V, O> MutableVertexProperty<V>.map(
-    type: TypeReference<O>,
+    type: StaticType<O>,
     transform: (V) -> O,
     reverseTransform: (O) -> V
 ): MutableVertexProperty<O> {
@@ -387,16 +390,50 @@ public inline fun <V, reified O> MutableVertexProperty<V>.map(
     noinline transform: (V) -> O,
     noinline reverseTransform: (O) -> V
 ): MutableVertexProperty<O> {
-    return map(this, TypeReference.of(), transform, reverseTransform)
+    return map(this, staticTypeOf(), transform, reverseTransform)
+}
+
+/**
+ * Convenience function that sets the value of this property to the value from the given property for every vertex in
+ * the graph.
+ */
+public fun <V> MutableVertexProperty<V>.copyFrom(other: VertexProperty<V>) {
+    for (vertex in graph.vertices) {
+        set(vertex, other[vertex])
+    }
+}
+
+/**
+ * Convenience function that casts an [VertexProperty] to the given type safely (types must match). Does not support
+ * casting to super-types - although this may be legal, this function does not have access to enough information to do
+ * so safely.
+ */
+@Suppress("UNCHECKED_CAST")
+public inline fun <reified E> VertexProperty<*>.safeCast(): VertexProperty<E> {
+    val desiredType = typeOf<E>()
+    if (!type.mayCastTo(desiredType)) throw TypeCastException("$type cannot be safely cast to $desiredType")
+    return this as VertexProperty<E>
+}
+
+/**
+ * Convenience function that casts a [MutableVertexProperty] to the given type safely (types must match). Does not
+ * support casting to super-types - although this may be legal, this function does not have access to enough information
+ * to do so safely.
+ */
+@Suppress("UNCHECKED_CAST")
+public inline fun <reified E> MutableVertexProperty<*>.safeCast(): MutableVertexProperty<E> {
+    val desiredType = typeOf<E>()
+    if (!type.mayCastTo(desiredType)) throw TypeCastException("$type cannot be safely cast to $desiredType")
+    return this as MutableVertexProperty<E>
 }
 
 /** Returns an empty vertex property to be associated with an empty [ImmutableGraph]. */
-internal fun <T> emptyVertexProperty(graph: ImmutableGraph, type: TypeReference<T>): MutableVertexProperty<T> {
+internal fun <T> emptyVertexProperty(graph: ImmutableGraph, type: StaticType<T>): MutableVertexProperty<T> {
     require(graph.vertices.isEmpty())
 
     return object : MutableVertexProperty<T> {
         override val graph: Graph get() = graph
-        override val type: TypeReference<T> get() = type
+        override val type: StaticType<T> get() = type
 
         override fun get(vertex: Vertex): T = throw IllegalArgumentException()
 

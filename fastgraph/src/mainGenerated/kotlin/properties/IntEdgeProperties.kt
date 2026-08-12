@@ -13,8 +13,9 @@ import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.IndexedEdgeGraph
 import io.github.sooniln.fastgraph.MutableEdgeProperty
-import io.github.sooniln.fastgraph.TypeReference
+import io.github.sooniln.fastgraph.StaticType
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
+import io.github.sooniln.fastgraph.staticTypeOf
 
 internal class IntArrayEdgeProperty(
     override val graph: IndexedEdgeGraph,
@@ -30,7 +31,7 @@ internal class IntArrayEdgeProperty(
         graph.registerEdgeChangeListener(this)
     }
 
-    override val type: TypeReference<Int> get() = TypeReference.of()
+    override val type: StaticType<Int> get() = staticTypeOf()
 
     override fun get(edge: Edge): Int {
         try {
@@ -87,7 +88,7 @@ internal class ImmutableIntArrayEdgeProperty<G>(
         write(defaultValueFunction.apply(graph.edges[edgeId]))
     }
 
-    override val type: TypeReference<Int> get() = TypeReference.of()
+    override val type: StaticType<Int> get() = staticTypeOf()
 
     override fun get(edge: Edge): Int {
         try {
@@ -131,7 +132,7 @@ internal class IntMapEdgeProperty(
         graph.registerEdgeChangeListener(this)
     }
 
-    override val type: TypeReference<Int> get() = TypeReference.of()
+    override val type: StaticType<Int> get() = staticTypeOf()
 
     override fun get(edge: Edge): Int {
         return read(property.getOrPut(edge.id) { write(initializer.apply(edge)) })
@@ -156,6 +157,7 @@ internal class IntMapEdgeProperty(
         property[newEdge.id] = oldValue
     }
 
+    override fun ensureEdgeCapacity(edgeCapacity: Int) = property.ensureCapacity(edgeCapacity)
     override fun trimToSize() = property.trimToSize()
 
     private fun read(it: Int): Int { return it }
@@ -176,7 +178,7 @@ internal class ImmutableIntMapEdgeProperty(
         }
     }
 
-    override val type: TypeReference<Int> get() = TypeReference.of()
+    override val type: StaticType<Int> get() = staticTypeOf()
 
     override fun get(edge: Edge): Int {
         try {

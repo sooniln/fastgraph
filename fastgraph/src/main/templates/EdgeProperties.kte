@@ -13,7 +13,8 @@ import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.IndexedEdgeGraph
 import io.github.sooniln.fastgraph.MutableEdgeProperty
-import io.github.sooniln.fastgraph.TypeReference
+import io.github.sooniln.fastgraph.StaticType
+import io.github.sooniln.fastgraph.staticTypeOf
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
 
 internal class ${Type}ArrayEdgeProperty(
@@ -30,7 +31,7 @@ internal class ${Type}ArrayEdgeProperty(
         graph.registerEdgeChangeListener(this)
     }
 
-    override val type: TypeReference<${Type}> get() = TypeReference.of()
+    override val type: StaticType<${Type}> get() = staticTypeOf()
 
     override fun get(edge: Edge): ${Type} {
         try {
@@ -87,7 +88,7 @@ internal class Immutable${Type}ArrayEdgeProperty<G>(
         write(defaultValueFunction.apply(graph.edges[edgeId]))
     }
 
-    override val type: TypeReference<${Type}> get() = TypeReference.of()
+    override val type: StaticType<${Type}> get() = staticTypeOf()
 
     override fun get(edge: Edge): ${Type} {
         try {
@@ -131,7 +132,7 @@ internal class ${Type}MapEdgeProperty(
         graph.registerEdgeChangeListener(this)
     }
 
-    override val type: TypeReference<${Type}> get() = TypeReference.of()
+    override val type: StaticType<${Type}> get() = staticTypeOf()
 
     override fun get(edge: Edge): ${Type} {
         return read(property.getOrPut(edge.id) { write(initializer.apply(edge)) })
@@ -156,6 +157,7 @@ internal class ${Type}MapEdgeProperty(
         property[newEdge.id] = oldValue
     }
 
+    override fun ensureEdgeCapacity(edgeCapacity: Int) = property.ensureCapacity(edgeCapacity)
     override fun trimToSize() = property.trimToSize()
 
     private fun read(it: ${StorageType}): ${Type} ${ReadLambda}
@@ -176,7 +178,7 @@ internal class Immutable${Type}MapEdgeProperty(
         }
     }
 
-    override val type: TypeReference<${Type}> get() = TypeReference.of()
+    override val type: StaticType<${Type}> get() = staticTypeOf()
 
     override fun get(edge: Edge): ${Type} {
         try {

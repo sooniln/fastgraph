@@ -5,7 +5,7 @@ import io.github.sooniln.fastcollect.getOrPut
 import io.github.sooniln.fastcollect.replaceOrSet
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.MutableVertexProperty
-import io.github.sooniln.fastgraph.TypeReference
+import io.github.sooniln.fastgraph.StaticType
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexFunction
 import io.github.sooniln.fastgraph.VertexPredicate
@@ -13,7 +13,7 @@ import io.github.sooniln.fastgraph.internal.throwIllegalVertex
 
 internal class FilteredVertexProperty<T>(
     override val graph: Graph,
-    override val type: TypeReference<T>,
+    override val type: StaticType<T>,
     private val defaultValueFunction: VertexFunction<T>,
     private val filter: VertexPredicate,
 ) : MutableVertexProperty<T> {

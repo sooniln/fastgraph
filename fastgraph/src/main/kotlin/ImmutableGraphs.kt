@@ -61,8 +61,8 @@ public fun emptyImmutableGraph(directed: Boolean): ImmutableGraph {
 @JvmName("emptyImmutableValueGraph")
 public fun <V, E> emptyImmutableValueGraph(
     directed: Boolean,
-    vertexType: TypeReference<V>,
-    edgeType: TypeReference<E>
+    vertexType: StaticType<V>,
+    edgeType: StaticType<E>
 ): ImmutableValueGraph<V, E> {
     val graph = if (directed) EmptyGraph.DIRECTED else EmptyGraph.UNDIRECTED
     return ImmutableValueGraph(
@@ -76,7 +76,7 @@ public fun <V, E> emptyImmutableValueGraph(
  * Returns an empty [ImmutableValueGraph] with the given directedness.
  */
 public inline fun <reified V, reified E> emptyImmutableValueGraph(directed: Boolean): ImmutableValueGraph<V, E> {
-    return emptyImmutableValueGraph(directed, TypeReference.of(), TypeReference.of())
+    return emptyImmutableValueGraph(directed, staticTypeOf(), staticTypeOf())
 }
 
 /**
@@ -248,14 +248,14 @@ private class EmptyGraph(override val directed: Boolean) : ImmutableGraph, Index
     override fun unregisterEdgeChangeListener(listener: EdgeChangeListener) {}
 
     override fun <T> createVertexProperty(
-        type: TypeReference<T>,
+        type: StaticType<T>,
         defaultValueFunction: VertexFunction<T>
     ): MutableVertexProperty<T> {
         return emptyVertexProperty(this, type)
     }
 
     override fun <T> createEdgeProperty(
-        type: TypeReference<T>,
+        type: StaticType<T>,
         defaultValueFunction: EdgeFunction<T>
     ): MutableEdgeProperty<T> {
         return emptyEdgeProperty(this, type)
