@@ -22,7 +22,7 @@ class CsvEdgeListWriterTest {
         graph.addEdge(a, b)
 
         val output = ByteArrayOutputStream()
-        writeCsvEdgeList(output, graph, vertexProperty)
+        writeCsvEdgeList(output, CsvEdgeListGraph(graph, vertexProperty))
 
         assertThat(output.toString(Charsets.UTF_8)).isEqualTo("a,b\n")
     }
@@ -38,7 +38,7 @@ class CsvEdgeListWriterTest {
         graph.addEdge(b, c)
 
         val output = ByteArrayOutputStream()
-        writeCsvEdgeList(output, graph, vertexProperty)
+        writeCsvEdgeList(output, CsvEdgeListGraph(graph, vertexProperty))
 
         assertThat(output.toString(Charsets.UTF_8)).isEqualTo("a,b\nb,c\n")
     }
@@ -54,7 +54,7 @@ class CsvEdgeListWriterTest {
         weight[edge] = 42
 
         val output = ByteArrayOutputStream()
-        writeCsvEdgeList(output, graph, vertexProperty, listOf(weight))
+        writeCsvEdgeList(output, CsvEdgeListGraph(graph, vertexProperty, listOf(weight)))
 
         assertThat(output.toString(Charsets.UTF_8)).isEqualTo("a,b,42\n")
     }
@@ -62,13 +62,13 @@ class CsvEdgeListWriterTest {
     @Test
     fun nullValuesAreWrittenAsEmptyFields() {
         val graph = mutableGraph(directed = true)
-        val vertexProperty = graph.createVertexProperty<String?>(null)
+        val vertexProperty = graph.createVertexProperty<String>("")
         val a = graph.addVertex().also { vertexProperty[it] = "a" }
         val b = graph.addVertex()
         graph.addEdge(a, b)
 
         val output = ByteArrayOutputStream()
-        writeCsvEdgeList(output, graph, vertexProperty)
+        writeCsvEdgeList(output, CsvEdgeListGraph(graph, vertexProperty))
 
         assertThat(output.toString(Charsets.UTF_8)).isEqualTo("a,\n")
     }
@@ -82,7 +82,7 @@ class CsvEdgeListWriterTest {
         graph.addEdge(a, b)
 
         val output = ByteArrayOutputStream()
-        writeCsvEdgeList(output, graph, vertexProperty)
+        writeCsvEdgeList(output, CsvEdgeListGraph(graph, vertexProperty))
 
         assertThat(output.toString(Charsets.UTF_8)).isEqualTo("\"a,x\",b\n")
     }
@@ -95,7 +95,7 @@ class CsvEdgeListWriterTest {
         graph.addEdge(a, b)
 
         val output = ByteArrayOutputStream()
-        writeCsvEdgeList(output, graph)
+        writeCsvEdgeList(output, CsvEdgeListGraph(graph))
 
         assertThat(output.toString(Charsets.UTF_8)).isEqualTo("${a.id},${b.id}\n")
     }
@@ -107,7 +107,7 @@ class CsvEdgeListWriterTest {
         }
 
         val output = ByteArrayOutputStream()
-        writeCsvEdgeList(output, valueGraph)
+        writeCsvEdgeList(output, CsvEdgeListGraph(valueGraph))
 
         assertThat(output.toString(Charsets.UTF_8)).isEqualTo("a,b,42\n")
     }
@@ -119,7 +119,7 @@ class CsvEdgeListWriterTest {
         }
 
         val output = ByteArrayOutputStream()
-        writeCsvEdgeList(output, valueGraph)
+        writeCsvEdgeList(output, CsvEdgeListGraph(valueGraph))
 
         assertThat(output.toString(Charsets.UTF_8)).isEqualTo("a,b\n")
     }
@@ -133,7 +133,7 @@ class CsvEdgeListWriterTest {
         graph.addEdge(a, b)
 
         val output = ByteArrayOutputStream()
-        writeCsvEdgeList(output, graph, vertexProperty, options = { delimiter = '\t' })
+        writeCsvEdgeList(output, CsvEdgeListGraph(graph, vertexProperty), CsvOptions(delimiter = '\t'))
 
         assertThat(output.toString(Charsets.UTF_8)).isEqualTo("a\tb\n")
     }
@@ -147,7 +147,7 @@ class CsvEdgeListWriterTest {
         graph.addEdge(a, b)
 
         val path = tempDir.resolve("edges.csv")
-        writeCsvEdgeList(path, graph, vertexProperty)
+        Files.newOutputStream(path).use { writeCsvEdgeList(it, CsvEdgeListGraph(graph, vertexProperty)) }
 
         assertThat(Files.readString(path)).isEqualTo("a,b\n")
     }
@@ -163,12 +163,11 @@ class CsvEdgeListWriterTest {
         graph.addEdge(b, c)
 
         val output = ByteArrayOutputStream()
-        writeCsvEdgeList(output, graph, vertexProperty)
+        writeCsvEdgeList(output, CsvEdgeListGraph(graph, vertexProperty))
 
         val result = readCsvEdgeList(
             output.toByteArray().inputStream(),
             directed = true,
-            vertexColumn = CsvVertexField.string,
         )
 
         assertThat(result.graph.vertices).hasSize(3)

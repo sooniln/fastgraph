@@ -95,11 +95,13 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
         edgeListeners.notifyEnsureCapacity(edgeCapacity)
     }
 
-    override fun addVertex(): Vertex {
+    override fun addVertex(): Vertex = addVertex(0, 0)
+
+    override fun addVertex(outDegreeCapacity: Int, inDegreeCapacity: Int): Vertex {
         val vertex = Vertex(successors.size)
-        successors.add(IntHashSet())
+        successors.add(IntHashSet(outDegreeCapacity))
         if (_predecessors.isInitialized()) {
-            predecessors.add(IntHashSet())
+            predecessors.add(IntHashSet(inDegreeCapacity))
         }
 
         vertexListeners.notifyVertexAdded(vertex)

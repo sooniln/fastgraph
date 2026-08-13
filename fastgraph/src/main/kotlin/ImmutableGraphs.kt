@@ -25,7 +25,7 @@ import io.github.sooniln.fastgraph.subgraph.Subgraphs
  * terms of accessing or iterating over the topology and vertex/edge properties. If memory or CPU efficiency are a
  * concern, using ImmutableGraph is generally the best way to meet those concerns.
  *
- * To create immutable graphs, see the [immutableGraph] factory method.
+ * To create immutable graphs, see the [buildImmutableGraph]/[toImmutableGraph]/etc methods.
  */
 public sealed interface ImmutableGraph : Graph
 
@@ -83,56 +83,46 @@ public inline fun <reified V, reified E> emptyImmutableValueGraph(directed: Bool
  * Returns an [ImmutableGraph] which is a copy of the given [Graph]. The returned graph is guaranteed to have
  * identical vertex/edge ids as the input graph.
  */
-public fun immutableGraph(graph: Graph): ImmutableGraph {
-    if (graph is ImmutableGraph) {
-        return graph
-    } else if (graph.isEmpty()) {
-        return emptyImmutableGraph(graph.directed)
+public fun Graph.toImmutableGraph(): ImmutableGraph {
+    if (this is ImmutableGraph) {
+        return this
+    } else if (isEmpty()) {
+        return emptyImmutableGraph(directed)
     }
 
-    return when (graph) {
-        is AdjacencyListGraph -> ImmutableAdjacencyListGraph.copy(graph)
-        is AdjacencyListNetwork -> ImmutableAdjacencyListNetwork.copy(graph)
+    return when (this) {
+        is AdjacencyListGraph -> ImmutableAdjacencyListGraph.copy(this)
+        is AdjacencyListNetwork -> ImmutableAdjacencyListNetwork.copy(this)
         else -> {
-            if (graph is IndexedVertexGraph && graph is IndexedEdgeGraph) ImmutableAdjacencyListNetwork.copy(graph)
+            if (this is IndexedVertexGraph && this is IndexedEdgeGraph) ImmutableAdjacencyListNetwork.copy(this)
             else throw UnsupportedOperationException("Creating immutable copies of third-party graphs that do not implement both IndexedVertexGraph and IndexedEdgeGraph is currently unsupported")
         }
     }
 }
-
-/** See [immutableGraph]. */
-@JvmSynthetic
-public fun Graph.toImmutableGraph(): ImmutableGraph = immutableGraph(this)
 
 /**
  * Returns an [ImmutableValueGraph] which is a copy of the given [ValueGraph]. The returned graph is guaranteed to
  * have identical vertex/edge ids as the input graph, and the returned vertex/edge properties have the mappings as
  * the input properties.
  */
-public fun <V, E> immutableValueGraph(valueGraph: ValueGraph<V, E>): ImmutableValueGraph<V, E> {
-    if (valueGraph is ImmutableValueGraph) {
-        return valueGraph
-    } else if (valueGraph.graph.isEmpty()) {
+public fun <V, E> ValueGraph<V, E>.toImmutableValueGraph(): ImmutableValueGraph<V, E> {
+    if (this is ImmutableValueGraph) {
+        return this
+    } else if (graph.isEmpty()) {
         return emptyImmutableValueGraph(
-            valueGraph.graph.directed,
-            valueGraph.vertexProperty.type,
-            valueGraph.edgeProperty.type)
+            graph.directed,
+            vertexProperty.type,
+            edgeProperty.type)
     }
 
-    val graph = immutableGraph(valueGraph.graph)
+    val graph = graph.toImmutableGraph()
     // the property initializers are safe because (1) ImmutableGraph is a sealed type (2) we know all implementations
     // will never retain a reference to the initializer post-construction (3) we know all copy implementations return
     // identity isomorphisms (all vertex/edge ids are the same)
     return ImmutableValueGraph(
         graph,
-        graph.createVertexProperty(valueGraph.vertexProperty.type) { vertex -> valueGraph.vertexProperty[vertex] },
-        graph.createEdgeProperty(valueGraph.edgeProperty.type) { edge -> valueGraph.edgeProperty[edge] },)
-}
-
-/** See [immutableValueGraph]. */
-@JvmSynthetic
-public fun <V, E> ValueGraph<V, E>.toImmutableValueGraph(): ImmutableValueGraph<V, E> {
-    return immutableValueGraph(this)
+        graph.createVertexProperty(vertexProperty.type) { vertex -> vertexProperty[vertex] },
+        graph.createEdgeProperty(edgeProperty.type) { edge -> edgeProperty[edge] },)
 }
 
 /**
@@ -144,7 +134,7 @@ public inline fun buildImmutableGraph(
     indexEdges: Boolean = false,
     builder: GraphBuilder.() -> Unit
 ): ImmutableGraph {
-    return immutableGraph(buildGraph(directed, multiEdge, indexEdges, builder))
+    return buildGraph(directed, multiEdge, indexEdges, builder).toImmutableGraph()
 }
 
 /**
@@ -159,7 +149,7 @@ public inline fun <reified V, reified E> buildImmutableValueGraph(
     indexEdges: Boolean = false,
     builder: ValueGraphBuilder<V, E>.() -> Unit
 ): ImmutableValueGraph<V, E> {
-    return immutableValueGraph(buildValueGraph(directed, vertexInitializer, edgeInitializer, multiEdge, indexEdges, builder))
+    return buildValueGraph(directed, vertexInitializer, edgeInitializer, multiEdge, indexEdges, builder).toImmutableValueGraph()
 }
 
 /**
@@ -194,15 +184,8 @@ public inline fun <reified V, reified E> buildImmutableValueGraph(
  * Returns a view of the immutable graph with filtered vertices and edges. See [subgraph] for more
  * information on options.
  */
-public fun subgraph(graph: ImmutableGraph, inducingVertices: VertexSet, inducingEdges: EdgeSet): ImmutableGraph {
-    return Subgraphs.subgraph(graph, inducingVertices, inducingEdges)
-}
-
-/** See [subgraph]. */
-@JvmSynthetic
-@JvmName("#subgraph")
 public fun ImmutableGraph.subgraph(inducingVertices: VertexSet, inducingEdges: EdgeSet): ImmutableGraph {
-    return subgraph(this, inducingVertices, inducingEdges)
+    return Subgraphs.subgraph(this, inducingVertices, inducingEdges)
 }
 
 private class EmptyGraph(override val directed: Boolean) : ImmutableGraph, IndexedVertexGraph, IndexedEdgeGraph {

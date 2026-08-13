@@ -44,7 +44,7 @@ class ImmutableGraphsTest {
         val v1 = mutable.addVertex()
         val e0 = mutable.addEdge(v0, v1)
 
-        val immutable = immutableGraph(mutable)
+        val immutable = mutable.toImmutableGraph()
 
         assertThat(immutable).isInstanceOf(ImmutableGraph::class.java)
         assertThat(immutable.vertices).containsExactlyInAnyOrder(v0, v1)
@@ -64,7 +64,7 @@ class ImmutableGraphsTest {
             addVertex()
         }
 
-        assertThat(immutableGraph(immutable)).isSameAs(immutable)
+        assertThat(immutable.toImmutableGraph()).isSameAs(immutable)
         assertThat(immutable.toImmutableGraph()).isSameAs(immutable)
     }
 

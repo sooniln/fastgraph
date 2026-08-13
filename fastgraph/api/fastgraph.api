@@ -2,23 +2,17 @@ public abstract class io/github/sooniln/fastgraph/AbstractEdgeCollection : kotli
 	public fun <init> ()V
 	public fun contains (J)Z
 	public final fun contains (Ljava/lang/Object;)Z
-	public fun containsAll (Lio/github/sooniln/fastgraph/EdgeCollection;)Z
 	public fun containsAll (Ljava/util/Collection;)Z
-	public fun foreach (Lio/github/sooniln/fastgraph/EdgeConsumer;)V
 	public fun isEmpty ()Z
 	public fun iterator ()Ljava/util/Iterator;
-	public fun toLongArray ()[J
 }
 
 public abstract class io/github/sooniln/fastgraph/AbstractEdgeSet : kotlin/collections/AbstractSet, io/github/sooniln/fastgraph/EdgeSet {
 	public fun <init> ()V
 	public fun contains (J)Z
 	public final fun contains (Ljava/lang/Object;)Z
-	public fun containsAll (Lio/github/sooniln/fastgraph/EdgeCollection;)Z
 	public fun containsAll (Ljava/util/Collection;)Z
-	public fun foreach (Lio/github/sooniln/fastgraph/EdgeConsumer;)V
 	public fun isEmpty ()Z
-	public fun toLongArray ()[J
 }
 
 public abstract class io/github/sooniln/fastgraph/AbstractGraph : io/github/sooniln/fastgraph/Graph {
@@ -37,12 +31,10 @@ public abstract class io/github/sooniln/fastgraph/AbstractGraph : io/github/soon
 	public fun hasEdge (II)Z
 	public fun inDegree (I)I
 	public fun incomingEdges (I)Lio/github/sooniln/fastgraph/EdgeSet;
-	public fun isEmpty ()Z
 	public fun outDegree (I)I
 	public fun outgoingEdges (I)Lio/github/sooniln/fastgraph/EdgeSet;
 	public fun predecessors (I)Lio/github/sooniln/fastgraph/VertexSet;
 	public fun successors (I)Lio/github/sooniln/fastgraph/VertexSet;
-	public fun trimToSize ()V
 	protected abstract fun validateEdge (J)J
 	protected abstract fun validateVertex (I)I
 }
@@ -51,7 +43,6 @@ public abstract class io/github/sooniln/fastgraph/AbstractIndexedEdgeSet : io/gi
 	public fun <init> ()V
 	public fun contains (J)Z
 	public fun containsAll (Ljava/util/Collection;)Z
-	public fun foreach (Lio/github/sooniln/fastgraph/EdgeConsumer;)V
 	public fun iterator ()Lio/github/sooniln/fastgraph/EdgeIterator;
 	public synthetic fun iterator ()Ljava/util/Iterator;
 }
@@ -60,7 +51,6 @@ public abstract class io/github/sooniln/fastgraph/AbstractIndexedVertexSet : io/
 	public fun <init> ()V
 	public fun contains (I)Z
 	public fun containsAll (Ljava/util/Collection;)Z
-	public fun foreach (Lio/github/sooniln/fastgraph/VertexConsumer;)V
 	public fun get (I)I
 	public fun indexOf (I)I
 	public fun iterator ()Lio/github/sooniln/fastgraph/VertexIterator;
@@ -78,23 +68,17 @@ public abstract class io/github/sooniln/fastgraph/AbstractVertexCollection : kot
 	public fun <init> ()V
 	public fun contains (I)Z
 	public final fun contains (Ljava/lang/Object;)Z
-	public fun containsAll (Lio/github/sooniln/fastgraph/VertexCollection;)Z
 	public fun containsAll (Ljava/util/Collection;)Z
-	public fun foreach (Lio/github/sooniln/fastgraph/VertexConsumer;)V
 	public fun isEmpty ()Z
 	public fun iterator ()Ljava/util/Iterator;
-	public fun toIntArray ()[I
 }
 
 public abstract class io/github/sooniln/fastgraph/AbstractVertexSet : kotlin/collections/AbstractSet, io/github/sooniln/fastgraph/VertexSet {
 	public fun <init> ()V
 	public fun contains (I)Z
 	public final fun contains (Ljava/lang/Object;)Z
-	public fun containsAll (Lio/github/sooniln/fastgraph/VertexCollection;)Z
 	public fun containsAll (Ljava/util/Collection;)Z
-	public fun foreach (Lio/github/sooniln/fastgraph/VertexConsumer;)V
 	public fun isEmpty ()Z
-	public fun toIntArray ()[I
 }
 
 public abstract interface class io/github/sooniln/fastgraph/BijectiveHomomorphism : io/github/sooniln/fastgraph/Homomorphism {
@@ -129,11 +113,6 @@ public abstract interface class io/github/sooniln/fastgraph/EdgeChangeListener {
 	public fun trimToSize ()V
 }
 
-public final class io/github/sooniln/fastgraph/EdgeChangeListener$DefaultImpls {
-	public static fun ensureEdgeCapacity (Lio/github/sooniln/fastgraph/EdgeChangeListener;I)V
-	public static fun trimToSize (Lio/github/sooniln/fastgraph/EdgeChangeListener;)V
-}
-
 public abstract interface class io/github/sooniln/fastgraph/EdgeCollection : io/github/sooniln/fastgraph/EdgeIterable, java/util/Collection, kotlin/jvm/internal/markers/KMappedMarker {
 	public fun contains (J)Z
 	public fun contains (Ljava/lang/Object;)Z
@@ -142,15 +121,6 @@ public abstract interface class io/github/sooniln/fastgraph/EdgeCollection : io/
 	public fun foreach (Lio/github/sooniln/fastgraph/EdgeConsumer;)V
 	public fun isEmpty ()Z
 	public fun toLongArray ()[J
-}
-
-public final class io/github/sooniln/fastgraph/EdgeCollection$DefaultImpls {
-	public static fun contains (Lio/github/sooniln/fastgraph/EdgeCollection;J)Z
-	public static fun containsAll (Lio/github/sooniln/fastgraph/EdgeCollection;Lio/github/sooniln/fastgraph/EdgeCollection;)Z
-	public static fun containsAll (Lio/github/sooniln/fastgraph/EdgeCollection;Ljava/util/Collection;)Z
-	public static fun foreach (Lio/github/sooniln/fastgraph/EdgeCollection;Lio/github/sooniln/fastgraph/EdgeConsumer;)V
-	public static fun isEmpty (Lio/github/sooniln/fastgraph/EdgeCollection;)Z
-	public static fun toLongArray (Lio/github/sooniln/fastgraph/EdgeCollection;)[J
 }
 
 public abstract interface class io/github/sooniln/fastgraph/EdgeConsumer {
@@ -214,15 +184,6 @@ public abstract interface class io/github/sooniln/fastgraph/EdgeSet : io/github/
 	public fun isEmpty ()Z
 }
 
-public final class io/github/sooniln/fastgraph/EdgeSet$DefaultImpls {
-	public static fun contains (Lio/github/sooniln/fastgraph/EdgeSet;J)Z
-	public static fun containsAll (Lio/github/sooniln/fastgraph/EdgeSet;Lio/github/sooniln/fastgraph/EdgeCollection;)Z
-	public static fun containsAll (Lio/github/sooniln/fastgraph/EdgeSet;Ljava/util/Collection;)Z
-	public static fun foreach (Lio/github/sooniln/fastgraph/EdgeSet;Lio/github/sooniln/fastgraph/EdgeConsumer;)V
-	public static fun isEmpty (Lio/github/sooniln/fastgraph/EdgeSet;)Z
-	public static fun toLongArray (Lio/github/sooniln/fastgraph/EdgeSet;)[J
-}
-
 public final class io/github/sooniln/fastgraph/Edges {
 	public static final fun edgeSetOf ([Lio/github/sooniln/fastgraph/Edge;)Lio/github/sooniln/fastgraph/EdgeSet;
 	public static final fun emptyEdgeIterator ()Lio/github/sooniln/fastgraph/EdgeIterator;
@@ -259,26 +220,15 @@ public abstract interface class io/github/sooniln/fastgraph/Graph {
 	public abstract fun unregisterVertexChangeListener (Lio/github/sooniln/fastgraph/VertexChangeListener;)V
 }
 
-public final class io/github/sooniln/fastgraph/Graph$DefaultImpls {
-	public static fun edge (Lio/github/sooniln/fastgraph/Graph;II)J
-	public static fun isEmpty (Lio/github/sooniln/fastgraph/Graph;)Z
-	public static fun trimToSize (Lio/github/sooniln/fastgraph/Graph;)V
-}
-
 public abstract interface class io/github/sooniln/fastgraph/GraphBuilder {
 	public abstract fun addEdge (II)J
 	public abstract fun addVertex ()I
+	public fun addVertex (II)I
 	public fun ensureEdgeCapacity (I)V
 	public fun ensureVertexCapacity (I)V
 }
 
-public final class io/github/sooniln/fastgraph/GraphBuilder$DefaultImpls {
-	public static fun ensureEdgeCapacity (Lio/github/sooniln/fastgraph/GraphBuilder;I)V
-	public static fun ensureVertexCapacity (Lio/github/sooniln/fastgraph/GraphBuilder;I)V
-}
-
 public final class io/github/sooniln/fastgraph/Graphs {
-	public static final synthetic fun #transpose (Lio/github/sooniln/fastgraph/Graph;)Lio/github/sooniln/fastgraph/Graph;
 	public static final fun ValueGraphBuilder (Lio/github/sooniln/fastgraph/MutableValueGraph;)Lio/github/sooniln/fastgraph/ValueGraphBuilder;
 	public static final synthetic fun addEdge (Lio/github/sooniln/fastgraph/MutableGraph;Lio/github/sooniln/fastgraph/VertexReference;Lio/github/sooniln/fastgraph/VertexReference;)J
 	public static final fun buildGraph (ZZZLkotlin/jvm/functions/Function1;)Lio/github/sooniln/fastgraph/MutableGraph;
@@ -330,23 +280,14 @@ public final class io/github/sooniln/fastgraph/IdentityIsomorphism : io/github/s
 public abstract interface class io/github/sooniln/fastgraph/ImmutableGraph : io/github/sooniln/fastgraph/Graph {
 }
 
-public final class io/github/sooniln/fastgraph/ImmutableGraph$DefaultImpls {
-	public static fun edge (Lio/github/sooniln/fastgraph/ImmutableGraph;II)J
-	public static fun isEmpty (Lio/github/sooniln/fastgraph/ImmutableGraph;)Z
-	public static fun trimToSize (Lio/github/sooniln/fastgraph/ImmutableGraph;)V
-}
-
 public final class io/github/sooniln/fastgraph/ImmutableGraphs {
-	public static final synthetic fun #subgraph (Lio/github/sooniln/fastgraph/ImmutableGraph;Lio/github/sooniln/fastgraph/VertexSet;Lio/github/sooniln/fastgraph/EdgeSet;)Lio/github/sooniln/fastgraph/ImmutableGraph;
 	public static final fun buildImmutableGraph (ZZZLkotlin/jvm/functions/Function1;)Lio/github/sooniln/fastgraph/ImmutableGraph;
 	public static synthetic fun buildImmutableGraph$default (ZZZLkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lio/github/sooniln/fastgraph/ImmutableGraph;
 	public static final fun emptyImmutableGraph (Z)Lio/github/sooniln/fastgraph/ImmutableGraph;
 	public static final fun emptyImmutableValueGraph (ZLkotlin/reflect/KType;Lkotlin/reflect/KType;)Lio/github/sooniln/fastgraph/ImmutableValueGraph;
-	public static final fun immutableGraph (Lio/github/sooniln/fastgraph/Graph;)Lio/github/sooniln/fastgraph/ImmutableGraph;
-	public static final fun immutableValueGraph (Lio/github/sooniln/fastgraph/ValueGraph;)Lio/github/sooniln/fastgraph/ImmutableValueGraph;
 	public static final fun subgraph (Lio/github/sooniln/fastgraph/ImmutableGraph;Lio/github/sooniln/fastgraph/VertexSet;Lio/github/sooniln/fastgraph/EdgeSet;)Lio/github/sooniln/fastgraph/ImmutableGraph;
-	public static final synthetic fun toImmutableGraph (Lio/github/sooniln/fastgraph/Graph;)Lio/github/sooniln/fastgraph/ImmutableGraph;
-	public static final synthetic fun toImmutableValueGraph (Lio/github/sooniln/fastgraph/ValueGraph;)Lio/github/sooniln/fastgraph/ImmutableValueGraph;
+	public static final fun toImmutableGraph (Lio/github/sooniln/fastgraph/Graph;)Lio/github/sooniln/fastgraph/ImmutableGraph;
+	public static final fun toImmutableValueGraph (Lio/github/sooniln/fastgraph/ValueGraph;)Lio/github/sooniln/fastgraph/ImmutableValueGraph;
 }
 
 public final class io/github/sooniln/fastgraph/ImmutableValueGraph : io/github/sooniln/fastgraph/ImmutableGraph, io/github/sooniln/fastgraph/ValueGraph {
@@ -387,12 +328,6 @@ public abstract interface class io/github/sooniln/fastgraph/IndexedEdgeGraph : i
 	public abstract fun getEdges ()Lio/github/sooniln/fastgraph/IndexedEdgeSet;
 }
 
-public final class io/github/sooniln/fastgraph/IndexedEdgeGraph$DefaultImpls {
-	public static fun edge (Lio/github/sooniln/fastgraph/IndexedEdgeGraph;II)J
-	public static fun isEmpty (Lio/github/sooniln/fastgraph/IndexedEdgeGraph;)Z
-	public static fun trimToSize (Lio/github/sooniln/fastgraph/IndexedEdgeGraph;)V
-}
-
 public abstract interface class io/github/sooniln/fastgraph/IndexedEdgeSet : io/github/sooniln/fastgraph/EdgeSet {
 	public abstract fun contains (J)Z
 	public fun contains (Ljava/lang/Object;)Z
@@ -404,24 +339,9 @@ public abstract interface class io/github/sooniln/fastgraph/IndexedEdgeSet : io/
 	public synthetic fun iterator ()Ljava/util/Iterator;
 }
 
-public final class io/github/sooniln/fastgraph/IndexedEdgeSet$DefaultImpls {
-	public static fun containsAll (Lio/github/sooniln/fastgraph/IndexedEdgeSet;Lio/github/sooniln/fastgraph/EdgeCollection;)Z
-	public static fun containsAll (Lio/github/sooniln/fastgraph/IndexedEdgeSet;Ljava/util/Collection;)Z
-	public static fun foreach (Lio/github/sooniln/fastgraph/IndexedEdgeSet;Lio/github/sooniln/fastgraph/EdgeConsumer;)V
-	public static fun isEmpty (Lio/github/sooniln/fastgraph/IndexedEdgeSet;)Z
-	public static fun iterator (Lio/github/sooniln/fastgraph/IndexedEdgeSet;)Lio/github/sooniln/fastgraph/EdgeIterator;
-	public static fun toLongArray (Lio/github/sooniln/fastgraph/IndexedEdgeSet;)[J
-}
-
 public abstract interface class io/github/sooniln/fastgraph/IndexedVertexGraph : io/github/sooniln/fastgraph/Graph {
 	public abstract fun getVertices ()Lio/github/sooniln/fastgraph/IndexedVertexSet;
 	public synthetic fun getVertices ()Lio/github/sooniln/fastgraph/VertexSet;
-}
-
-public final class io/github/sooniln/fastgraph/IndexedVertexGraph$DefaultImpls {
-	public static fun edge (Lio/github/sooniln/fastgraph/IndexedVertexGraph;II)J
-	public static fun isEmpty (Lio/github/sooniln/fastgraph/IndexedVertexGraph;)Z
-	public static fun trimToSize (Lio/github/sooniln/fastgraph/IndexedVertexGraph;)V
 }
 
 public abstract interface class io/github/sooniln/fastgraph/IndexedVertexSet : io/github/sooniln/fastgraph/VertexSet {
@@ -435,15 +355,6 @@ public abstract interface class io/github/sooniln/fastgraph/IndexedVertexSet : i
 	public synthetic fun iterator ()Ljava/util/Iterator;
 }
 
-public final class io/github/sooniln/fastgraph/IndexedVertexSet$DefaultImpls {
-	public static fun containsAll (Lio/github/sooniln/fastgraph/IndexedVertexSet;Lio/github/sooniln/fastgraph/VertexCollection;)Z
-	public static fun containsAll (Lio/github/sooniln/fastgraph/IndexedVertexSet;Ljava/util/Collection;)Z
-	public static fun foreach (Lio/github/sooniln/fastgraph/IndexedVertexSet;Lio/github/sooniln/fastgraph/VertexConsumer;)V
-	public static fun isEmpty (Lio/github/sooniln/fastgraph/IndexedVertexSet;)Z
-	public static fun iterator (Lio/github/sooniln/fastgraph/IndexedVertexSet;)Lio/github/sooniln/fastgraph/VertexIterator;
-	public static fun toIntArray (Lio/github/sooniln/fastgraph/IndexedVertexSet;)[I
-}
-
 public abstract interface class io/github/sooniln/fastgraph/Isomorphism : io/github/sooniln/fastgraph/BijectiveHomomorphism {
 	public abstract fun inverse ()Lio/github/sooniln/fastgraph/Isomorphism;
 }
@@ -454,15 +365,6 @@ public abstract interface class io/github/sooniln/fastgraph/MutableEdgeCollectio
 	public synthetic fun iterator ()Ljava/util/Iterator;
 }
 
-public final class io/github/sooniln/fastgraph/MutableEdgeCollection$DefaultImpls {
-	public static fun contains (Lio/github/sooniln/fastgraph/MutableEdgeCollection;J)Z
-	public static fun containsAll (Lio/github/sooniln/fastgraph/MutableEdgeCollection;Lio/github/sooniln/fastgraph/EdgeCollection;)Z
-	public static fun containsAll (Lio/github/sooniln/fastgraph/MutableEdgeCollection;Ljava/util/Collection;)Z
-	public static fun foreach (Lio/github/sooniln/fastgraph/MutableEdgeCollection;Lio/github/sooniln/fastgraph/EdgeConsumer;)V
-	public static fun isEmpty (Lio/github/sooniln/fastgraph/MutableEdgeCollection;)Z
-	public static fun toLongArray (Lio/github/sooniln/fastgraph/MutableEdgeCollection;)[J
-}
-
 public abstract interface class io/github/sooniln/fastgraph/MutableEdgeIterator : io/github/sooniln/fastgraph/EdgeIterator, java/util/Iterator, kotlin/jvm/internal/markers/KMutableIterator {
 }
 
@@ -471,20 +373,7 @@ public abstract interface class io/github/sooniln/fastgraph/MutableEdgeProperty 
 	public abstract fun set (JLjava/lang/Object;)V
 }
 
-public final class io/github/sooniln/fastgraph/MutableEdgeProperty$DefaultImpls {
-	public static fun put (Lio/github/sooniln/fastgraph/MutableEdgeProperty;JLjava/lang/Object;)Ljava/lang/Object;
-}
-
 public abstract interface class io/github/sooniln/fastgraph/MutableEdgeSet : io/github/sooniln/fastgraph/EdgeSet, io/github/sooniln/fastgraph/MutableEdgeCollection {
-}
-
-public final class io/github/sooniln/fastgraph/MutableEdgeSet$DefaultImpls {
-	public static fun contains (Lio/github/sooniln/fastgraph/MutableEdgeSet;J)Z
-	public static fun containsAll (Lio/github/sooniln/fastgraph/MutableEdgeSet;Lio/github/sooniln/fastgraph/EdgeCollection;)Z
-	public static fun containsAll (Lio/github/sooniln/fastgraph/MutableEdgeSet;Ljava/util/Collection;)Z
-	public static fun foreach (Lio/github/sooniln/fastgraph/MutableEdgeSet;Lio/github/sooniln/fastgraph/EdgeConsumer;)V
-	public static fun isEmpty (Lio/github/sooniln/fastgraph/MutableEdgeSet;)Z
-	public static fun toLongArray (Lio/github/sooniln/fastgraph/MutableEdgeSet;)[J
 }
 
 public abstract interface class io/github/sooniln/fastgraph/MutableGraph : io/github/sooniln/fastgraph/Graph, io/github/sooniln/fastgraph/GraphBuilder {
@@ -496,26 +385,10 @@ public abstract interface class io/github/sooniln/fastgraph/MutableGraph : io/gi
 	public abstract fun removeVertex (I)V
 }
 
-public final class io/github/sooniln/fastgraph/MutableGraph$DefaultImpls {
-	public static fun edge (Lio/github/sooniln/fastgraph/MutableGraph;II)J
-	public static fun ensureEdgeCapacity (Lio/github/sooniln/fastgraph/MutableGraph;I)V
-	public static fun ensureVertexCapacity (Lio/github/sooniln/fastgraph/MutableGraph;I)V
-	public static fun isEmpty (Lio/github/sooniln/fastgraph/MutableGraph;)Z
-	public static fun trimToSize (Lio/github/sooniln/fastgraph/MutableGraph;)V
-}
-
 public abstract interface class io/github/sooniln/fastgraph/MutableIndexedEdgeSet : io/github/sooniln/fastgraph/IndexedEdgeSet, io/github/sooniln/fastgraph/MutableEdgeSet {
 	public synthetic fun iterator ()Lio/github/sooniln/fastgraph/EdgeIterator;
 	public abstract fun iterator ()Lio/github/sooniln/fastgraph/MutableEdgeIterator;
 	public synthetic fun iterator ()Ljava/util/Iterator;
-}
-
-public final class io/github/sooniln/fastgraph/MutableIndexedEdgeSet$DefaultImpls {
-	public static fun containsAll (Lio/github/sooniln/fastgraph/MutableIndexedEdgeSet;Lio/github/sooniln/fastgraph/EdgeCollection;)Z
-	public static fun containsAll (Lio/github/sooniln/fastgraph/MutableIndexedEdgeSet;Ljava/util/Collection;)Z
-	public static fun foreach (Lio/github/sooniln/fastgraph/MutableIndexedEdgeSet;Lio/github/sooniln/fastgraph/EdgeConsumer;)V
-	public static fun isEmpty (Lio/github/sooniln/fastgraph/MutableIndexedEdgeSet;)Z
-	public static fun toLongArray (Lio/github/sooniln/fastgraph/MutableIndexedEdgeSet;)[J
 }
 
 public abstract interface class io/github/sooniln/fastgraph/MutableIndexedVertexSet : io/github/sooniln/fastgraph/IndexedVertexSet, io/github/sooniln/fastgraph/MutableVertexSet {
@@ -524,40 +397,15 @@ public abstract interface class io/github/sooniln/fastgraph/MutableIndexedVertex
 	public synthetic fun iterator ()Ljava/util/Iterator;
 }
 
-public final class io/github/sooniln/fastgraph/MutableIndexedVertexSet$DefaultImpls {
-	public static fun containsAll (Lio/github/sooniln/fastgraph/MutableIndexedVertexSet;Lio/github/sooniln/fastgraph/VertexCollection;)Z
-	public static fun containsAll (Lio/github/sooniln/fastgraph/MutableIndexedVertexSet;Ljava/util/Collection;)Z
-	public static fun foreach (Lio/github/sooniln/fastgraph/MutableIndexedVertexSet;Lio/github/sooniln/fastgraph/VertexConsumer;)V
-	public static fun isEmpty (Lio/github/sooniln/fastgraph/MutableIndexedVertexSet;)Z
-	public static fun toIntArray (Lio/github/sooniln/fastgraph/MutableIndexedVertexSet;)[I
-}
-
 public abstract interface class io/github/sooniln/fastgraph/MutableValueGraph : io/github/sooniln/fastgraph/MutableGraph, io/github/sooniln/fastgraph/ValueGraph {
 	public synthetic fun getGraph ()Lio/github/sooniln/fastgraph/Graph;
 	public abstract fun getGraph ()Lio/github/sooniln/fastgraph/MutableGraph;
-}
-
-public final class io/github/sooniln/fastgraph/MutableValueGraph$DefaultImpls {
-	public static fun edge (Lio/github/sooniln/fastgraph/MutableValueGraph;II)J
-	public static fun ensureEdgeCapacity (Lio/github/sooniln/fastgraph/MutableValueGraph;I)V
-	public static fun ensureVertexCapacity (Lio/github/sooniln/fastgraph/MutableValueGraph;I)V
-	public static fun isEmpty (Lio/github/sooniln/fastgraph/MutableValueGraph;)Z
-	public static fun trimToSize (Lio/github/sooniln/fastgraph/MutableValueGraph;)V
 }
 
 public abstract interface class io/github/sooniln/fastgraph/MutableVertexCollection : io/github/sooniln/fastgraph/VertexCollection {
 	public abstract fun iterator ()Lio/github/sooniln/fastgraph/MutableVertexIterator;
 	public synthetic fun iterator ()Lio/github/sooniln/fastgraph/VertexIterator;
 	public synthetic fun iterator ()Ljava/util/Iterator;
-}
-
-public final class io/github/sooniln/fastgraph/MutableVertexCollection$DefaultImpls {
-	public static fun contains (Lio/github/sooniln/fastgraph/MutableVertexCollection;I)Z
-	public static fun containsAll (Lio/github/sooniln/fastgraph/MutableVertexCollection;Lio/github/sooniln/fastgraph/VertexCollection;)Z
-	public static fun containsAll (Lio/github/sooniln/fastgraph/MutableVertexCollection;Ljava/util/Collection;)Z
-	public static fun foreach (Lio/github/sooniln/fastgraph/MutableVertexCollection;Lio/github/sooniln/fastgraph/VertexConsumer;)V
-	public static fun isEmpty (Lio/github/sooniln/fastgraph/MutableVertexCollection;)Z
-	public static fun toIntArray (Lio/github/sooniln/fastgraph/MutableVertexCollection;)[I
 }
 
 public abstract interface class io/github/sooniln/fastgraph/MutableVertexIterator : io/github/sooniln/fastgraph/VertexIterator, java/util/Iterator, kotlin/jvm/internal/markers/KMutableIterator {
@@ -568,20 +416,7 @@ public abstract interface class io/github/sooniln/fastgraph/MutableVertexPropert
 	public abstract fun set (ILjava/lang/Object;)V
 }
 
-public final class io/github/sooniln/fastgraph/MutableVertexProperty$DefaultImpls {
-	public static fun put (Lio/github/sooniln/fastgraph/MutableVertexProperty;ILjava/lang/Object;)Ljava/lang/Object;
-}
-
 public abstract interface class io/github/sooniln/fastgraph/MutableVertexSet : io/github/sooniln/fastgraph/MutableVertexCollection, io/github/sooniln/fastgraph/VertexSet {
-}
-
-public final class io/github/sooniln/fastgraph/MutableVertexSet$DefaultImpls {
-	public static fun contains (Lio/github/sooniln/fastgraph/MutableVertexSet;I)Z
-	public static fun containsAll (Lio/github/sooniln/fastgraph/MutableVertexSet;Lio/github/sooniln/fastgraph/VertexCollection;)Z
-	public static fun containsAll (Lio/github/sooniln/fastgraph/MutableVertexSet;Ljava/util/Collection;)Z
-	public static fun foreach (Lio/github/sooniln/fastgraph/MutableVertexSet;Lio/github/sooniln/fastgraph/VertexConsumer;)V
-	public static fun isEmpty (Lio/github/sooniln/fastgraph/MutableVertexSet;)Z
-	public static fun toIntArray (Lio/github/sooniln/fastgraph/MutableVertexSet;)[I
 }
 
 public final class io/github/sooniln/fastgraph/StaticType {
@@ -604,6 +439,8 @@ public final class io/github/sooniln/fastgraph/StaticType {
 	public static fun hashCode-impl (Lkotlin/reflect/KType;)I
 	public static final fun int ()Lio/github/sooniln/fastgraph/StaticType;
 	public static final fun int ()Lkotlin/reflect/KType;
+	public final fun isUnitType ()Z
+	public static final fun isUnitType-impl (Lkotlin/reflect/KType;)Z
 	public static final fun long ()Lio/github/sooniln/fastgraph/StaticType;
 	public static final fun long ()Lkotlin/reflect/KType;
 	public final fun mayCastTo (Lio/github/sooniln/fastgraph/StaticType;)Z
@@ -657,12 +494,6 @@ public abstract interface class io/github/sooniln/fastgraph/ValueGraph : io/gith
 	public abstract fun getVertexProperty ()Lio/github/sooniln/fastgraph/MutableVertexProperty;
 }
 
-public final class io/github/sooniln/fastgraph/ValueGraph$DefaultImpls {
-	public static fun edge (Lio/github/sooniln/fastgraph/ValueGraph;II)J
-	public static fun isEmpty (Lio/github/sooniln/fastgraph/ValueGraph;)Z
-	public static fun trimToSize (Lio/github/sooniln/fastgraph/ValueGraph;)V
-}
-
 public abstract interface class io/github/sooniln/fastgraph/ValueGraphBuilder : io/github/sooniln/fastgraph/GraphBuilder {
 	public abstract fun addEdge (IILjava/lang/Object;)J
 	public fun addEdge (Ljava/lang/Object;Ljava/lang/Object;)J
@@ -670,13 +501,6 @@ public abstract interface class io/github/sooniln/fastgraph/ValueGraphBuilder : 
 	public abstract fun addVertex (Ljava/lang/Object;)I
 	public abstract fun getVertex (Ljava/lang/Object;)I
 	public abstract fun hasVertex (Ljava/lang/Object;)Z
-}
-
-public final class io/github/sooniln/fastgraph/ValueGraphBuilder$DefaultImpls {
-	public static fun addEdge (Lio/github/sooniln/fastgraph/ValueGraphBuilder;Ljava/lang/Object;Ljava/lang/Object;)J
-	public static fun addEdge (Lio/github/sooniln/fastgraph/ValueGraphBuilder;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J
-	public static fun ensureEdgeCapacity (Lio/github/sooniln/fastgraph/ValueGraphBuilder;I)V
-	public static fun ensureVertexCapacity (Lio/github/sooniln/fastgraph/ValueGraphBuilder;I)V
 }
 
 public final class io/github/sooniln/fastgraph/Vertex {
@@ -711,11 +535,6 @@ public abstract interface class io/github/sooniln/fastgraph/VertexChangeListener
 	public fun trimToSize ()V
 }
 
-public final class io/github/sooniln/fastgraph/VertexChangeListener$DefaultImpls {
-	public static fun ensureVertexCapacity (Lio/github/sooniln/fastgraph/VertexChangeListener;I)V
-	public static fun trimToSize (Lio/github/sooniln/fastgraph/VertexChangeListener;)V
-}
-
 public abstract interface class io/github/sooniln/fastgraph/VertexCollection : io/github/sooniln/fastgraph/VertexIterable, java/util/Collection, kotlin/jvm/internal/markers/KMappedMarker {
 	public fun contains (I)Z
 	public fun contains (Ljava/lang/Object;)Z
@@ -724,15 +543,6 @@ public abstract interface class io/github/sooniln/fastgraph/VertexCollection : i
 	public fun foreach (Lio/github/sooniln/fastgraph/VertexConsumer;)V
 	public fun isEmpty ()Z
 	public fun toIntArray ()[I
-}
-
-public final class io/github/sooniln/fastgraph/VertexCollection$DefaultImpls {
-	public static fun contains (Lio/github/sooniln/fastgraph/VertexCollection;I)Z
-	public static fun containsAll (Lio/github/sooniln/fastgraph/VertexCollection;Lio/github/sooniln/fastgraph/VertexCollection;)Z
-	public static fun containsAll (Lio/github/sooniln/fastgraph/VertexCollection;Ljava/util/Collection;)Z
-	public static fun foreach (Lio/github/sooniln/fastgraph/VertexCollection;Lio/github/sooniln/fastgraph/VertexConsumer;)V
-	public static fun isEmpty (Lio/github/sooniln/fastgraph/VertexCollection;)Z
-	public static fun toIntArray (Lio/github/sooniln/fastgraph/VertexCollection;)[I
 }
 
 public abstract interface class io/github/sooniln/fastgraph/VertexConsumer {
@@ -795,15 +605,6 @@ public abstract interface class io/github/sooniln/fastgraph/VertexSet : io/githu
 	public fun contains (Ljava/lang/Object;)Z
 	public fun containsAll (Ljava/util/Collection;)Z
 	public fun isEmpty ()Z
-}
-
-public final class io/github/sooniln/fastgraph/VertexSet$DefaultImpls {
-	public static fun contains (Lio/github/sooniln/fastgraph/VertexSet;I)Z
-	public static fun containsAll (Lio/github/sooniln/fastgraph/VertexSet;Lio/github/sooniln/fastgraph/VertexCollection;)Z
-	public static fun containsAll (Lio/github/sooniln/fastgraph/VertexSet;Ljava/util/Collection;)Z
-	public static fun foreach (Lio/github/sooniln/fastgraph/VertexSet;Lio/github/sooniln/fastgraph/VertexConsumer;)V
-	public static fun isEmpty (Lio/github/sooniln/fastgraph/VertexSet;)Z
-	public static fun toIntArray (Lio/github/sooniln/fastgraph/VertexSet;)[I
 }
 
 public final class io/github/sooniln/fastgraph/Vertices {

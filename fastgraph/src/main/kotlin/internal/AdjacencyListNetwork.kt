@@ -96,11 +96,13 @@ internal class AdjacencyListNetwork(
         edgeListeners.notifyEnsureCapacity(edgeCapacity)
     }
 
-    override fun addVertex(): Vertex {
+    override fun addVertex(): Vertex = addVertex(0, 0)
+
+    override fun addVertex(outDegreeCapacity: Int, inDegreeCapacity: Int): Vertex {
         val vertex = Vertex(successors.size)
-        successors.add(AdjacencySet())
+        successors.add(AdjacencySet(outDegreeCapacity))
         if (_predecessors.isInitialized()) {
-            predecessors.add(AdjacencySet())
+            predecessors.add(AdjacencySet(inDegreeCapacity))
         }
 
         vertexListeners.notifyVertexAdded(vertex)
@@ -385,12 +387,12 @@ internal class AdjacencyListNetwork(
             adjacencies.foreach { edgeAdjacency -> action.accept(canonicalEdge(edgeAdjacency.edgeId)) }
     }
 
-    private class AdjacencySet : EdgeAdjacencySet {
+    private class AdjacencySet(degreeHint: Int = 0) : EdgeAdjacencySet {
 
         // map of vertices to edges
         // if a vertex is associated with only a single edge, the value in this map is the edge id
         // if a vertex is associated with multiple edges, the negated value in this map is the key into edgeListMap
-        private val map = Int2IntHashMap(defaultValue = Int.MIN_VALUE)
+        private val map = Int2IntHashMap(degreeHint, Int.MIN_VALUE)
 
         // TODO: performance implications of changing this to a set?
         private val edgeListMap = Int2AnyHashMap<IntArrayList>()

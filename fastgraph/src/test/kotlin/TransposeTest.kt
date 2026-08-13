@@ -39,7 +39,6 @@ class TransposeTest {
         constructGraph(false, immutable)
 
         assertThat(graph.transpose()).isSameAs(graph)
-        assertThat(transpose(graph)).isSameAs(graph)
     }
 
     @ParameterizedTest(name = "immutable={0}")

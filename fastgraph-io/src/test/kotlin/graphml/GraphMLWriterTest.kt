@@ -18,16 +18,18 @@ class GraphMLWriterTest {
         val edge = graph.addEdge(a, b)
 
         val output = ByteArrayOutputStream()
-        writeGraphML(output, graph) { indent = false; writeParseInfo = false }
+        writeGraphML(output, GraphMLGraph(graph))
 
         assertThat(output.toString(Charsets.UTF_8)).isEqualTo(
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\">" +
-                "<graph id=\"G\" edgedefault=\"directed\">" +
-                "<node id=\"n${a.id}\"></node>" +
-                "<node id=\"n${b.id}\"></node>" +
-                "<edge id=\"e${edge.id}\" source=\"n${a.id}\" target=\"n${b.id}\"></edge>" +
-                "</graph></graphml>"
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\">\n" +
+                "  <graph id=\"G\" edgedefault=\"directed\" parse.nodes=\"2\" parse.edges=\"1\" parse.order=\"nodesfirst\" " +
+                "parse.nodeids=\"canonical\">\n" +
+                "    <node id=\"n${a.id}\" parse.indegree=\"0\" parse.outdegree=\"1\"></node>\n" +
+                "    <node id=\"n${b.id}\" parse.indegree=\"1\" parse.outdegree=\"0\"></node>\n" +
+                "    <edge id=\"e${edge.id}\" source=\"n${a.id}\" target=\"n${b.id}\"></edge>\n" +
+                "  </graph>\n" +
+                "</graphml>"
         )
     }
 
@@ -38,14 +40,15 @@ class GraphMLWriterTest {
         val label = graph.createVertexProperty<String>("hi")
 
         val output = ByteArrayOutputStream()
-        writeGraphML(output, graph, vertexProperties = mapOf("label" to label)) { writeParseInfo = false }
+        writeGraphML(output, GraphMLGraph(graph, vertexProperties = mapOf("label" to label)))
 
         assertThat(output.toString(Charsets.UTF_8)).isEqualTo(
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
                 "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\">\n" +
                 "  <key id=\"d0\" for=\"node\" attr.name=\"label\" attr.type=\"string\"/>\n" +
-                "  <graph id=\"G\" edgedefault=\"directed\">\n" +
-                "    <node id=\"n${a.id}\">\n" +
+                "  <graph id=\"G\" edgedefault=\"directed\" parse.nodes=\"1\" parse.edges=\"0\" parse.order=\"nodesfirst\" " +
+                "parse.nodeids=\"canonical\">\n" +
+                "    <node id=\"n${a.id}\" parse.indegree=\"0\" parse.outdegree=\"0\">\n" +
                 "      <data key=\"d0\">hi</data>\n" +
                 "    </node>\n" +
                 "  </graph>\n" +
@@ -67,21 +70,31 @@ class GraphMLWriterTest {
         val output = ByteArrayOutputStream()
         writeGraphML(
             output,
-            graph,
-            vertexProperties = mapOf("score" to score),
-            edgeProperties = mapOf("label" to label),
-        ) { indent = false; writeParseInfo = false }
+            GraphMLGraph(
+                graph,
+                vertexProperties = mapOf("score" to score),
+                edgeProperties = mapOf("label" to label),
+            ),
+        )
 
         assertThat(output.toString(Charsets.UTF_8)).isEqualTo(
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\">" +
-                "<key id=\"d0\" for=\"node\" attr.name=\"score\" attr.type=\"int\"/>" +
-                "<key id=\"d1\" for=\"edge\" attr.name=\"label\" attr.type=\"string\"/>" +
-                "<graph id=\"G\" edgedefault=\"directed\">" +
-                "<node id=\"n${a.id}\"><data key=\"d0\">5</data></node>" +
-                "<node id=\"n${b.id}\"><data key=\"d0\">0</data></node>" +
-                "<edge id=\"e${edge.id}\" source=\"n${a.id}\" target=\"n${b.id}\"><data key=\"d1\">connects</data></edge>" +
-                "</graph></graphml>"
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\">\n" +
+                "  <key id=\"d0\" for=\"node\" attr.name=\"score\" attr.type=\"int\"/>\n" +
+                "  <key id=\"d1\" for=\"edge\" attr.name=\"label\" attr.type=\"string\"/>\n" +
+                "  <graph id=\"G\" edgedefault=\"directed\" parse.nodes=\"2\" parse.edges=\"1\" parse.order=\"nodesfirst\" " +
+                "parse.nodeids=\"canonical\">\n" +
+                "    <node id=\"n${a.id}\" parse.indegree=\"0\" parse.outdegree=\"1\">\n" +
+                "      <data key=\"d0\">5</data>\n" +
+                "    </node>\n" +
+                "    <node id=\"n${b.id}\" parse.indegree=\"1\" parse.outdegree=\"0\">\n" +
+                "      <data key=\"d0\">0</data>\n" +
+                "    </node>\n" +
+                "    <edge id=\"e${edge.id}\" source=\"n${a.id}\" target=\"n${b.id}\">\n" +
+                "      <data key=\"d1\">connects</data>\n" +
+                "    </edge>\n" +
+                "  </graph>\n" +
+                "</graphml>"
         )
     }
 
@@ -92,15 +105,19 @@ class GraphMLWriterTest {
         val label = graph.createVertexProperty<String?>(null)
 
         val output = ByteArrayOutputStream()
-        writeGraphML(output, graph, vertexProperties = mapOf("label" to label)) { indent = false; writeParseInfo = false }
+        writeGraphML(output, GraphMLGraph(graph, vertexProperties = mapOf("label" to label)))
 
         assertThat(output.toString(Charsets.UTF_8)).isEqualTo(
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\">" +
-                "<key id=\"d0\" for=\"node\" attr.name=\"label\" attr.type=\"string\"/>" +
-                "<graph id=\"G\" edgedefault=\"directed\">" +
-                "<node id=\"n${a.id}\"><data key=\"d0\"></data></node>" +
-                "</graph></graphml>"
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\">\n" +
+                "  <key id=\"d0\" for=\"node\" attr.name=\"label\" attr.type=\"string\"/>\n" +
+                "  <graph id=\"G\" edgedefault=\"directed\" parse.nodes=\"1\" parse.edges=\"0\" parse.order=\"nodesfirst\" " +
+                "parse.nodeids=\"canonical\">\n" +
+                "    <node id=\"n${a.id}\" parse.indegree=\"0\" parse.outdegree=\"0\">\n" +
+                "      <data key=\"d0\"></data>\n" +
+                "    </node>\n" +
+                "  </graph>\n" +
+                "</graphml>"
         )
     }
 
@@ -111,15 +128,16 @@ class GraphMLWriterTest {
         val a = graph.addVertex()
 
         val output = ByteArrayOutputStream()
-        writeGraphML(output, graph) { indent = false }
+        writeGraphML(output, GraphMLGraph(graph))
 
         assertThat(output.toString(Charsets.UTF_8)).isEqualTo(
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\">" +
-                "<graph id=\"G\" edgedefault=\"directed\" parse.nodes=\"1\" parse.edges=\"0\" parse.maxindegree=\"0\" " +
-                "parse.maxoutdegree=\"0\" parse.order=\"nodesfirst\" parse.nodeids=\"canonical\">" +
-                "<node id=\"n${a.id}\" parse.indegree=\"0\" parse.outdegree=\"0\"></node>" +
-                "</graph></graphml>"
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\">\n" +
+                "  <graph id=\"G\" edgedefault=\"directed\" parse.nodes=\"1\" parse.edges=\"0\" parse.order=\"nodesfirst\" " +
+                "parse.nodeids=\"canonical\">\n" +
+                "    <node id=\"n${a.id}\" parse.indegree=\"0\" parse.outdegree=\"0\"></node>\n" +
+                "  </graph>\n" +
+                "</graphml>"
         )
     }
 
@@ -132,35 +150,48 @@ class GraphMLWriterTest {
         val edge = graph.addEdge(a, b)
 
         val output = ByteArrayOutputStream()
-        writeGraphML(output, graph) { indent = false }
+        writeGraphML(output, GraphMLGraph(graph))
 
         assertThat(output.toString(Charsets.UTF_8)).isEqualTo(
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\">" +
-                "<graph id=\"G\" edgedefault=\"directed\" parse.nodes=\"2\" parse.edges=\"1\" parse.maxindegree=\"1\" " +
-                "parse.maxoutdegree=\"1\" parse.order=\"nodesfirst\" parse.nodeids=\"canonical\" parse.edgeids=\"canonical\">" +
-                "<node id=\"n${a.id}\" parse.indegree=\"0\" parse.outdegree=\"1\"></node>" +
-                "<node id=\"n${b.id}\" parse.indegree=\"1\" parse.outdegree=\"0\"></node>" +
-                "<edge id=\"e${edge.id}\" source=\"n${a.id}\" target=\"n${b.id}\"></edge>" +
-                "</graph></graphml>"
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\">\n" +
+                "  <graph id=\"G\" edgedefault=\"directed\" parse.nodes=\"2\" parse.edges=\"1\" parse.order=\"nodesfirst\" " +
+                "parse.nodeids=\"canonical\" parse.edgeids=\"canonical\">\n" +
+                "    <node id=\"n${a.id}\" parse.indegree=\"0\" parse.outdegree=\"1\"></node>\n" +
+                "    <node id=\"n${b.id}\" parse.indegree=\"1\" parse.outdegree=\"0\"></node>\n" +
+                "    <edge id=\"e${edge.id}\" source=\"n${a.id}\" target=\"n${b.id}\"></edge>\n" +
+                "  </graph>\n" +
+                "</graphml>"
         )
     }
 
     @Test
-    fun parseInfoAbsentWhenDisabled() {
+    fun graphAttributesAreWrittenWithInferredAttrType() {
         val graph = mutableGraph(directed = true)
-        val a = graph.addVertex()
+        graph.addVertex()
 
         val output = ByteArrayOutputStream()
-        writeGraphML(output, graph) { indent = false; writeParseInfo = false }
+        writeGraphML(output, GraphMLGraph(graph, graphAttributes = mapOf("count" to 7, "label" to "hi")))
 
-        assertThat(output.toString(Charsets.UTF_8)).isEqualTo(
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\">" +
-                "<graph id=\"G\" edgedefault=\"directed\">" +
-                "<node id=\"n${a.id}\"></node>" +
-                "</graph></graphml>"
-        )
+        val xml = output.toString(Charsets.UTF_8)
+        assertThat(xml).contains("<key id=\"d0\" for=\"graph\" attr.name=\"count\" attr.type=\"int\"/>")
+        assertThat(xml).contains("<key id=\"d1\" for=\"graph\" attr.name=\"label\" attr.type=\"string\"/>")
+        assertThat(xml).contains("<data key=\"d0\">7</data>")
+        assertThat(xml).contains("<data key=\"d1\">hi</data>")
+    }
+
+    @Test
+    fun graphAttributesRoundTripThroughReadGraphML() {
+        val graph = mutableGraph(directed = true)
+        graph.addVertex()
+
+        val output = ByteArrayOutputStream()
+        writeGraphML(output, GraphMLGraph(graph, graphAttributes = mapOf("count" to 7, "label" to "hi")))
+
+        val result = readGraphML(output.toByteArray().inputStream())
+
+        assertThat(result.graphAttributes).containsEntry("count", 7)
+        assertThat(result.graphAttributes).containsEntry("label", "hi")
     }
 
     @Test
@@ -173,7 +204,7 @@ class GraphMLWriterTest {
         weight[edge] = 9
 
         val output = ByteArrayOutputStream()
-        writeGraphML(output, graph, edgeProperties = mapOf("weight" to weight))
+        writeGraphML(output, GraphMLGraph(graph, edgeProperties = mapOf("weight" to weight)))
 
         val result = readGraphML(output.toByteArray().inputStream())
 

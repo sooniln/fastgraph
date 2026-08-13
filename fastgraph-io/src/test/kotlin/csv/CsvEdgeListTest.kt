@@ -1,6 +1,7 @@
 package io.github.sooniln.fastgraph.io.csv
 
 import io.github.sooniln.fastgraph.EdgeProperty
+import io.github.sooniln.fastgraph.io.TypeBinding
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -9,7 +10,7 @@ class CsvEdgeListTest {
 
     @Test
     fun basicDirectedEdgeList() {
-        val result = readCsvEdgeList("a,b\nb,c\n".byteInputStream(), directed = true, multiEdge = false, vertexColumn = CsvVertexField.string)
+        val result = readCsvEdgeList("a,b\nb,c\n".byteInputStream(), directed = true, multiEdge = false)
 
         assertThat(result.graph.directed).isTrue()
         assertThat(result.graph.vertices).hasSize(3)
@@ -18,14 +19,14 @@ class CsvEdgeListTest {
 
     @Test
     fun undirectedEdgeList() {
-        val result = readCsvEdgeList("a,b\n".byteInputStream(), directed = false, multiEdge = false, vertexColumn = CsvVertexField.string)
+        val result = readCsvEdgeList("a,b\n".byteInputStream(), directed = false, multiEdge = false)
 
         assertThat(result.graph.directed).isFalse()
     }
 
     @Test
     fun duplicateVertexValuesAreDeduplicated() {
-        val result = readCsvEdgeList("a,b\na,c\n".byteInputStream(), directed = true, multiEdge = false, vertexColumn = CsvVertexField.string)
+        val result = readCsvEdgeList("a,b\na,c\n".byteInputStream(), directed = true, multiEdge = false)
 
         assertThat(result.graph.vertices).hasSize(3)
         assertThat(result.graph.edges).hasSize(2)
@@ -33,7 +34,7 @@ class CsvEdgeListTest {
 
     @Test
     fun selfLoopSupported() {
-        val result = readCsvEdgeList("a,a\n".byteInputStream(), directed = true, multiEdge = false, vertexColumn = CsvVertexField.string)
+        val result = readCsvEdgeList("a,a\n".byteInputStream(), directed = true, multiEdge = false)
 
         assertThat(result.graph.vertices).hasSize(1)
         assertThat(result.graph.edges).hasSize(1)
@@ -45,7 +46,7 @@ class CsvEdgeListTest {
         // IllegalArgumentException MutableGraph.addEdge throws for a duplicate edge - as a CsvFormatException so the
         // failure is reported with line context; the original exception is preserved as the cause.
         val exception = assertThrows<CsvFormatException> {
-            readCsvEdgeList("a,b\na,b\n".byteInputStream(), directed = true, multiEdge = false, vertexColumn = CsvVertexField.string)
+            readCsvEdgeList("a,b\na,b\n".byteInputStream(), directed = true, multiEdge = false)
         }
 
         assertThat(exception.cause).isInstanceOf(IllegalArgumentException::class.java)
@@ -53,7 +54,7 @@ class CsvEdgeListTest {
 
     @Test
     fun duplicateEdgeWithMultiEdgeAllowed() {
-        val result = readCsvEdgeList("a,b\na,b\n".byteInputStream(), directed = true, multiEdge = true, vertexColumn = CsvVertexField.string)
+        val result = readCsvEdgeList("a,b\na,b\n".byteInputStream(), directed = true, multiEdge = true)
 
         assertThat(result.graph.vertices).hasSize(2)
         assertThat(result.graph.edges).hasSize(2)
@@ -65,8 +66,7 @@ class CsvEdgeListTest {
             "source,target\na,b\n".byteInputStream(),
             directed = true,
             multiEdge = false,
-            vertexColumn = CsvVertexField.string,
-            options = { hasHeader = true },
+            csvOptions = CsvOptions(hasHeader = true),
         )
 
         assertThat(result.graph.vertices).hasSize(2)
@@ -79,8 +79,7 @@ class CsvEdgeListTest {
             "# comment\na,b\n# another\nb,c\n".byteInputStream(),
             directed = true,
             multiEdge = false,
-            vertexColumn = CsvVertexField.string,
-            options = { comment = '#' },
+            csvOptions = CsvOptions(comment = '#'),
         )
 
         assertThat(result.graph.vertices).hasSize(3)
@@ -93,8 +92,7 @@ class CsvEdgeListTest {
             "a\tb\n".byteInputStream(),
             directed = true,
             multiEdge = false,
-            vertexColumn = CsvVertexField.string,
-            options = { delimiter = '\t' },
+            csvOptions = CsvOptions(delimiter = '\t'),
         )
 
         assertThat(result.graph.edges).hasSize(1)
@@ -102,7 +100,7 @@ class CsvEdgeListTest {
 
     @Test
     fun quotedFieldCanContainDelimiter() {
-        val result = readCsvEdgeList("\"a,x\",b\n".byteInputStream(), directed = true, multiEdge = false, vertexColumn = CsvVertexField.string)
+        val result = readCsvEdgeList("\"a,x\",b\n".byteInputStream(), directed = true, multiEdge = false)
 
         assertThat(result.graph.vertices).hasSize(2)
     }
@@ -113,8 +111,7 @@ class CsvEdgeListTest {
             "a,b,42,3.5\n".byteInputStream(),
             directed = true,
             multiEdge = false,
-            vertexColumn = CsvVertexField.string,
-            edgeColumns = listOf(CsvEdgeField.int, CsvEdgeField.double),
+            edgePropertyTypes = listOf(TypeBinding.int, TypeBinding.double),
         )
         val edge = result.graph.edges.single()
 
@@ -131,14 +128,14 @@ class CsvEdgeListTest {
     @Test
     fun rowWithWrongColumnCountThrowsCsvFormatException() {
         assertThrows<CsvFormatException> {
-            readCsvEdgeList("a\n".byteInputStream(), directed = true, multiEdge = false, vertexColumn = CsvVertexField.string)
+            readCsvEdgeList("a\n".byteInputStream(), directed = true, multiEdge = false)
         }
     }
 
     @Test
     fun unterminatedQuoteThrowsCsvFormatException() {
         assertThrows<CsvFormatException> {
-            readCsvEdgeList("\"a,b\n".byteInputStream(), directed = true, multiEdge = false, vertexColumn = CsvVertexField.string)
+            readCsvEdgeList("\"a,b\n".byteInputStream(), directed = true, multiEdge = false)
         }
     }
 
@@ -149,8 +146,7 @@ class CsvEdgeListTest {
                 "a,b,notanumber\n".byteInputStream(),
                 directed = true,
                 multiEdge = false,
-                vertexColumn = CsvVertexField.string,
-                edgeColumns = listOf(CsvEdgeField.int),
+                edgePropertyTypes = listOf(TypeBinding.int),
             )
         }
 

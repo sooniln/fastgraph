@@ -189,7 +189,7 @@ class GraphMLTest {
     fun unsupportedKeyForValueThrows() {
         val xml = """
             <graphml>
-              <key id="x" for="graph" attr.name="meta" attr.type="string"/>
+              <key id="x" for="hyperedge" attr.name="meta" attr.type="string"/>
               <graph edgedefault="directed">
                 <node id="a"/>
               </graph>
@@ -197,6 +197,75 @@ class GraphMLTest {
         """.trimIndent()
 
         assertThrows<GraphMLFormatException> { readGraphML(xml.byteInputStream()) }
+    }
+
+    @Test
+    fun graphLevelDataIsParsedWithTypedValue() {
+        val xml = """
+            <graphml>
+              <key id="x" for="graph" attr.name="count" attr.type="int"/>
+              <graph edgedefault="directed">
+                <data key="x">7</data>
+                <node id="a"/>
+              </graph>
+            </graphml>
+        """.trimIndent()
+
+        val result = readGraphML(xml.byteInputStream())
+
+        assertThat(result.graphAttributes).containsEntry("count", 7)
+    }
+
+    @Test
+    fun graphLevelDefaultAppliedWhenDataOmitted() {
+        val xml = """
+            <graphml>
+              <key id="x" for="graph" attr.name="label" attr.type="string">
+                <default>untitled</default>
+              </key>
+              <graph edgedefault="directed">
+                <node id="a"/>
+              </graph>
+            </graphml>
+        """.trimIndent()
+
+        val result = readGraphML(xml.byteInputStream())
+
+        assertThat(result.graphAttributes).containsEntry("label", "untitled")
+    }
+
+    @Test
+    fun graphLevelAttributeAbsentWhenNoDefaultOrData() {
+        val xml = """
+            <graphml>
+              <key id="x" for="graph" attr.name="label" attr.type="string"/>
+              <graph edgedefault="directed">
+                <node id="a"/>
+              </graph>
+            </graphml>
+        """.trimIndent()
+
+        val result = readGraphML(xml.byteInputStream())
+
+        assertThat(result.graphAttributes).isEmpty()
+    }
+
+    @Test
+    fun keyForAllUsableAtGraphLevelToo() {
+        val xml = """
+            <graphml>
+              <key id="x" for="all" attr.name="label" attr.type="string"/>
+              <graph edgedefault="directed">
+                <data key="x">graphLabel</data>
+                <node id="a"><data key="x">nodeLabel</data></node>
+              </graph>
+            </graphml>
+        """.trimIndent()
+
+        val result = readGraphML(xml.byteInputStream())
+
+        assertThat(result.graphAttributes).containsEntry("label", "graphLabel")
+        assertThat(result.vertexProperties.getValue("label")[result.graph.vertices.single()]).isEqualTo("nodeLabel")
     }
 
     @Test
@@ -281,7 +350,6 @@ class GraphMLTest {
         val result = readGraphML(xml.byteInputStream())
 
         assertThat(result.graph.vertices).hasSize(1)
-        assertThat(result.nodeIdProperty[result.graph.vertices.single()]).isEqualTo("n1")
     }
 
     @Test
@@ -340,8 +408,7 @@ class GraphMLTest {
         val graph = result.graph
 
         assertThat(graph.edges).hasSize(2)
-        val a = graph.vertices.first { result.nodeIdProperty[it] == "a" }
-        val b = graph.vertices.first { result.nodeIdProperty[it] == "b" }
+        val (a, b) = graph.vertices.toList()
         assertThat(graph.hasEdge(a, b)).isTrue()
         assertThat(graph.hasEdge(b, a)).isTrue()
 

@@ -34,24 +34,30 @@ public inline fun <reified T> staticTypeOf(): StaticType<T> {
 @OptIn(ExperimentalStdlibApi::class)
 @JvmInline
 @JvmExposeBoxed
-public value class StaticType<T> private constructor(public val kType: KType?) {
+public value class StaticType<out T> private constructor(public val kType: KType?) {
 
     /** Prefer to use [staticTypeOf] instead (or for Java client, use the static class methods). */
     public constructor(kType: KType, kClass: KClass<T & Any>) : this(kType) {
         require(kType.classifier == kClass)
     }
 
+    /** Will only return true for exact type matches, not for subtypes (even though those are valid). */
     @JvmName("mayCastTo")
     public fun <O> mayCastTo(other: StaticType<O>): Boolean {
         return other.kType != null && mayCastTo(other.kType)
     }
 
+    /** Will only return true for exact type matches, not for subtypes (even though those are valid). */
     @JvmSynthetic
     public fun mayCastTo(other: KType): Boolean {
         return kType?.classifier != null
             && other.classifier != null
             && kType.classifier == other.classifier
             && (other.isMarkedNullable || kType.isMarkedNullable == other.isMarkedNullable)
+    }
+
+    public fun isUnitType(): Boolean {
+        return kType == unit.kType
     }
 
     override fun toString(): String = kType.toString()

@@ -33,8 +33,8 @@ import io.github.sooniln.fastgraph.subgraph.Subgraphs
  * [Vertex] and [Edge] references are unstable - that is they may be invalidated as the graph changes. For more details
  * on unstable vs stable references, see [VertexReference] and [EdgeReference].
  *
- * To create graphs, see the [mutableGraph] factory methods. To create immutable graphs, see the [immutableGraph]
- * factory methods.
+ * To create graphs, see the [mutableGraph]/[buildGraph]/etc factory methods. See also [ImmutableGraph] for more
+ * information on immutable graphs.
  *
  * See [MutableGraph] for the mutable version of this interface which allows for modifying the topology.
  */
@@ -423,9 +423,6 @@ public interface EdgeChangeListener {
  * value initialized to null.
  */
 public inline fun <reified T> Graph.createVertexProperty(): MutableVertexProperty<T?> {
-    // thanks to kotlin's decision to not have reasonable generic type information, this idiocy results. this also means
-    // we're forced to stick with java's class type (instead of KType) and thus can't support multi-platform
-    @Suppress("UNCHECKED_CAST")
     return createVertexProperty(staticTypeOf<T?>()) { null }
 }
 
@@ -433,11 +430,7 @@ public inline fun <reified T> Graph.createVertexProperty(): MutableVertexPropert
  * A convenient extension method for [Graph.createEdgeProperty] that creates a [MutableEdgeProperty] with every value
  * initialized to null.
  */
-@JvmSynthetic
 public inline fun <reified T> Graph.createEdgeProperty(): MutableEdgeProperty<T?> {
-    // thanks to kotlin's decision to not have reasonable generic type information, this idiocy results. this also means
-    // we're forced to stick with java's class type (instead of KType) and thus can't support multi-platform
-    @Suppress("UNCHECKED_CAST")
     return createEdgeProperty(staticTypeOf<T?>()) { null }
 }
 
@@ -445,7 +438,6 @@ public inline fun <reified T> Graph.createEdgeProperty(): MutableEdgeProperty<T?
  * A convenient extension method for [Graph.createVertexProperty] that does not require explicitly providing the
  * [Class].
  */
-@JvmSynthetic
 public inline fun <reified T> Graph.createVertexProperty(
     defaultValueFunction: VertexFunction<T>
 ): MutableVertexProperty<T> {
@@ -455,7 +447,6 @@ public inline fun <reified T> Graph.createVertexProperty(
 /**
  * A convenient extension method for [Graph.createEdgeProperty] that does not require explicitly providing the [Class].
  */
-@JvmSynthetic
 public inline fun <reified T> Graph.createEdgeProperty(
     defaultValueFunction: EdgeFunction<T>
 ): MutableEdgeProperty<T> {
@@ -466,7 +457,6 @@ public inline fun <reified T> Graph.createEdgeProperty(
  * A convenient extension method for [Graph.createVertexProperty] that does not require explicitly providing the
  * [Class].
  */
-@JvmSynthetic
 public inline fun <reified T> Graph.createVertexProperty(defaultValue: T): MutableVertexProperty<T> {
     return createVertexProperty(staticTypeOf<T>()) { defaultValue }
 }
@@ -474,7 +464,6 @@ public inline fun <reified T> Graph.createVertexProperty(defaultValue: T): Mutab
 /**
  * A convenient extension method for [Graph.createEdgeProperty] that does not require explicitly providing the [Class].
  */
-@JvmSynthetic
 public inline fun <reified T> Graph.createEdgeProperty(defaultValue: T): MutableEdgeProperty<T> {
     return createEdgeProperty(staticTypeOf<T>()) { defaultValue }
 }
@@ -518,6 +507,13 @@ public interface GraphBuilder {
     public fun addVertex(): Vertex
 
     /**
+     * Adds a new vertex to the graph and returns it. Optionally may pre-allocate enough memory for the given
+     * [outDegreeCapacity]/[inDegreeCapacity].
+     */
+    @JvmName("addVertex")
+    public fun addVertex(outDegreeCapacity: Int, inDegreeCapacity: Int): Vertex = addVertex()
+
+    /**
      * Adds a new edge connecting the given source and target vertex. See [Graph.hasEdge] for caveats on how
      * source/target are treated in undirected graphs. In a [MutableGraph] implementation that does not support
      * multi-edges, this method will throw [IllegalArgumentException] if there already exists an edge connecting those
@@ -527,12 +523,12 @@ public interface GraphBuilder {
     public fun addEdge(source: Vertex, target: Vertex): Edge
 
     /**
-     * Optionally implemented to pre-allocate enough memory for the given number of total vertices.
+     * Optionally implemented to pre-allocate enough memory for the given [vertexCapacity].
      */
     public fun ensureVertexCapacity(vertexCapacity: Int) {}
 
     /**
-     * Optionally implemented to pre-allocate enough memory for the given number of total edges.
+     * Optionally implemented to pre-allocate enough memory for the given [edgeCapacity].
      */
     public fun ensureEdgeCapacity(edgeCapacity: Int) {}
 }
@@ -584,7 +580,9 @@ public fun MutableGraph.removeEdge(edgeReference: EdgeReference): Unit = removeE
 /**
  * A convenience interface for bundling a graph topology and an associated vertex and edge property. The [ValueGraph]
  * itself implements [Graph] as a convenience - invoking graph methods on the [ValueGraph] is the same as invoking them
- * on [graph].
+ * on [graph]. However, note that this is just a convenience - in particular the [ValueGraph] is NOT guaranteed to
+ * implement the same marker interfaces as the actual [graph]. Ensure that you pass in [graph] anywhere that expects a
+ * real [Graph] argument.
  *
  * When creating and using [ValueGraph], note that if you only require a vertex property or an edge property, but not
  * both, you can set the type of the unused property to [Unit], which ensures it will take up no additional resources.
@@ -667,6 +665,9 @@ internal fun <V, E> ValueGraphBuilder(graph: MutableValueGraph<V, E>): ValueGrap
         private val vertexValueMap = HashMap<V, Vertex>()
 
         override fun addVertex(): Vertex = graph.addVertex()
+        override fun addVertex(outDegreeCapacity: Int, inDegreeCapacity: Int): Vertex {
+            return graph.addVertex(outDegreeCapacity, inDegreeCapacity)
+        }
         override fun addVertex(value: V): Vertex {
             val vertex = graph.addVertex()
             graph.vertexProperty[vertex] = value
@@ -807,18 +808,15 @@ public fun <V, E> mutableValueGraph(graph: MutableGraph, vertexProperty: Mutable
  * Returns a view of the given graph with every edge direction reversed (transposed). The returned graph is
  * guaranteed to use the same edge ids for transposed edges vs the original edges.
  */
-public fun transpose(graph: Graph): Graph {
-    return if (!graph.directed || (graph is ImmutableGraph && graph.isEmpty())) {
+public fun Graph.transpose(): Graph {
+    return if (!directed || (this is ImmutableGraph && isEmpty())) {
+        this
+    } else if (this is TransposedGraph) {
         graph
     } else {
-        graph as? TransposedGraph ?: TransposedGraph(graph)
+        TransposedGraph(this)
     }
 }
-
-/** See [transpose]. */
-@JvmSynthetic
-@JvmName("#transpose")
-public fun Graph.transpose(): Graph = transpose(this)
 
 /**
  * Returns a view of the graph with filtered vertices and edges. There are two methods of filtering, with
