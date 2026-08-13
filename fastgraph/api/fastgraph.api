@@ -81,9 +81,6 @@ public abstract class io/github/sooniln/fastgraph/AbstractVertexSet : kotlin/col
 	public fun isEmpty ()Z
 }
 
-public abstract interface class io/github/sooniln/fastgraph/BijectiveHomomorphism : io/github/sooniln/fastgraph/Homomorphism {
-}
-
 public final class io/github/sooniln/fastgraph/Edge {
 	public static final synthetic fun box-impl (J)Lio/github/sooniln/fastgraph/Edge;
 	public static final synthetic fun component1-CCxZhnU (JLio/github/sooniln/fastgraph/Graph;)I
@@ -260,23 +257,6 @@ public final class io/github/sooniln/fastgraph/Graphs {
 	public static final fun valueGraph (Lio/github/sooniln/fastgraph/Graph;Lio/github/sooniln/fastgraph/MutableVertexProperty;Lio/github/sooniln/fastgraph/MutableEdgeProperty;)Lio/github/sooniln/fastgraph/ValueGraph;
 }
 
-public abstract interface class io/github/sooniln/fastgraph/Homomorphism {
-	public abstract fun getEdge (J)J
-	public abstract fun getInputGraph ()Lio/github/sooniln/fastgraph/Graph;
-	public abstract fun getOutputGraph ()Lio/github/sooniln/fastgraph/Graph;
-	public abstract fun getVertex (I)I
-}
-
-public final class io/github/sooniln/fastgraph/IdentityIsomorphism : io/github/sooniln/fastgraph/Isomorphism {
-	public fun <init> (Lio/github/sooniln/fastgraph/Graph;Lio/github/sooniln/fastgraph/Graph;)V
-	public fun getEdge (J)J
-	public fun getInputGraph ()Lio/github/sooniln/fastgraph/Graph;
-	public fun getOutputGraph ()Lio/github/sooniln/fastgraph/Graph;
-	public fun getVertex (I)I
-	public fun inverse ()Lio/github/sooniln/fastgraph/IdentityIsomorphism;
-	public synthetic fun inverse ()Lio/github/sooniln/fastgraph/Isomorphism;
-}
-
 public abstract interface class io/github/sooniln/fastgraph/ImmutableGraph : io/github/sooniln/fastgraph/Graph {
 }
 
@@ -353,10 +333,6 @@ public abstract interface class io/github/sooniln/fastgraph/IndexedVertexSet : i
 	public abstract fun indexOf (I)I
 	public fun iterator ()Lio/github/sooniln/fastgraph/VertexIterator;
 	public synthetic fun iterator ()Ljava/util/Iterator;
-}
-
-public abstract interface class io/github/sooniln/fastgraph/Isomorphism : io/github/sooniln/fastgraph/BijectiveHomomorphism {
-	public abstract fun inverse ()Lio/github/sooniln/fastgraph/Isomorphism;
 }
 
 public abstract interface class io/github/sooniln/fastgraph/MutableEdgeCollection : io/github/sooniln/fastgraph/EdgeCollection {
