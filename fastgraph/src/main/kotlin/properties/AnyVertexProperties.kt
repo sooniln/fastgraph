@@ -1,7 +1,6 @@
 package io.github.sooniln.fastgraph.properties
 
 import io.github.sooniln.fastcollect.Int2AnyHashMap
-import io.github.sooniln.fastcollect.IntHashSet
 import io.github.sooniln.fastcollect.getOrPut
 import io.github.sooniln.fastcollect.removeOrElse
 import io.github.sooniln.fastcollect.replaceOrSet
@@ -23,7 +22,6 @@ internal class ArrayVertexProperty<T>(
 
     private val property = ArrayList<T>()
     private val initializer = defaultValueFunction
-    private val uninitialized = IntHashSet()
 
     init {
         property.ensureCapacity(graph.vertices.size)
@@ -33,14 +31,7 @@ internal class ArrayVertexProperty<T>(
 
     override fun get(vertex: Vertex): T {
         try {
-            val value: T
-            if (uninitialized.remove(vertex.id)) {
-                value = initializer.apply(vertex)
-                property[vertex.id] = value
-            } else {
-                value = property[vertex.id]
-            }
-            return value
+            return property[vertex.id]
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
         }
@@ -49,7 +40,6 @@ internal class ArrayVertexProperty<T>(
     override fun set(vertex: Vertex, value: T) {
         try {
             property[vertex.id] = value
-            uninitialized.remove(vertex.id)
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
         }
@@ -57,9 +47,6 @@ internal class ArrayVertexProperty<T>(
 
     override fun put(vertex: Vertex, value: T): T {
         try {
-            if (uninitialized.remove(vertex.id)) {
-                property[vertex.id] = initializer.apply(vertex)
-            }
             return property.set(vertex.id, value)
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
@@ -68,10 +55,7 @@ internal class ArrayVertexProperty<T>(
 
     override fun onVertexAdded(vertex: Vertex) {
         check(vertex.id == property.size)
-        // abuse type system
-        @Suppress("UNCHECKED_CAST")
-        property.add(null as T)
-        uninitialized.add(vertex.id)
+        property.add(initializer.apply(vertex))
     }
 
     override fun onVertexRemoved(vertex: Vertex) {
@@ -82,9 +66,6 @@ internal class ArrayVertexProperty<T>(
     override fun onVertexReassigned(oldVertex: Vertex, newVertex: Vertex) {
         check(oldVertex.id == property.lastIndex)
         property[newVertex.id] = property.removeAt(oldVertex.id)
-        if (uninitialized.remove(oldVertex.id)) {
-            uninitialized.add(newVertex.id)
-        }
     }
 
     override fun ensureVertexCapacity(vertexCapacity: Int) = property.ensureCapacity(vertexCapacity)
