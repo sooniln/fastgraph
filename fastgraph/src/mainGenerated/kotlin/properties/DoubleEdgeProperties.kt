@@ -17,6 +17,7 @@ import io.github.sooniln.fastgraph.StaticType
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
 import io.github.sooniln.fastgraph.staticTypeOf
 
+
 internal class DoubleArrayEdgeProperty(
     override val graph: IndexedEdgeGraph,
     defaultValueFunction: EdgeFunction<Double>,
@@ -203,3 +204,5 @@ internal class ImmutableDoubleMapEdgeProperty(
     private fun read(it: Double): Double { return it }
     private fun write(it: Double): Double { return it }
 }
+
+

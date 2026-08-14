@@ -16,6 +16,12 @@ import io.github.sooniln.fastgraph.MutableEdgeProperty
 import io.github.sooniln.fastgraph.StaticType
 import io.github.sooniln.fastgraph.staticTypeOf
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
+<% if (Type == "Int" || Type == "Long") { %>
+<% if (Type != "Long" && StorageType != "Long") { %>
+import io.github.sooniln.fastcollect.${Type}2LongHashMap
+<% } %>
+import io.github.sooniln.fastgraph.MutableEdgeKeyProperty
+<% } %>
 
 internal class ${Type}ArrayEdgeProperty(
     override val graph: IndexedEdgeGraph,
@@ -203,3 +209,47 @@ internal class Immutable${Type}MapEdgeProperty(
     private fun read(it: ${StorageType}): ${Type} ${ReadLambda}
     private fun write(it: ${Type}): ${StorageType} ${WriteLambda}
 }
+
+<% if (Type == "Int" || Type == "Long") { %>
+
+internal class Wrapper${Type}EdgeKeyProperty(
+    private val property: MutableEdgeProperty<${Type}>
+) : MutableEdgeKeyProperty<${Type}>, MutableEdgeProperty<${Type}> by property {
+    private val keyMap = ${Type}2LongHashMap()
+
+    init {
+        graph.edges.foreach { edge ->
+            val key = get(edge)
+            if (keyMap.containsKey(key)) throw IllegalArgumentException("\"\$key\" is not unique")
+            keyMap[key] = edge.id
+        }
+    }
+
+    override fun hasEdge(key: ${Type}): Boolean = keyMap.containsKey(key)
+    override fun getEdge(key: ${Type}): Edge = Edge(keyMap.getValue(key))
+
+    override fun set(edge: Edge, value: ${Type}) {
+        put(edge, value)
+    }
+
+    override fun put(edge: Edge, value: ${Type}): ${Type} {
+        val oldEdgeId = keyMap[value]
+        if (!keyMap.isDefaultValue(oldEdgeId) || keyMap.containsKey(value)) {
+            val oldEdge = Edge(oldEdgeId)
+            if (oldEdge == edge) return value
+            throw IllegalArgumentException("\"\$value\" is already associated with \$oldEdge")
+        }
+
+        val oldValue = property[edge]
+        check(keyMap.remove(oldValue, edge.id))
+        property[edge] = value
+        keyMap[value] = edge.id
+        return oldValue
+    }
+
+    override fun copy(defaultValueFunction: EdgeFunction<${Type}>): MutableEdgeKeyProperty<${Type}> {
+        return super<MutableEdgeKeyProperty>.copy(defaultValueFunction)
+    }
+}
+
+<% } %>

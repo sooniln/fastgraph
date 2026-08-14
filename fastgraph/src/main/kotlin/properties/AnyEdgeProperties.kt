@@ -10,6 +10,7 @@ import io.github.sooniln.fastgraph.EdgeFunction
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.IndexedEdgeGraph
+import io.github.sooniln.fastgraph.MutableEdgeKeyProperty
 import io.github.sooniln.fastgraph.MutableEdgeProperty
 import io.github.sooniln.fastgraph.StaticType
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
@@ -185,5 +186,45 @@ internal class ImmutableMapEdgeProperty<T>(
         } catch (e: NoSuchElementException) {
             throwIllegalEdge(graph, edge, e)
         }
+    }
+}
+
+internal class WrapperEdgeKeyProperty<T>(
+    private val property: MutableEdgeProperty<T>
+) : MutableEdgeKeyProperty<T>, MutableEdgeProperty<T> by property {
+    private val keyMap = HashMap<T, Long>()
+
+    init {
+        graph.edges.foreach { edge ->
+            val key = get(edge)
+            if (keyMap.containsKey(key)) throw IllegalArgumentException("\"$key\" is not unique")
+            keyMap[key] = edge.id
+        }
+    }
+
+    override fun hasEdge(key: T): Boolean = keyMap.containsKey(key)
+    override fun getEdge(key: T): Edge = Edge(keyMap.getValue(key))
+
+    override fun set(edge: Edge, value: T) {
+        put(edge, value)
+    }
+
+    override fun put(edge: Edge, value: T): T {
+        val oldEdgeId = keyMap[value]
+        if (oldEdgeId != null) {
+            val oldEdge = Edge(oldEdgeId)
+            if (oldEdge == edge) return value
+            throw IllegalArgumentException("\"$value\" is already associated with $oldEdge")
+        }
+
+        val oldValue = property[edge]
+        check(keyMap.remove(oldValue, edge.id))
+        property[edge] = value
+        keyMap[value] = edge.id
+        return oldValue
+    }
+
+    override fun copy(defaultValueFunction: EdgeFunction<T>): MutableEdgeKeyProperty<T> {
+        return super<MutableEdgeKeyProperty>.copy(defaultValueFunction)
     }
 }

@@ -37,6 +37,9 @@ import io.github.sooniln.fastgraph.properties.LongMapVertexProperty
 import io.github.sooniln.fastgraph.properties.MapVertexProperty
 import io.github.sooniln.fastgraph.properties.ShortArrayVertexProperty
 import io.github.sooniln.fastgraph.properties.ShortMapVertexProperty
+import io.github.sooniln.fastgraph.properties.WrapperIntVertexKeyProperty
+import io.github.sooniln.fastgraph.properties.WrapperLongVertexKeyProperty
+import io.github.sooniln.fastgraph.properties.WrapperVertexKeyProperty
 import kotlin.reflect.typeOf
 
 /**
@@ -49,13 +52,13 @@ import kotlin.reflect.typeOf
  * exceptions, and some implementations may silently return invalid data.
  */
 @Suppress("INAPPLICABLE_JVM_NAME")
-public interface VertexProperty<out V> {
+public interface VertexProperty<V> {
     /** The graph this property is associated with. */
     public val graph: Graph
 
     /** The type of this property. */
     @get:JvmName("getType")
-    public val type: StaticType<@UnsafeVariance V>
+    public val type: StaticType<V>
 
     /**
      * Retrieves the value associated with the given vertex, but has undefined behavior if the vertex does not belong to
@@ -63,6 +66,16 @@ public interface VertexProperty<out V> {
      */
     @JvmName("get")
     public operator fun get(vertex: Vertex): V
+
+    /**
+     * Creates a new [MutableVertexProperty] of the same type and with the given [defaultValueFunction], with all values
+     * copied from this property.
+     */
+    public fun copy(defaultValueFunction: VertexFunction<V>): MutableVertexProperty<V> {
+        val copy = graph.createVertexProperty(type, defaultValueFunction)
+        copyInto(copy)
+        return copy
+    }
 }
 
 /** See [VertexProperty.get]. */
@@ -325,6 +338,45 @@ public fun <T> createVertexProperty(
 }
 
 /**
+ * A specialization of [VertexProperty] where each edge is identified by a unique value, and a [Vertex] can thus be
+ * retrieved for a unique value.
+ */
+@Suppress("INAPPLICABLE_JVM_NAME")
+public interface VertexKeyProperty<V> : VertexProperty<V> {
+    public fun hasVertex(key: V): Boolean
+
+    @JvmName("getVertex")
+    public fun getVertex(key: V): Vertex
+
+    /**
+     * Creates a new [MutableVertexKeyProperty] of the same type and with the given [defaultValueFunction], with all
+     * values copied from this property.
+     */
+    override fun copy(defaultValueFunction: VertexFunction<V>): MutableVertexKeyProperty<V> {
+        return super.copy(defaultValueFunction).asVertexKeyProperty()
+    }
+}
+
+/**
+ * A specialization of [VertexProperty] where each edge is identified by a unique value, and a [Vertex] can thus be
+ * retrieved for a unique value.
+ */
+public interface MutableVertexKeyProperty<E> : VertexKeyProperty<E>, MutableVertexProperty<E>
+
+public fun <E> MutableVertexProperty<E>.asVertexKeyProperty(): MutableVertexKeyProperty<E> {
+    if (this is MutableVertexKeyProperty<E>) {
+        return this
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    return when (type.kType) {
+        typeOf<Int>() -> WrapperIntVertexKeyProperty(this as MutableVertexProperty<Int>) as MutableVertexKeyProperty<E>
+        typeOf<Long>() -> WrapperLongVertexKeyProperty(this as MutableVertexProperty<Long>) as MutableVertexKeyProperty<E>
+        else -> WrapperVertexKeyProperty(this)
+    }
+}
+
+/**
  * Creates a new [VertexProperty] which is a transformation of this [VertexProperty]. The new [VertexProperty] applies
  * the given [transform] on every [VertexProperty.get] invocation. The new [VertexProperty] thus does not actually store
  * any data, and references the input property indefinitely.
@@ -397,16 +449,16 @@ public inline fun <V, reified O> MutableVertexProperty<V>.map(
  * Convenience function that sets the value of this property to the value from the given property for every vertex in
  * the graph.
  */
-public fun <V> MutableVertexProperty<V>.copyFrom(other: VertexProperty<V>) {
+public fun <E> VertexProperty<out E>.copyInto(other: MutableVertexProperty<in E>) {
     for (vertex in graph.vertices) {
-        set(vertex, other[vertex])
+        other[vertex] = get(vertex)
     }
 }
 
 /**
- * Convenience function that casts an [VertexProperty] to the given type safely (types must match). Does not support
- * casting to super-types - although this may be legal, this function does not have access to enough information to do
- * so safely.
+ * Convenience function that casts a [VertexProperty] to the given type safely (types must match). Does not support
+ * casting directly to super-types of the real type - although this may be legal, this function does not have access to
+ * enough information to do so safely. Instead, [safeCast] to the real type, and then implicit cast to the super type.
  */
 @Suppress("UNCHECKED_CAST")
 public inline fun <reified E> VertexProperty<*>.safeCast(): VertexProperty<E> {

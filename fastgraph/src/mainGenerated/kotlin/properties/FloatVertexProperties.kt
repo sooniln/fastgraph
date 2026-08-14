@@ -17,6 +17,7 @@ import io.github.sooniln.fastgraph.VertexFunction
 import io.github.sooniln.fastgraph.internal.throwIllegalVertex
 import io.github.sooniln.fastgraph.staticTypeOf
 
+
 internal class FloatArrayVertexProperty(
     override val graph: IndexedVertexGraph,
     defaultValueFunction: VertexFunction<Float>,
@@ -203,3 +204,5 @@ internal class ImmutableFloatMapVertexProperty(
     private fun read(it: Float): Float { return it }
     private fun write(it: Float): Float { return it }
 }
+
+

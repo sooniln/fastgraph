@@ -17,6 +17,7 @@ import io.github.sooniln.fastgraph.VertexFunction
 import io.github.sooniln.fastgraph.internal.throwIllegalVertex
 import io.github.sooniln.fastgraph.staticTypeOf
 
+
 internal class DoubleArrayVertexProperty(
     override val graph: IndexedVertexGraph,
     defaultValueFunction: VertexFunction<Double>,
@@ -203,3 +204,5 @@ internal class ImmutableDoubleMapVertexProperty(
     private fun read(it: Double): Double { return it }
     private fun write(it: Double): Double { return it }
 }
+
+

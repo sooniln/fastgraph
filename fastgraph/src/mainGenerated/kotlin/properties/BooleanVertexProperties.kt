@@ -17,6 +17,7 @@ import io.github.sooniln.fastgraph.VertexFunction
 import io.github.sooniln.fastgraph.internal.throwIllegalVertex
 import io.github.sooniln.fastgraph.staticTypeOf
 
+
 internal class BooleanArrayVertexProperty(
     override val graph: IndexedVertexGraph,
     defaultValueFunction: VertexFunction<Boolean>,
@@ -203,3 +204,5 @@ internal class ImmutableBooleanMapVertexProperty(
     private fun read(it: Byte): Boolean { return it != 0.toByte() }
     private fun write(it: Boolean): Byte { return if (it) 1 else 0 }
 }
+
+

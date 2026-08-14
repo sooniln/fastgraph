@@ -8,6 +8,7 @@ import io.github.sooniln.fastgraph.io.ParsingVertexProperty
 import io.github.sooniln.fastgraph.io.TypeBinding
 import io.github.sooniln.fastgraph.io.dot.MutableDotGraph
 import io.github.sooniln.fastgraph.mutableGraph
+import kotlin.reflect.typeOf
 
 /**
  * Hand-rolled recursive-descent parser for the "practical subset" of the DOT grammar this library supports: flat
@@ -71,6 +72,8 @@ internal class DotParser(private val lexer: DotLexer) {
         nodeIdType: TypeBinding<Any>,
         attributeTypes: Map<String, TypeBinding<*>>
     ): MutableDotGraph {
+        require(nodeIdType.type.kType != typeOf<Unit>())
+
         strict = if (current.type == TokenType.STRICT) {
             advance()
             true

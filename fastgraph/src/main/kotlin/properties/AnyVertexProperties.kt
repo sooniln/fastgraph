@@ -7,6 +7,7 @@ import io.github.sooniln.fastcollect.replaceOrSet
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.IndexedVertexGraph
+import io.github.sooniln.fastgraph.MutableVertexKeyProperty
 import io.github.sooniln.fastgraph.MutableVertexProperty
 import io.github.sooniln.fastgraph.StaticType
 import io.github.sooniln.fastgraph.Vertex
@@ -185,5 +186,45 @@ internal class ImmutableMapVertexProperty<T>(
         } catch (e: NoSuchElementException) {
             throwIllegalVertex(vertex, e)
         }
+    }
+}
+
+internal class WrapperVertexKeyProperty<T>(
+    private val property: MutableVertexProperty<T>
+) : MutableVertexKeyProperty<T>, MutableVertexProperty<T> by property {
+    private val keyMap = HashMap<T, Int>()
+
+    init {
+        graph.vertices.foreach { vertex ->
+            val key = get(vertex)
+            if (keyMap.containsKey(key)) throw IllegalArgumentException("\"$key\" is not unique")
+            keyMap[key] = vertex.id
+        }
+    }
+
+    override fun hasVertex(key: T): Boolean = keyMap.containsKey(key)
+    override fun getVertex(key: T): Vertex = Vertex(keyMap.getValue(key))
+
+    override fun set(vertex: Vertex, value: T) {
+        put(vertex, value)
+    }
+
+    override fun put(vertex: Vertex, value: T): T {
+        val oldVertexId = keyMap[value]
+        if (oldVertexId != null) {
+            val oldVertex = Vertex(oldVertexId)
+            if (oldVertex == vertex) return value
+            throw IllegalArgumentException("\"$value\" is already associated with $oldVertex")
+        }
+
+        val oldValue = property[vertex]
+        check(keyMap.remove(oldValue, vertex.id))
+        property[vertex] = value
+        keyMap[value] = vertex.id
+        return oldValue
+    }
+
+    override fun copy(defaultValueFunction: VertexFunction<T>): MutableVertexKeyProperty<T> {
+        return super<MutableVertexKeyProperty>.copy(defaultValueFunction)
     }
 }

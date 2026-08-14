@@ -1,6 +1,8 @@
 package io.github.sooniln.fastgraph.properties
 
+
 import io.github.sooniln.fastcollect.Int2LongHashMap
+import io.github.sooniln.fastcollect.Long2IntHashMap
 import io.github.sooniln.fastcollect.LongArrayList
 import io.github.sooniln.fastcollect.getOrPut
 import io.github.sooniln.fastcollect.lastIndex
@@ -9,6 +11,7 @@ import io.github.sooniln.fastcollect.replaceOrSet
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.IndexedVertexGraph
+import io.github.sooniln.fastgraph.MutableVertexKeyProperty
 import io.github.sooniln.fastgraph.MutableVertexProperty
 import io.github.sooniln.fastgraph.StaticType
 import io.github.sooniln.fastgraph.Vertex
@@ -16,6 +19,7 @@ import io.github.sooniln.fastgraph.VertexChangeListener
 import io.github.sooniln.fastgraph.VertexFunction
 import io.github.sooniln.fastgraph.internal.throwIllegalVertex
 import io.github.sooniln.fastgraph.staticTypeOf
+
 
 internal class LongArrayVertexProperty(
     override val graph: IndexedVertexGraph,
@@ -203,3 +207,47 @@ internal class ImmutableLongMapVertexProperty(
     private fun read(it: Long): Long { return it }
     private fun write(it: Long): Long { return it }
 }
+
+
+
+internal class WrapperLongVertexKeyProperty(
+    private val property: MutableVertexProperty<Long>
+) : MutableVertexKeyProperty<Long>, MutableVertexProperty<Long> by property {
+    private val keyMap = Long2IntHashMap()
+
+    init {
+        graph.vertices.foreach { vertex ->
+            val key = get(vertex)
+            if (keyMap.containsKey(key)) throw IllegalArgumentException("\"$key\" is not unique")
+            keyMap[key] = vertex.id
+        }
+    }
+
+    override fun hasVertex(key: Long): Boolean = keyMap.containsKey(key)
+    override fun getVertex(key: Long): Vertex = Vertex(keyMap.getValue(key))
+
+    override fun set(vertex: Vertex, value: Long) {
+        put(vertex, value)
+    }
+
+    override fun put(vertex: Vertex, value: Long): Long {
+        val oldVertexId = keyMap[value]
+        if (!keyMap.isDefaultValue(oldVertexId) || keyMap.containsKey(value)) {
+            val oldVertex = Vertex(oldVertexId)
+            if (oldVertex == vertex) return value
+            throw IllegalArgumentException("\"$value\" is already associated with $oldVertex")
+        }
+
+        val oldValue = property[vertex]
+        check(keyMap.remove(oldValue, vertex.id))
+        property[vertex] = value
+        keyMap[value] = vertex.id
+        return oldValue
+    }
+
+    override fun copy(defaultValueFunction: VertexFunction<Long>): MutableVertexKeyProperty<Long> {
+        return super<MutableVertexKeyProperty>.copy(defaultValueFunction)
+    }
+}
+
+

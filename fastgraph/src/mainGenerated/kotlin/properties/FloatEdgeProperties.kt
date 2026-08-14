@@ -17,6 +17,7 @@ import io.github.sooniln.fastgraph.StaticType
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
 import io.github.sooniln.fastgraph.staticTypeOf
 
+
 internal class FloatArrayEdgeProperty(
     override val graph: IndexedEdgeGraph,
     defaultValueFunction: EdgeFunction<Float>,
@@ -203,3 +204,5 @@ internal class ImmutableFloatMapEdgeProperty(
     private fun read(it: Float): Float { return it }
     private fun write(it: Float): Float { return it }
 }
+
+

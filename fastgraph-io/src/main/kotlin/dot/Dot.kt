@@ -24,7 +24,7 @@ import java.io.Writer
 public interface DotGraph {
     public val graph: Graph
     public val graphId: String?
-    public val vertexIdProperty: VertexProperty<Any>
+    public val vertexIdProperty: VertexProperty<out Any>
     public val vertexProperties: Map<String, VertexProperty<*>>
     public val edgeProperties: Map<String, EdgeProperty<*>>
     public val graphProperties: Map<String, Any?>
@@ -35,14 +35,14 @@ public interface DotGraph {
 public fun DotGraph(
     graph: Graph,
     graphId: String? = null,
-    vertexIdProperty: VertexProperty<Any> = graph.vertexIdProperty,
+    vertexIdProperty: VertexProperty<out Any> = graph.vertexIdProperty,
     vertexProperties: Map<String, VertexProperty<*>> = emptyMap(),
     edgeProperties: Map<String, EdgeProperty<*>> = emptyMap(),
     graphProperties: Map<String, String> = emptyMap(),
 ) : DotGraph = object : DotGraph {
     override val graph: Graph get() = graph
     override val graphId: String? get() = graphId
-    override val vertexIdProperty: VertexProperty<Any> get() = vertexIdProperty
+    override val vertexIdProperty: VertexProperty<out Any> get() = vertexIdProperty
     override val vertexProperties: Map<String, VertexProperty<*>> get() = vertexProperties
     override val edgeProperties: Map<String, EdgeProperty<*>> get() = edgeProperties
     override val graphProperties: Map<String, Any?> get() = graphProperties
@@ -58,7 +58,7 @@ public fun DotGraph(
 ) : DotGraph = object : DotGraph {
     override val graph: Graph get() = graph.graph
     override val graphId: String? get() = graphId
-    override val vertexIdProperty: VertexProperty<Any> get() = graph.vertexProperty
+    override val vertexIdProperty: VertexProperty<out Any> get() = graph.vertexProperty
     override val vertexProperties: Map<String, VertexProperty<*>> get() = emptyMap()
     override val edgeProperties: Map<String, EdgeProperty<*>> get() {
         return if (graph.edgeProperty.type.isUnitType()) emptyMap() else mapOf(edgePropertyName to graph.edgeProperty)
@@ -77,13 +77,16 @@ public class MutableDotGraph(
 ) : DotGraph
 
 /**
- * Loads a [MutableDotGraph] from the given [inputStream]. If a DOT graph is specified as `strict` this will override
- * the [multiEdge] argument to false. If a DOT graph is not specified as strict, the [multiEdge] argument will be
- * respected. The vertex id property type defaults to `String`, but can be overriden via [nodeIdType]. Since DOT
- * attributes have no type information, they will be loaded as `String?` properties, unless overridden in
- * [attributeTypes] (i.e. if the attribute named "weight" should be loaded as a float, there should be an entry in
- * [attributeTypes] mapping "weight" to [TypeBinding.float]). The [inputStream] is not closed by this function - that
- * remains the caller's responsibility.
+ * Loads a [MutableDotGraph] from the given [inputStream]. If the DOT graph is specified as `strict` this will override
+ * the [multiEdge] argument to false, otherwise the [multiEdge] argument will be respected. The vertex id property type
+ * defaults to `String`, but can be overriden via [nodeIdType]. Since DOT attributes have no type information, they are
+ * loaded by default as `String?` properties, unless overridden in [attributeTypes] (i.e. if the attribute named
+ * "weight" should be loaded as a float, there should be an entry in [attributeTypes] mapping "weight" to
+ * [TypeBinding.float]). If you do not want to parse/store a particular attribute, then supply [TypeBinding.unit] for
+ * that attribute. The [inputStream] is not closed by this function - that remains the caller's responsibility.
+ *
+ * Clients are expected to use [io.github.sooniln.fastgraph.safeCast] to convert the output properties in
+ * [MutableDotGraph] to the correct types.
  */
 @JvmOverloads
 @Throws(DotFormatException::class)

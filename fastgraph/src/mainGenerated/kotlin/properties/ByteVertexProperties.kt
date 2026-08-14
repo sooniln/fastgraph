@@ -17,6 +17,7 @@ import io.github.sooniln.fastgraph.VertexFunction
 import io.github.sooniln.fastgraph.internal.throwIllegalVertex
 import io.github.sooniln.fastgraph.staticTypeOf
 
+
 internal class ByteArrayVertexProperty(
     override val graph: IndexedVertexGraph,
     defaultValueFunction: VertexFunction<Byte>,
@@ -203,3 +204,5 @@ internal class ImmutableByteMapVertexProperty(
     private fun read(it: Byte): Byte { return it }
     private fun write(it: Byte): Byte { return it }
 }
+
+

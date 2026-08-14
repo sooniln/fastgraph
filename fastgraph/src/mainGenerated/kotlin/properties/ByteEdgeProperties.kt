@@ -17,6 +17,7 @@ import io.github.sooniln.fastgraph.StaticType
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
 import io.github.sooniln.fastgraph.staticTypeOf
 
+
 internal class ByteArrayEdgeProperty(
     override val graph: IndexedEdgeGraph,
     defaultValueFunction: EdgeFunction<Byte>,
@@ -203,3 +204,5 @@ internal class ImmutableByteMapEdgeProperty(
     private fun read(it: Byte): Byte { return it }
     private fun write(it: Byte): Byte { return it }
 }
+
+

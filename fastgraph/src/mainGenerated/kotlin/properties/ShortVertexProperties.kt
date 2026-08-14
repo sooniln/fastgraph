@@ -17,6 +17,7 @@ import io.github.sooniln.fastgraph.VertexFunction
 import io.github.sooniln.fastgraph.internal.throwIllegalVertex
 import io.github.sooniln.fastgraph.staticTypeOf
 
+
 internal class ShortArrayVertexProperty(
     override val graph: IndexedVertexGraph,
     defaultValueFunction: VertexFunction<Short>,
@@ -203,3 +204,5 @@ internal class ImmutableShortMapVertexProperty(
     private fun read(it: Int): Short { return it.toShort() }
     private fun write(it: Short): Int { return it.toInt() }
 }
+
+

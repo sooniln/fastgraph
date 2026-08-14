@@ -16,6 +16,12 @@ import io.github.sooniln.fastgraph.VertexChangeListener
 import io.github.sooniln.fastgraph.VertexFunction
 import io.github.sooniln.fastgraph.staticTypeOf
 import io.github.sooniln.fastgraph.internal.throwIllegalVertex
+<% if (Type == "Int" || Type == "Long") { %>
+<% if (Type != "Int" && StorageType != "Int") { %>
+import io.github.sooniln.fastcollect.${Type}2IntHashMap
+<% } %>
+import io.github.sooniln.fastgraph.MutableVertexKeyProperty
+<% } %>
 
 internal class ${Type}ArrayVertexProperty(
     override val graph: IndexedVertexGraph,
@@ -203,3 +209,47 @@ internal class Immutable${Type}MapVertexProperty(
     private fun read(it: ${StorageType}): ${Type} ${ReadLambda}
     private fun write(it: ${Type}): ${StorageType} ${WriteLambda}
 }
+
+<% if (Type == "Int" || Type == "Long") { %>
+
+internal class Wrapper${Type}VertexKeyProperty(
+    private val property: MutableVertexProperty<${Type}>
+) : MutableVertexKeyProperty<${Type}>, MutableVertexProperty<${Type}> by property {
+    private val keyMap = ${Type}2IntHashMap()
+
+    init {
+        graph.vertices.foreach { vertex ->
+            val key = get(vertex)
+            if (keyMap.containsKey(key)) throw IllegalArgumentException("\"\$key\" is not unique")
+            keyMap[key] = vertex.id
+        }
+    }
+
+    override fun hasVertex(key: ${Type}): Boolean = keyMap.containsKey(key)
+    override fun getVertex(key: ${Type}): Vertex = Vertex(keyMap.getValue(key))
+
+    override fun set(vertex: Vertex, value: ${Type}) {
+        put(vertex, value)
+    }
+
+    override fun put(vertex: Vertex, value: ${Type}): ${Type} {
+        val oldVertexId = keyMap[value]
+        if (!keyMap.isDefaultValue(oldVertexId) || keyMap.containsKey(value)) {
+            val oldVertex = Vertex(oldVertexId)
+            if (oldVertex == vertex) return value
+            throw IllegalArgumentException("\"\$value\" is already associated with \$oldVertex")
+        }
+
+        val oldValue = property[vertex]
+        check(keyMap.remove(oldValue, vertex.id))
+        property[vertex] = value
+        keyMap[value] = vertex.id
+        return oldValue
+    }
+
+    override fun copy(defaultValueFunction: VertexFunction<${Type}>): MutableVertexKeyProperty<${Type}> {
+        return super<MutableVertexKeyProperty>.copy(defaultValueFunction)
+    }
+}
+
+<% } %>

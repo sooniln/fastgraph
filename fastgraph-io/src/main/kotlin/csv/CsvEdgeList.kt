@@ -21,11 +21,12 @@ import io.github.sooniln.fastgraph.mutableGraph
 import io.github.sooniln.fastgraph.vertexIdProperty
 import java.io.InputStream
 import java.io.OutputStream
+import kotlin.reflect.typeOf
 
 /** Information loaded from a CSV edge list. */
 public interface CsvEdgeListGraph {
     public val graph: Graph
-    public val vertexProperty: VertexProperty<Any>
+    public val vertexProperty: VertexProperty<out Any>
     public val edgeProperties: List<EdgeProperty<*>>
 }
 
@@ -33,18 +34,18 @@ public interface CsvEdgeListGraph {
 @JvmOverloads
 public fun CsvEdgeListGraph(
     graph: Graph,
-    vertexProperty: VertexProperty<Any> = graph.vertexIdProperty,
+    vertexProperty: VertexProperty<out Any> = graph.vertexIdProperty,
     edgeProperties: List<EdgeProperty<*>> = emptyList(),
 ) : CsvEdgeListGraph = object : CsvEdgeListGraph {
     override val graph: Graph get() = graph
-    override val vertexProperty: VertexProperty<Any> get() = vertexProperty
+    override val vertexProperty: VertexProperty<out Any> get() = vertexProperty
     override val edgeProperties: List<EdgeProperty<*>> get() = edgeProperties
 }
 
 /** A convenient way to construct a [CsvEdgeListGraph] for writing. */
 public fun CsvEdgeListGraph(graph: ValueGraph<out Any, *>) : CsvEdgeListGraph = object : CsvEdgeListGraph {
     override val graph: Graph get() = graph.graph
-    override val vertexProperty: VertexProperty<Any> get() = graph.vertexProperty
+    override val vertexProperty: VertexProperty<out Any> get() = graph.vertexProperty
     override val edgeProperties: List<EdgeProperty<*>> get() {
         return if (graph.edgeProperty.type.isUnitType()) emptyList() else listOf(graph.edgeProperty)
     }
@@ -53,7 +54,7 @@ public fun CsvEdgeListGraph(graph: ValueGraph<out Any, *>) : CsvEdgeListGraph = 
 /** A mutable version of [CsvEdgeListGraph] used for output from CSV edge list reading methods. */
 public class MutableCsvEdgeListGraph(
     override val graph: MutableGraph,
-    override val vertexProperty: MutableVertexProperty<Any>,
+    override val vertexProperty: MutableVertexProperty<out Any>,
     override val edgeProperties: List<MutableEdgeProperty<*>>,
 ) : CsvEdgeListGraph
 
@@ -61,8 +62,12 @@ public class MutableCsvEdgeListGraph(
  * Loads a [CsvEdgeListGraph] from the given [inputStream]. The input is expected to be a CSV edge list, where the
  * first column represents the value of the edge source vertex, the second column represents the value of the edge
  * target vertex, and any following columns represent edge property values. Each distinct parsed vertex value results
- * in exactly one vertex being added to the returned graph. [inputStream] is not closed by this function - that
- * remains the caller's responsibility.
+ * in exactly one vertex being added to the returned graph. An [edgePropertyTypes] entry must be provided for every
+ * column in the input CSV - if you do not want to parse/store a particular column, then supply [TypeBinding.unit] for
+ * that column. The [inputStream] is not closed by this function - that remains the caller's responsibility.
+ *
+ * Clients are expected to use [io.github.sooniln.fastgraph.safeCast] to convert the output properties in
+ * [MutableCsvEdgeListGraph] to the correct types.
  */
 @JvmOverloads
 @Throws(CsvFormatException::class)
@@ -75,6 +80,8 @@ public fun readCsvEdgeList(
     edgePropertyTypes: List<TypeBinding<*>> = emptyList(),
     csvOptions: CsvOptions = CsvOptions(),
 ) : MutableCsvEdgeListGraph {
+    require(vertexPropertyType.type.kType != typeOf<Unit>())
+
     val graph = mutableGraph(directed, multiEdge, indexEdges)
     val vertexProperty = ParsingVertexProperty(graph, vertexPropertyType)
     val edgeProperties = edgePropertyTypes.map { ParsingEdgeProperty(graph, it) }

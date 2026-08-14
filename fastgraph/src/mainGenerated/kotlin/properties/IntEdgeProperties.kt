@@ -1,5 +1,7 @@
 package io.github.sooniln.fastgraph.properties
 
+
+import io.github.sooniln.fastcollect.Int2LongHashMap
 import io.github.sooniln.fastcollect.IntArrayList
 import io.github.sooniln.fastcollect.Long2IntHashMap
 import io.github.sooniln.fastcollect.getOrPut
@@ -12,10 +14,12 @@ import io.github.sooniln.fastgraph.EdgeFunction
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.IndexedEdgeGraph
+import io.github.sooniln.fastgraph.MutableEdgeKeyProperty
 import io.github.sooniln.fastgraph.MutableEdgeProperty
 import io.github.sooniln.fastgraph.StaticType
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
 import io.github.sooniln.fastgraph.staticTypeOf
+
 
 internal class IntArrayEdgeProperty(
     override val graph: IndexedEdgeGraph,
@@ -203,3 +207,47 @@ internal class ImmutableIntMapEdgeProperty(
     private fun read(it: Int): Int { return it }
     private fun write(it: Int): Int { return it }
 }
+
+
+
+internal class WrapperIntEdgeKeyProperty(
+    private val property: MutableEdgeProperty<Int>
+) : MutableEdgeKeyProperty<Int>, MutableEdgeProperty<Int> by property {
+    private val keyMap = Int2LongHashMap()
+
+    init {
+        graph.edges.foreach { edge ->
+            val key = get(edge)
+            if (keyMap.containsKey(key)) throw IllegalArgumentException("\"$key\" is not unique")
+            keyMap[key] = edge.id
+        }
+    }
+
+    override fun hasEdge(key: Int): Boolean = keyMap.containsKey(key)
+    override fun getEdge(key: Int): Edge = Edge(keyMap.getValue(key))
+
+    override fun set(edge: Edge, value: Int) {
+        put(edge, value)
+    }
+
+    override fun put(edge: Edge, value: Int): Int {
+        val oldEdgeId = keyMap[value]
+        if (!keyMap.isDefaultValue(oldEdgeId) || keyMap.containsKey(value)) {
+            val oldEdge = Edge(oldEdgeId)
+            if (oldEdge == edge) return value
+            throw IllegalArgumentException("\"$value\" is already associated with $oldEdge")
+        }
+
+        val oldValue = property[edge]
+        check(keyMap.remove(oldValue, edge.id))
+        property[edge] = value
+        keyMap[value] = edge.id
+        return oldValue
+    }
+
+    override fun copy(defaultValueFunction: EdgeFunction<Int>): MutableEdgeKeyProperty<Int> {
+        return super<MutableEdgeKeyProperty>.copy(defaultValueFunction)
+    }
+}
+
+

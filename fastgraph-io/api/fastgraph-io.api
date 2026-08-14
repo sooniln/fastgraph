@@ -130,7 +130,8 @@ public final class io/github/sooniln/fastgraph/io/graphml/GraphML {
 	public static final fun readGraphML (Ljava/io/InputStream;)Lio/github/sooniln/fastgraph/io/graphml/MutableGraphMLGraph;
 	public static final fun readGraphML (Ljava/io/InputStream;Z)Lio/github/sooniln/fastgraph/io/graphml/MutableGraphMLGraph;
 	public static final fun readGraphML (Ljava/io/InputStream;ZZ)Lio/github/sooniln/fastgraph/io/graphml/MutableGraphMLGraph;
-	public static synthetic fun readGraphML$default (Ljava/io/InputStream;ZZILjava/lang/Object;)Lio/github/sooniln/fastgraph/io/graphml/MutableGraphMLGraph;
+	public static final fun readGraphML (Ljava/io/InputStream;ZZLjava/util/Map;)Lio/github/sooniln/fastgraph/io/graphml/MutableGraphMLGraph;
+	public static synthetic fun readGraphML$default (Ljava/io/InputStream;ZZLjava/util/Map;ILjava/lang/Object;)Lio/github/sooniln/fastgraph/io/graphml/MutableGraphMLGraph;
 	public static final fun writeGraphML (Ljava/io/OutputStream;Lio/github/sooniln/fastgraph/io/graphml/GraphMLGraph;)V
 }
 

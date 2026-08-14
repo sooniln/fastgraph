@@ -246,7 +246,7 @@ class PropertyTest {
     }
 
     @Test
-    fun vertexPropertyCopyFromCopiesAllValues() {
+    fun vertexPropertyCopyIntoCopiesAllValues() {
         val graph = buildGraph(true) { addVertex(); addVertex() }
         val source = graph.createVertexProperty<Int>(0)
         val target = graph.createVertexProperty<Int>(-1)
@@ -255,7 +255,7 @@ class PropertyTest {
             source[vertex] = index++
         }
 
-        target.copyFrom(source)
+        source.copyInto(target)
 
         for (vertex in graph.vertices) {
             assertThat(target[vertex]).isEqualTo(source[vertex])
@@ -263,7 +263,7 @@ class PropertyTest {
     }
 
     @Test
-    fun edgePropertyCopyFromCopiesAllValues() {
+    fun edgePropertyCopyIntoCopiesAllValues() {
         var v0 = Vertex(-1)
         var v1 = Vertex(-1)
         val graph = buildGraph(true) {
@@ -277,7 +277,7 @@ class PropertyTest {
             source[edge] = 7
         }
 
-        target.copyFrom(source)
+        source.copyInto(target)
 
         for (edge in graph.edges) {
             assertThat(target[edge]).isEqualTo(source[edge])

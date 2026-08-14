@@ -37,6 +37,9 @@ import io.github.sooniln.fastgraph.properties.LongMapEdgeProperty
 import io.github.sooniln.fastgraph.properties.MapEdgeProperty
 import io.github.sooniln.fastgraph.properties.ShortArrayEdgeProperty
 import io.github.sooniln.fastgraph.properties.ShortMapEdgeProperty
+import io.github.sooniln.fastgraph.properties.WrapperEdgeKeyProperty
+import io.github.sooniln.fastgraph.properties.WrapperIntEdgeKeyProperty
+import io.github.sooniln.fastgraph.properties.WrapperLongEdgeKeyProperty
 import kotlin.reflect.typeOf
 
 /**
@@ -49,20 +52,30 @@ import kotlin.reflect.typeOf
  * exceptions, and some implementations may silently return invalid data.
  */
 @Suppress("INAPPLICABLE_JVM_NAME")
-public interface EdgeProperty<out V> {
+public interface EdgeProperty<E> {
     /** The graph this property is associated with. */
     public val graph: Graph
 
     /** The type of this property. */
     @get:JvmName("getType")
-    public val type: StaticType<@UnsafeVariance V>
+    public val type: StaticType<E>
 
     /**
      * Retrieves the value associated with the given edge, but has undefined behavior if the edge does not belong to
      * [graph].
      */
     @JvmName("get")
-    public operator fun get(edge: Edge): V
+    public operator fun get(edge: Edge): E
+
+    /**
+     * Creates a new [MutableEdgeProperty] of the same type and with the given [defaultValueFunction], with all values
+     * copied from this property.
+     */
+    public fun copy(defaultValueFunction: EdgeFunction<E>): MutableEdgeProperty<E> {
+        val copy = graph.createEdgeProperty(type, defaultValueFunction)
+        copyInto(copy)
+        return copy
+    }
 }
 
 /** See [EdgeProperty.get]. */
@@ -324,6 +337,45 @@ public fun <T> createEdgeProperty(
 }
 
 /**
+ * A specialization of [EdgeProperty] where each edge is identified by a unique value, and an [Edge] can thus be
+ * retrieved for a unique value.
+ */
+@Suppress("INAPPLICABLE_JVM_NAME")
+public interface EdgeKeyProperty<E> : EdgeProperty<E> {
+    public fun hasEdge(key: E): Boolean
+
+    @JvmName("getEdge")
+    public fun getEdge(key: E): Edge
+
+    /**
+     * Creates a new [MutableEdgeKeyProperty] of the same type and with the given [defaultValueFunction], with all
+     * values copied from this property.
+     */
+    override fun copy(defaultValueFunction: EdgeFunction<E>): MutableEdgeKeyProperty<E> {
+        return super.copy(defaultValueFunction).asEdgeKeyProperty()
+    }
+}
+
+/**
+ * A specialization of [EdgeProperty] where each edge is identified by a unique value, and an [Edge] can thus be
+ * retrieved for a unique value.
+ */
+public interface MutableEdgeKeyProperty<E> : EdgeKeyProperty<E>, MutableEdgeProperty<E>
+
+public fun <E> MutableEdgeProperty<E>.asEdgeKeyProperty(): MutableEdgeKeyProperty<E> {
+    if (this is MutableEdgeKeyProperty<E>) {
+        return this
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    return when (type.kType) {
+        typeOf<Int>() -> WrapperIntEdgeKeyProperty(this as MutableEdgeProperty<Int>) as MutableEdgeKeyProperty<E>
+        typeOf<Long>() -> WrapperLongEdgeKeyProperty(this as MutableEdgeProperty<Long>) as MutableEdgeKeyProperty<E>
+        else -> WrapperEdgeKeyProperty(this)
+    }
+}
+
+/**
  * Creates a new [EdgeProperty] which is a transformation of this [EdgeProperty]. The new [EdgeProperty] applies the
  * given [transform] on every [EdgeProperty.get] invocation. The new [EdgeProperty] thus does not actually store any
  * data, and references the input property indefinitely.
@@ -396,16 +448,16 @@ public inline fun <E, reified O> MutableEdgeProperty<E>.map(
  * Convenience function that sets the value of this property to the value from the given property for every edge in the
  * graph.
  */
-public fun <E> MutableEdgeProperty<E>.copyFrom(other: EdgeProperty<E>) {
+public fun <E> EdgeProperty<out E>.copyInto(other: MutableEdgeProperty<in E>) {
     for (edge in graph.edges) {
-        set(edge, other[edge])
+        other[edge] = get(edge)
     }
 }
 
 /**
  * Convenience function that casts an [EdgeProperty] to the given type safely (types must match). Does not support
- * casting to super-types - although this may be legal, this function does not have access to enough information to do
- * so safely.
+ * casting directly to super-types of the real type - although this may be legal, this function does not have access to
+ * enough information to do so safely. Instead, [safeCast] to the real type, and then implicit cast to the super type.
  */
 @Suppress("UNCHECKED_CAST")
 public inline fun <reified E> EdgeProperty<*>.safeCast(): EdgeProperty<E> {

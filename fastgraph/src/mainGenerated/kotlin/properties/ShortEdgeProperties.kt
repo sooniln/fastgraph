@@ -17,6 +17,7 @@ import io.github.sooniln.fastgraph.StaticType
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
 import io.github.sooniln.fastgraph.staticTypeOf
 
+
 internal class ShortArrayEdgeProperty(
     override val graph: IndexedEdgeGraph,
     defaultValueFunction: EdgeFunction<Short>,
@@ -203,3 +204,5 @@ internal class ImmutableShortMapEdgeProperty(
     private fun read(it: Int): Short { return it.toShort() }
     private fun write(it: Short): Int { return it.toInt() }
 }
+
+

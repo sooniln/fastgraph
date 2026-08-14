@@ -32,7 +32,8 @@ import javax.xml.stream.XMLStreamReader
 import kotlin.reflect.typeOf
 
 /**
- * Information loaded from a GraphML document.
+ * Information loaded from a GraphML document. Note that the keys in [vertexProperties], [edgeProperties], and
+ * [graphAttributes] are the attribute *names*, not the attribute *ids*.
  */
 public interface GraphMLGraph {
     public val graph: Graph
@@ -80,8 +81,15 @@ public class MutableGraphMLGraph(
 ) : GraphMLGraph
 
 /**
- * Loads a [GraphMLGraph] from the given [inputStream]. Only the first `<graph>` element in the document is read. The
- * [inputStream] is not closed by this function - that remains the caller's responsibility.
+ * Loads a [GraphMLGraph] from the given [inputStream]. Only the first `<graph>` element in the document is read. Since
+ * GraphML specifies attribute types (boolean, int, long, float, double, string), these are mapped to properties of the
+ * specified type. If you wish to override the type stated in the graph, supply an entry within [attributeTypeOverrides]
+ * - if you do not want to parse/store a particular attribute, then supply [TypeBinding.unit] for that attribute. Note
+ * that the keys in [attributeTypeOverrides] are the attribute *names*, not the attribute *ids*. The [inputStream] is
+ * not closed by this function - that remains the caller's responsibility.
+ *
+ * Clients are expected to use [io.github.sooniln.fastgraph.safeCast] to convert the output properties in
+ * [MutableGraphMLGraph] to the correct types.
  */
 @JvmOverloads
 @Throws(GraphMLFormatException::class)
@@ -89,6 +97,7 @@ public fun readGraphML(
     inputStream: InputStream,
     multiEdge: Boolean = false,
     indexEdges: Boolean = false,
+    attributeTypeOverrides: Map<String, TypeBinding<*>> = emptyMap(),
 ): MutableGraphMLGraph {
     val factory = XMLInputFactory.newFactory()
     factory.setProperty(XMLInputFactory.SUPPORT_DTD, false)
@@ -96,7 +105,7 @@ public fun readGraphML(
 
     val reader = factory.createXMLStreamReader(inputStream)
     try {
-        return parseGraphML(reader, multiEdge, indexEdges)
+        return parseGraphML(reader, multiEdge, indexEdges, attributeTypeOverrides)
     } catch (e: Exception) {
         throw GraphMLFormatException("${e.message} (line ${reader.location.lineNumber}:${reader.location.columnNumber})", e)
     } finally {
@@ -104,66 +113,21 @@ public fun readGraphML(
     }
 }
 
-private class KeyDef(val id: String, val forValue: String, val attrName: String, val attrType: String, val defaultText: String?)
-
-private fun XMLStreamReader.requiredAttribute(name: String): String =
-    getAttributeValue(null, name) ?: throw IllegalArgumentException("<$localName> missing \"$name\" attribute")
-
-private fun skipMisc(reader: XMLStreamReader) {
-    while (reader.eventType == XMLStreamConstants.CHARACTERS ||
-        reader.eventType == XMLStreamConstants.SPACE ||
-        reader.eventType == XMLStreamConstants.COMMENT ||
-        reader.eventType == XMLStreamConstants.PROCESSING_INSTRUCTION
-    ) {
-        reader.next()
-    }
-}
-
-/** Skips the element the reader is currently positioned at (a START_ELEMENT), including any nested content. */
-private fun skipElement(reader: XMLStreamReader) {
-    var depth = 1
-    while (depth > 0) {
-        reader.next()
-        when (reader.eventType) {
-            START_ELEMENT -> depth++
-            END_ELEMENT -> depth--
-        }
-    }
-    reader.next()
-    skipMisc(reader)
-}
-
-/**
- * Maps a `<key>` element's `attr.type` to the [TypeBinding] used to parse its values, substituting a custom
- * default (parsed from the `<default>` element's text, if present) for the type's normal default. A "string" key
- * with no default is nullable ([TypeBinding.string] itself defaults to `null`); one with an explicit `<default>` is
- * not, since it always has a concrete value to fall back on.
- */
-private fun keyBinding(attrType: String, defaultText: String?): TypeBinding<*> {
-    if (attrType == "string" && defaultText != null) {
-        return TypeBinding(TypeBinding.nonNullString.type, defaultText, TypeBinding.nonNullString.parser)
-    }
-    val base = when (attrType) {
-        "boolean" -> TypeBinding.boolean
-        "int" -> TypeBinding.int
-        "long" -> TypeBinding.long
-        "float" -> TypeBinding.float
-        "double" -> TypeBinding.double
-        "string" -> TypeBinding.string
-        else -> throw IllegalArgumentException("unsupported attr.type \"$attrType\"")
-    }
-    return if (defaultText == null) base else TypeBinding(base.type, base.parser(defaultText), base.parser)
-}
-
-private fun parseGraphML(reader: XMLStreamReader, multiEdge: Boolean, indexEdges: Boolean): MutableGraphMLGraph {
+private fun parseGraphML(
+    reader: XMLStreamReader,
+    multiEdge: Boolean,
+    indexEdges: Boolean,
+    attributeTypeOverrides: Map<String, TypeBinding<*>>
+): MutableGraphMLGraph {
     while (reader.eventType != START_ELEMENT) {
         reader.next()
     }
     require(reader.localName == "graphml") { "expected <graphml> root element, found <${reader.localName}>" }
-    reader.next()
-    skipMisc(reader)
+    reader.nextNonMisc()
 
     // <key> elements always precede <graph> - collect them all before creating any properties.
+    class KeyDef(val id: String, val forValue: String, val attrName: String, val attrType: String, val defaultText: String?)
+
     val keys = ArrayList<KeyDef>()
     while (reader.eventType == START_ELEMENT && reader.localName == "key") {
         val id = reader.requiredAttribute("id")
@@ -174,17 +138,14 @@ private fun parseGraphML(reader: XMLStreamReader, multiEdge: Boolean, indexEdges
             "unsupported key for=\"$forValue\""
         }
 
-        reader.next()
-        skipMisc(reader)
+        reader.nextNonMisc()
         var defaultText: String? = null
         if (reader.eventType == START_ELEMENT && reader.localName == "default") {
             defaultText = reader.elementText
-            reader.next()
-            skipMisc(reader)
+            reader.nextNonMisc()
         }
         check(reader.eventType == END_ELEMENT && reader.localName == "key") { "expected </key>" }
-        reader.next()
-        skipMisc(reader)
+        reader.nextNonMisc()
 
         keys.add(KeyDef(id, forValue, attrName, attrType, defaultText))
     }
@@ -207,18 +168,22 @@ private fun parseGraphML(reader: XMLStreamReader, multiEdge: Boolean, indexEdges
     val graphBindings = HashMap<String, TypeBinding<*>>()
     val graphAttributes = HashMap<String, Any>()
     for (key in keys) {
+        val typeOverride = attributeTypeOverrides[key.attrName]
         if (key.forValue == "node" || key.forValue == "all") {
-            vertexBindings[key.id] = ParsingVertexProperty(graph, keyBinding(key.attrType, key.defaultText))
+            vertexBindings[key.id] = ParsingVertexProperty(graph, keyBinding(key.attrType, key.defaultText, typeOverride))
         }
         if (key.forValue == "edge" || key.forValue == "all") {
-            edgeBindings[key.id] = ParsingEdgeProperty(graph, keyBinding(key.attrType, key.defaultText))
+            edgeBindings[key.id] = ParsingEdgeProperty(graph, keyBinding(key.attrType, key.defaultText, typeOverride))
         }
         if (key.forValue == "graph" || key.forValue == "all") {
-            val binding = keyBinding(key.attrType, key.defaultText)
+            val binding = keyBinding(key.attrType, key.defaultText, typeOverride)
             graphBindings[key.id] = binding
-            // Non-null: none of the type-mapped parsers (boolean/int/long/float/double/string) ever return null
-            // for non-null input text.
-            if (key.defaultText != null) graphAttributes[key.attrName] = binding.parser(key.defaultText)!!
+            if (key.defaultText != null) {
+                val value = binding.parser(key.defaultText)
+                if (value != null) {
+                    graphAttributes[key.attrName] = value
+                }
+            }
         }
     }
 
@@ -230,8 +195,7 @@ private fun parseGraphML(reader: XMLStreamReader, multiEdge: Boolean, indexEdges
 
     fun resolveVertex(id: String): Vertex = nodeIds.getOrPut(id) { graph.addVertex() }
 
-    reader.next()
-    skipMisc(reader)
+    reader.nextNonMisc()
     while (!(reader.eventType == END_ELEMENT && reader.localName == "graph")) {
         check(reader.eventType == START_ELEMENT) { "unexpected content inside <graph>" }
         when (reader.localName) {
@@ -242,8 +206,7 @@ private fun parseGraphML(reader: XMLStreamReader, multiEdge: Boolean, indexEdges
                 val vertex = nodeIds.getOrPut(id) { graph.addVertex(outDegreeHint, inDegreeHint) }
                 require(confirmedNodeIds.add(id)) { "duplicate node id=\"$id\"" }
 
-                reader.next()
-                skipMisc(reader)
+                reader.nextNonMisc()
                 while (!(reader.eventType == END_ELEMENT && reader.localName == "node")) {
                     check(reader.eventType == START_ELEMENT) { "unexpected content inside <node>" }
                     when (reader.localName) {
@@ -252,14 +215,12 @@ private fun parseGraphML(reader: XMLStreamReader, multiEdge: Boolean, indexEdges
                             val text = reader.elementText
                             check(vertexBindings.containsKey(keyId)) { "key id=\"$keyId\" does not exist" }
                             vertexBindings.getValue(keyId).parseAndSet(vertex, text)
-                            reader.next()
-                            skipMisc(reader)
+                            reader.nextNonMisc()
                         }
-                        else -> skipElement(reader)
+                        else -> reader.skipElement()
                     }
                 }
-                reader.next()
-                skipMisc(reader)
+                reader.nextNonMisc()
             }
             "edge" -> {
                 val sourceId = reader.requiredAttribute("source")
@@ -283,8 +244,7 @@ private fun parseGraphML(reader: XMLStreamReader, multiEdge: Boolean, indexEdges
                     listOf(graph.addEdge(source, target), graph.addEdge(target, source))
                 }
 
-                reader.next()
-                skipMisc(reader)
+                reader.nextNonMisc()
                 while (!(reader.eventType == END_ELEMENT && reader.localName == "edge")) {
                     check(reader.eventType == START_ELEMENT) { "unexpected content inside <edge>" }
                     when (reader.localName) {
@@ -293,14 +253,12 @@ private fun parseGraphML(reader: XMLStreamReader, multiEdge: Boolean, indexEdges
                             val text = reader.elementText
                             check(edgeBindings.containsKey(keyId)) { "key id=\"$keyId\" does not exist" }
                             for (edge in createdEdges) edgeBindings.getValue(keyId).parseAndSet(edge, text)
-                            reader.next()
-                            skipMisc(reader)
+                            reader.nextNonMisc()
                         }
-                        else -> skipElement(reader)
+                        else -> reader.skipElement()
                     }
                 }
-                reader.next()
-                skipMisc(reader)
+                reader.nextNonMisc()
             }
             "data" -> {
                 val keyId = reader.requiredAttribute("key")
@@ -308,10 +266,9 @@ private fun parseGraphML(reader: XMLStreamReader, multiEdge: Boolean, indexEdges
                 check(graphBindings.containsKey(keyId)) { "key id=\"$keyId\" does not exist" }
                 // Non-null: see the identical assertion above, in the key-binding setup loop.
                 graphAttributes[attrNameById.getValue(keyId)] = graphBindings.getValue(keyId).parser(text)!!
-                reader.next()
-                skipMisc(reader)
+                reader.nextNonMisc()
             }
-            else -> skipElement(reader)
+            else -> reader.skipElement()
         }
     }
 
@@ -322,6 +279,52 @@ private fun parseGraphML(reader: XMLStreamReader, multiEdge: Boolean, indexEdges
         vertexBindings.entries.associate { (id, binding) -> attrNameById.getValue(id) to binding.property },
         edgeBindings.entries.associate { (id, binding) -> attrNameById.getValue(id) to binding.property },
         graphAttributes)
+}
+
+private fun keyBinding(attrType: String, defaultText: String?, typeOverride: TypeBinding<*>?): TypeBinding<*> {
+    if (typeOverride != null) {
+        return TypeBinding(
+            typeOverride.type,
+            if (defaultText != null) typeOverride.parser(defaultText) else typeOverride.defaultValue,
+            typeOverride.parser)
+    }
+    if (attrType == "string" && defaultText != null) {
+        return TypeBinding(TypeBinding.nonNullString.type, defaultText, TypeBinding.nonNullString.parser)
+    }
+    val base = when (attrType) {
+        "boolean" -> TypeBinding.boolean
+        "int" -> TypeBinding.int
+        "long" -> TypeBinding.long
+        "float" -> TypeBinding.float
+        "double" -> TypeBinding.double
+        "string" -> TypeBinding.string
+        else -> throw IllegalArgumentException("unsupported attr.type \"$attrType\"")
+    }
+    return if (defaultText == null) base else TypeBinding(base.type, base.parser(defaultText), base.parser)
+}
+
+private fun XMLStreamReader.requiredAttribute(name: String): String =
+    getAttributeValue(null, name) ?: throw IllegalArgumentException("<$localName> missing \"$name\" attribute")
+
+private fun XMLStreamReader.nextNonMisc() {
+    next()
+    while (eventType == XMLStreamConstants.CHARACTERS ||
+        eventType == XMLStreamConstants.SPACE ||
+        eventType == XMLStreamConstants.COMMENT ||
+        eventType == XMLStreamConstants.PROCESSING_INSTRUCTION
+    ) next()
+}
+
+private fun XMLStreamReader.skipElement() {
+    var depth = 1
+    while (depth > 0) {
+        next()
+        when (eventType) {
+            START_ELEMENT -> depth++
+            END_ELEMENT -> depth--
+        }
+    }
+    nextNonMisc()
 }
 
 /**
