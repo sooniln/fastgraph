@@ -140,8 +140,8 @@ class PropertyTest {
 
     @Test
     fun edgePropertyValueFollowsReassignedEdgeOnRemoval() {
-        var v0 = Vertex(-1)
-        var v1 = Vertex(-1)
+        var v0: Vertex
+        var v1: Vertex
         var e0 = Edge(-1)
         var e1 = Edge(-1)
         var e2 = Edge(-1)
@@ -206,8 +206,8 @@ class PropertyTest {
 
     @Test
     fun edgePropertyMapTransformsReadsOnly() {
-        var v0 = Vertex(-1)
-        var v1 = Vertex(-1)
+        var v0: Vertex
+        var v1: Vertex
         val graph = buildGraph(true) {
             v0 = addVertex()
             v1 = addVertex()
@@ -227,8 +227,8 @@ class PropertyTest {
 
     @Test
     fun edgePropertyMapWithReverseTransformSupportsWrites() {
-        var v0 = Vertex(-1)
-        var v1 = Vertex(-1)
+        var v0: Vertex
+        var v1: Vertex
         val graph = buildGraph(true) {
             v0 = addVertex()
             v1 = addVertex()
@@ -264,8 +264,8 @@ class PropertyTest {
 
     @Test
     fun edgePropertyCopyIntoCopiesAllValues() {
-        var v0 = Vertex(-1)
-        var v1 = Vertex(-1)
+        var v0: Vertex
+        var v1: Vertex
         val graph = buildGraph(true) {
             v0 = addVertex()
             v1 = addVertex()
@@ -304,8 +304,8 @@ class PropertyTest {
 
     @Test
     fun edgePropertySafeCastSucceedsForMatchingType() {
-        var v0 = Vertex(-1)
-        var v1 = Vertex(-1)
+        var v0: Vertex
+        var v1: Vertex
         val graph = buildGraph(true) {
             v0 = addVertex()
             v1 = addVertex()
@@ -320,8 +320,8 @@ class PropertyTest {
 
     @Test
     fun edgePropertySafeCastThrowsForMismatchedType() {
-        var v0 = Vertex(-1)
-        var v1 = Vertex(-1)
+        var v0: Vertex
+        var v1: Vertex
         val graph = buildGraph(true) {
             v0 = addVertex()
             v1 = addVertex()
@@ -346,8 +346,8 @@ class PropertyTest {
 
     @Test
     fun unitEdgePropertyAlwaysReturnsUnit() {
-        var v0 = Vertex(-1)
-        var v1 = Vertex(-1)
+        var v0: Vertex
+        var v1: Vertex
         val graph = buildGraph(true) {
             v0 = addVertex()
             v1 = addVertex()
