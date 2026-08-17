@@ -167,13 +167,25 @@ private fun Map<String, Any>.generateFullExpansion(): Map<String, Any> {
             putIfAbsent("StorageType", type)
             putIfAbsent("ReadLambda", "{ return it }")
             putIfAbsent("WriteLambda", "{ return it }")
+        }
 
-            val isFPType = type == "Float" || type == "Double"
-            putIfAbsent("isFPType", isFPType)
-            if (isFPType) {
-                val nonFPType = if (type == "Float") "Int" else "Long"
-                putIfAbsent("NonFPType", nonFPType)
-                putIfAbsent("lowerNonFPType", nonFPType.lowercase())
+        val keyType = map["KeyType"] as String?
+        val valueType = map["ValueType"] as String?
+        if (keyType != null && valueType != null) {
+            putIfAbsent("Name", "${map["KeyType"]}2${map["ValueType"]}")
+            putIfAbsent("lowerKeyType", keyType.replaceFirstChar { it.lowercase() })
+            if (valueType == "V") {
+                putIfAbsent("isReferenceValue", true)
+                putIfAbsent("Generics", "<V>")
+                putIfAbsent("Nullable", "?")
+                putIfAbsent("ValueCollectionType", "Collection")
+                putIfAbsent("ValueIteratorType", "Iterator")
+            } else {
+                putIfAbsent("isReferenceValue", false)
+                putIfAbsent("Generics", "")
+                putIfAbsent("Nullable", "")
+                putIfAbsent("ValueCollectionType", "${map["ValueType"]}Collection")
+                putIfAbsent("ValueIteratorType", "${map["ValueType"]}Iterator")
             }
         }
     }

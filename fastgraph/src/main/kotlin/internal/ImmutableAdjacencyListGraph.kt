@@ -170,11 +170,11 @@ internal class ImmutableAdjacencyListGraph private constructor(
 
     override fun getEdge(source: Vertex, target: Vertex): Edge {
         if (!containsEdge(source, target)) throw NoSuchElementException()
-        return canonicalEdge(directed, source, target)
+        return canonicalEdge(source, target)
     }
 
     override fun getEdges(source: Vertex, target: Vertex): EdgeSet {
-        return if (!containsEdge(source, target)) emptyEdgeSet() else edgeSetOf(canonicalEdge(directed, source, target))
+        return if (!containsEdge(source, target)) emptyEdgeSet() else edgeSetOf(canonicalEdge(source, target))
     }
 
     override fun <T> createVertexProperty(
@@ -232,12 +232,12 @@ internal class ImmutableAdjacencyListGraph private constructor(
         override fun iterator(): EdgeIterator = object : EdgeIterator {
             private val it = sortedNeighbors.iterator()
             override fun hasNext(): Boolean = it.hasNext()
-            override fun next(): Edge = canonicalEdge(directed, vertex, Vertex(it.nextInt()))
+            override fun next(): Edge = canonicalEdge(vertex, Vertex(it.nextInt()))
         }
 
         override fun foreach(action: EdgeConsumer) {
             for (neighbor in sortedNeighbors) {
-                action.accept(canonicalEdge(directed, vertex, Vertex(neighbor)))
+                action.accept(canonicalEdge(vertex, Vertex(neighbor)))
             }
         }
     }
@@ -263,12 +263,12 @@ internal class ImmutableAdjacencyListGraph private constructor(
         override fun iterator(): EdgeIterator = object : EdgeIterator {
             private val it = sortedNeighbors.iterator()
             override fun hasNext(): Boolean = it.hasNext()
-            override fun next(): Edge = canonicalEdge(directed, Vertex(it.nextInt()), vertex)
+            override fun next(): Edge = canonicalEdge(Vertex(it.nextInt()), vertex)
         }
 
         override fun foreach(action: EdgeConsumer) {
             for (neighbor in sortedNeighbors) {
-                action.accept(canonicalEdge(directed, Vertex(neighbor), vertex))
+                action.accept(canonicalEdge(Vertex(neighbor), vertex))
             }
         }
     }
@@ -281,7 +281,7 @@ internal class ImmutableAdjacencyListGraph private constructor(
         }
     }
 
-    private fun canonicalEdge(directed: Boolean, source: Vertex, target: Vertex): Edge {
+    private fun canonicalEdge(source: Vertex, target: Vertex): Edge {
         return if (!directed) {
             Edge(highBits = min(source.id, target.id), lowBits = max(source.id, target.id))
         } else {

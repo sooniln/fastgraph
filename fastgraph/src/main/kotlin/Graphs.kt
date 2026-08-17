@@ -313,10 +313,57 @@ public fun Graph.edgeSource(edgeReference: EdgeReference): Vertex = edgeSource(e
 public fun Graph.edgeTarget(edgeReference: EdgeReference): Vertex = edgeTarget(edgeReference.unstable)
 
 /**
+ * For a directed graph, this is equivalent to [Graph.edgeSource]. For an undirected graph this returns the vertex
+ * opposite the given [target] vertex. Behavior is undefined if [target] does not belong to [edge]. This method is
+ * faster than [edgeOpposite] for directed graphs.
+ */
+public fun Graph.edgeSource(edge: Edge, target: Vertex): Vertex {
+    if (directed) {
+        val source = edgeSource(edge)
+        assert(source != target)
+        return target
+    } else {
+        return edgeOpposite(edge, target)
+    }
+}
+
+/**
+ * For a directed graph, this is equivalent to [Graph.edgeSource]. For an undirected graph this returns the vertex
+ * opposite the given [target] vertex. Behavior is undefined if [target] does not belong to [edge]. This method is
+ * faster than [edgeOpposite].
+ */
+@JvmSynthetic
+public fun Graph.edgeSource(edge: Edge, target: VertexReference): Vertex = edgeSource(edge, target.unstable)
+
+/**
+ * For a directed graph, this is equivalent to [Graph.edgeTarget]. For an undirected graph this returns the vertex
+ * opposite the given [source] vertex. Behavior is undefined if [source] does not belong to [edge]. This method is
+ * faster than [edgeOpposite] for directed graphs.
+ */
+public fun Graph.edgeTarget(edge: Edge, source: Vertex): Vertex {
+    if (directed) {
+        val target = edgeTarget(edge)
+        assert(source != target)
+        return target
+    } else {
+        return edgeOpposite(edge, source)
+    }
+}
+
+/**
+ * For a directed graph, this is equivalent to [Graph.edgeTarget]. For an undirected graph this returns the vertex
+ * opposite the given [source] vertex. Behavior is undefined if [source] does not belong to [edge]. This method is
+ * faster than [edgeOpposite].
+ */
+@JvmSynthetic
+public fun Graph.edgeTarget(edge: Edge, source: VertexReference): Vertex = edgeTarget(edge, source.unstable)
+
+/**
  * Returns the vertex of the given edge that is opposite the given vertex. I.e., the source vertex is returned if the
  * target vertex is provided, and vice versa. Throws [IllegalArgumentException] if the given vertex is neither the
  * source nor target of the given edge. This method is often useful when working with undirected edges where the
- * source/target distinction does not exist.
+ * source/target distinction does not exist. If viable, the [edgeSource] and [edgeTarget] extension methods are faster
+ * than this method.
  */
 @JvmName("edgeOpposite")
 public fun Graph.edgeOpposite(edge: Edge, other: Vertex): Vertex {

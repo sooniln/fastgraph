@@ -61,7 +61,7 @@ internal object Utils {
 
             val curDistance = distance[v]
             for (edge in graph.outgoingEdges(v)) {
-                val n = graph.edgeOpposite(edge, v)
+                val n = graph.edgeTarget(edge, v)
                 val newDistance = curDistance + weights[edge]
                 if (newDistance < distance[n]) {
                     distance[n] = newDistance

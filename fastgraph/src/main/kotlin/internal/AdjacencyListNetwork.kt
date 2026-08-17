@@ -56,8 +56,8 @@ internal class AdjacencyListNetwork(
         }
         for (index in successors.indices) {
             val vertex = Vertex(index)
-            successors[vertex].foreach { edgeAdjacency ->
-                predecessors[edgeAdjacency.vertex].add(vertex, edgeAdjacency.edgeId)
+            successors[vertex].foreachAdjacency { adjacencyVertex, edgeId ->
+                predecessors[adjacencyVertex].add(vertex, edgeId)
             }
         }
         return@lazy predecessors
@@ -115,14 +115,14 @@ internal class AdjacencyListNetwork(
         // remove outbound edges
         val outboundAdjacencies = successors[vertex]
         while (!outboundAdjacencies.isEmpty()) {
-            removeEdgeInternal(outboundAdjacencies.iterator().next().edgeId)
+            removeEdgeInternal(outboundAdjacencies.edgeIterator().next().edgeId)
         }
 
         // remove inbound edges
         if (directed) {
             val inboundAdjacencies = predecessors[vertex]
             while (!inboundAdjacencies.isEmpty()) {
-                removeEdgeInternal(inboundAdjacencies.iterator().next().edgeId)
+                removeEdgeInternal(inboundAdjacencies.edgeIterator().next().edgeId)
             }
         }
 
@@ -137,19 +137,19 @@ internal class AdjacencyListNetwork(
         if (vertex != lastVertex) {
             // update edge adjacencies
             if (directed) {
-                predecessors[lastVertex].foreach { adjacency ->
+                predecessors[lastVertex].foreachAdjacency { adjacencyVertex, edgeId ->
                     // predecessors has not been updated yet, so translate vertices if necessary
-                    val source = if (adjacency.vertex == lastVertex) vertex else adjacency.vertex
-                    edgeValues[adjacency.edgeId] = EdgeValue(true, source, vertex)
+                    val source = if (adjacencyVertex == lastVertex) vertex else adjacencyVertex
+                    edgeValues[edgeId] = EdgeValue(true, source, vertex)
                 }
 
                 predecessors[lastVertex].vertices.foreach { source ->
                     successors[source].updateVertex(lastVertex, vertex)
                 }
 
-                successors[lastVertex].foreach { adjacency ->
+                successors[lastVertex].foreachAdjacency { adjacencyVertex, edgeId ->
                     // successors has already been updated, so no translation necessary
-                    edgeValues[adjacency.edgeId] = EdgeValue(true, vertex, adjacency.vertex)
+                    edgeValues[edgeId] = EdgeValue(true, vertex, adjacencyVertex)
                 }
 
                 successors[lastVertex].vertices.foreach { newTarget ->
@@ -158,10 +158,10 @@ internal class AdjacencyListNetwork(
                     predecessors[target].updateVertex(lastVertex, vertex)
                 }
             } else {
-                successors[lastVertex].foreach { adjacency ->
+                successors[lastVertex].foreachAdjacency { adjacencyVertex, edgeId ->
                     // successors has already been updated, so no translation necessary
-                    val vertexOther = if (adjacency.vertex == lastVertex) vertex else adjacency.vertex
-                    edgeValues[adjacency.edgeId] = EdgeValue(false, vertex, vertexOther)
+                    val vertexOther = if (adjacencyVertex == lastVertex) vertex else adjacencyVertex
+                    edgeValues[edgeId] = EdgeValue(false, vertex, vertexOther)
                 }
 
                 var updateSelfLoop = false
@@ -308,9 +308,9 @@ internal class AdjacencyListNetwork(
     override fun containsEdge(source: Vertex, target: Vertex): Boolean = successors[source.id].contains(target)
 
     override fun getEdge(source: Vertex, target: Vertex): Edge {
-        val adjacenciesIt = successors[source].edgesTo(target).iterator()
-        if (!adjacenciesIt.hasNext()) throw NoSuchElementException()
-        return canonicalEdge(adjacenciesIt.next().edgeId)
+        val edgeIt = successors[source].edgesTo(target).edgeIterator()
+        if (!edgeIt.hasNext()) throw NoSuchElementException()
+        return edgeIt.next()
     }
 
     override fun getEdges(source: Vertex, target: Vertex): EdgeSet {
@@ -377,14 +377,8 @@ internal class AdjacencyListNetwork(
             }
         }
 
-        override fun iterator(): EdgeIterator = object : EdgeIterator {
-            private val it = adjacencies.iterator()
-            override fun hasNext(): Boolean = it.hasNext()
-            override fun next(): Edge = canonicalEdge(it.next().edgeId)
-        }
-
-        override fun foreach(action: EdgeConsumer) =
-            adjacencies.foreach { edgeAdjacency -> action.accept(canonicalEdge(edgeAdjacency.edgeId)) }
+        override fun iterator(): EdgeIterator = adjacencies.edgeIterator()
+        override fun foreach(action: EdgeConsumer) = adjacencies.foreachEdge(action)
     }
 
     private class AdjacencySet(degreeHint: Int = 0) : EdgeAdjacencySet {
@@ -418,7 +412,7 @@ internal class AdjacencyListNetwork(
             return map.containsKey(vertex.id)
         }
 
-        override fun iterator(): EdgeAdjacencyIterator = object : EdgeAdjacencyIterator {
+        override fun edgeIterator(): EdgeIterator = object : EdgeIterator {
             private val mapIt = map.iterator()
             private var edgeIdIt: IntIterator = emptyIntIterator()
 
@@ -431,9 +425,9 @@ internal class AdjacencyListNetwork(
 
             override fun hasNext(): Boolean = edgeId != -1
 
-            override fun next(): EdgeAdjacency {
+            override fun next(): Edge {
                 if (edgeId == -1) throw NoSuchElementException()
-                val ea = EdgeAdjacency(vertex, edgeId)
+                val ea = canonicalEdge(edgeId)
                 increment()
                 return ea
             }
@@ -450,15 +444,23 @@ internal class AdjacencyListNetwork(
             }
         }
 
-        override fun foreach(action: EdgeAdjacencyConsumer) {
+        override fun foreachEdge(action: EdgeConsumer) {
+            map.foreach { _, edgeId ->
+                if (edgeId < 0) {
+                    edgeListMap.getValue(edgeId).foreach { edgeId -> action.accept(canonicalEdge(edgeId)) }
+                } else {
+                    action.accept(canonicalEdge(edgeId))
+                }
+            }
+        }
+
+        inline fun foreachAdjacency(crossinline action: (Vertex, Int) -> Unit) {
             map.foreach { vertex, edgeId ->
                 val vertex = Vertex(vertex)
                 if (edgeId < 0) {
-                    edgeListMap.getValue(edgeId).foreach { edgeId ->
-                        action.accept(EdgeAdjacency(vertex, edgeId))
-                    }
+                    edgeListMap.getValue(edgeId).foreach { edgeId -> action(vertex, edgeId) }
                 } else {
-                    action.accept(EdgeAdjacency(vertex, edgeId))
+                    action(vertex, edgeId)
                 }
             }
         }
@@ -551,17 +553,15 @@ internal class AdjacencyListNetwork(
 
             override val vertices: VertexSet get() = vertexSetOf(target)
 
-            override fun iterator(): EdgeAdjacencyIterator = object : EdgeAdjacencyIterator {
+            override fun edgeIterator(): EdgeIterator = object : EdgeIterator {
                 private val it = edgeIds.iterator()
                 override fun hasNext(): Boolean = it.hasNext()
-                override fun next(): EdgeAdjacency = EdgeAdjacency(target, it.nextInt())
+                override fun next(): Edge = canonicalEdge(it.nextInt())
             }
 
-            override fun foreach(action: EdgeAdjacencyConsumer) {
-                edgeIds.foreach { edgeId -> action.accept(EdgeAdjacency(target, edgeId)) }
+            override fun foreachEdge(action: EdgeConsumer) {
+                edgeIds.foreach { edgeId -> action.accept(canonicalEdge(edgeId)) }
             }
-
-            override fun toString(): String = iterator().asSequence().joinToString(", ", "[", "]")
         }
 
         fun trimToSize() {
@@ -569,8 +569,6 @@ internal class AdjacencyListNetwork(
             edgeListMap.trimToSize()
             edgeListMap.foreach { _, v -> v.trimToSize() }
         }
-
-        override fun toString(): String = iterator().asSequence().joinToString(", ", "[", "]")
 
         private operator fun Int2IntHashMap.get(vertex: Vertex) = get(vertex.id)
         private operator fun Int2IntHashMap.set(vertex: Vertex, value: Int) = set(vertex.id, value)
@@ -581,10 +579,11 @@ internal class AdjacencyListNetwork(
     private operator fun ArrayList<AdjacencySet>.set(vertex: Vertex, value: AdjacencySet) = set(vertex.id, value)
     private fun ArrayList<AdjacencySet>.remove(vertex: Vertex) = removeAt(vertex.id)
 
-    private fun canonicalEdge(edgeId: Int): Edge = Edge(edgeId.toLong())
-    private val Edge.edgeId: Int inline get() = lowBits
-
     private companion object {
         private val INVALID_VERTEX = Vertex(-1)
+
+        private val Edge.edgeId: Int inline get() = lowBits
+
+        private fun canonicalEdge(edgeId: Int): Edge = Edge(edgeId.toLong())
     }
 }

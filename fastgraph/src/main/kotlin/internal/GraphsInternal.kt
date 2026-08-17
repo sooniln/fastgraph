@@ -4,6 +4,8 @@ import io.github.sooniln.fastcollect.LongArrayList
 import io.github.sooniln.fastcollect.indices
 import io.github.sooniln.fastcollect.lastIndex
 import io.github.sooniln.fastgraph.Edge
+import io.github.sooniln.fastgraph.EdgeConsumer
+import io.github.sooniln.fastgraph.EdgeIterator
 import io.github.sooniln.fastgraph.EdgeReference
 import io.github.sooniln.fastgraph.EdgeSet
 import io.github.sooniln.fastgraph.Graph
@@ -114,14 +116,6 @@ internal value class EdgeAdjacency(val longValue: Long) {
     override fun toString(): String = "EdgeAdjacency($vertex, $edgeId)"
 }
 
-internal interface EdgeAdjacencyIterator : Iterator<EdgeAdjacency> {
-    override fun next(): EdgeAdjacency
-}
-
-internal fun interface EdgeAdjacencyConsumer {
-    fun accept(value: EdgeAdjacency)
-}
-
 internal interface EdgeAdjacencySet {
     val size: Int
 
@@ -130,9 +124,10 @@ internal interface EdgeAdjacencySet {
     fun isEmpty(): Boolean = size == 0
     fun contains(element: EdgeAdjacency): Boolean
     fun contains(vertex: Vertex): Boolean = vertices.contains(vertex)
-    fun iterator(): EdgeAdjacencyIterator
-    fun foreach(action: EdgeAdjacencyConsumer) {
-        val it = iterator()
+
+    fun edgeIterator(): EdgeIterator
+    fun foreachEdge(action: EdgeConsumer) {
+        val it = edgeIterator()
         while (it.hasNext()) {
             action.accept(it.next())
         }

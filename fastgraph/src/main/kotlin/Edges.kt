@@ -71,6 +71,20 @@ public value class Edge(public val id: Long) {
     public val target: Vertex inline get() = graph.edgeTarget(this)
 
     /**
+     * See [edgeSource].
+     */
+    @JvmSynthetic
+    context(graph: Graph)
+    public fun source(target: Vertex): Vertex = graph.edgeSource(this, target)
+
+    /**
+     * See [edgeSource].
+     */
+    @JvmSynthetic
+    context(graph: Graph)
+    public fun target(source: Vertex): Vertex = graph.edgeTarget(this, source)
+
+    /**
      * See [Graph.edgeOpposite].
      */
     @JvmSynthetic
