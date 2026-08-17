@@ -389,6 +389,16 @@ public fun Graph.edgeOpposite(edge: Edge, other: Vertex): Vertex {
 @JvmSynthetic
 public fun Graph.edgeOpposite(edge: Edge, other: VertexReference): Vertex = edgeOpposite(edge, other.unstable)
 
+/**
+ * Returns the density of the graph, defined as 2M/(N*(N-1)) for directed graphs and M/(N*(N-1)) for undirected graphs,
+ * where M is the number of edges and N is the number of vertices.
+ */
+public fun Graph.density(): Double {
+    val numerator = if (directed) 2 * edges.size else edges.size
+    val numVertices = vertices.size
+    return numerator.toDouble() / (numVertices * (numVertices - 1))
+}
+
 @Suppress("INAPPLICABLE_JVM_NAME")
 public interface VertexChangeListener {
     /**
