@@ -14,8 +14,8 @@ import io.github.sooniln.fastgraph.StaticType
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
 import io.github.sooniln.fastgraph.VertexFunction
-import io.github.sooniln.fastgraph.internal.throwIllegalVertex
 import io.github.sooniln.fastgraph.staticTypeOf
+import io.github.sooniln.fastgraph.internal.throwIllegalVertex
 
 
 internal class ByteArrayVertexProperty(

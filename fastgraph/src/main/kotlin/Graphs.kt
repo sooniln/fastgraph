@@ -317,6 +317,7 @@ public fun Graph.edgeTarget(edgeReference: EdgeReference): Vertex = edgeTarget(e
  * opposite the given [target] vertex. Behavior is undefined if [target] does not belong to [edge]. This method is
  * faster than [edgeOpposite] for directed graphs.
  */
+@JvmName("edgeSource")
 public fun Graph.edgeSource(edge: Edge, target: Vertex): Vertex {
     if (directed) {
         val source = edgeSource(edge)
@@ -340,6 +341,7 @@ public fun Graph.edgeSource(edge: Edge, target: VertexReference): Vertex = edgeS
  * opposite the given [source] vertex. Behavior is undefined if [source] does not belong to [edge]. This method is
  * faster than [edgeOpposite] for directed graphs.
  */
+@JvmName("edgeTarget")
 public fun Graph.edgeTarget(edge: Edge, source: Vertex): Vertex {
     if (directed) {
         val target = edgeTarget(edge)

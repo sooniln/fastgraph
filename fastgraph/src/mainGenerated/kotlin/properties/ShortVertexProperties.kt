@@ -1,7 +1,7 @@
 package io.github.sooniln.fastgraph.properties
 
-import io.github.sooniln.fastcollect.Int2IntHashMap
 import io.github.sooniln.fastcollect.IntArrayList
+import io.github.sooniln.fastcollect.Int2IntHashMap
 import io.github.sooniln.fastcollect.getOrPut
 import io.github.sooniln.fastcollect.lastIndex
 import io.github.sooniln.fastcollect.removeOrElse
@@ -14,8 +14,8 @@ import io.github.sooniln.fastgraph.StaticType
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
 import io.github.sooniln.fastgraph.VertexFunction
-import io.github.sooniln.fastgraph.internal.throwIllegalVertex
 import io.github.sooniln.fastgraph.staticTypeOf
+import io.github.sooniln.fastgraph.internal.throwIllegalVertex
 
 
 internal class ShortArrayVertexProperty(

@@ -14,8 +14,8 @@ import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.IndexedEdgeGraph
 import io.github.sooniln.fastgraph.MutableEdgeProperty
 import io.github.sooniln.fastgraph.StaticType
-import io.github.sooniln.fastgraph.internal.throwIllegalEdge
 import io.github.sooniln.fastgraph.staticTypeOf
+import io.github.sooniln.fastgraph.internal.throwIllegalEdge
 
 
 internal class ByteArrayEdgeProperty(

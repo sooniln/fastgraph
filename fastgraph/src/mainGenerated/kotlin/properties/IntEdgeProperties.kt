@@ -1,7 +1,5 @@
 package io.github.sooniln.fastgraph.properties
 
-
-import io.github.sooniln.fastcollect.Int2LongHashMap
 import io.github.sooniln.fastcollect.IntArrayList
 import io.github.sooniln.fastcollect.Long2IntHashMap
 import io.github.sooniln.fastcollect.getOrPut
@@ -14,11 +12,15 @@ import io.github.sooniln.fastgraph.EdgeFunction
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.IndexedEdgeGraph
-import io.github.sooniln.fastgraph.MutableEdgeKeyProperty
 import io.github.sooniln.fastgraph.MutableEdgeProperty
 import io.github.sooniln.fastgraph.StaticType
-import io.github.sooniln.fastgraph.internal.throwIllegalEdge
 import io.github.sooniln.fastgraph.staticTypeOf
+import io.github.sooniln.fastgraph.internal.throwIllegalEdge
+
+
+import io.github.sooniln.fastcollect.Int2LongHashMap
+
+import io.github.sooniln.fastgraph.MutableEdgeKeyProperty
 
 
 internal class IntArrayEdgeProperty(

@@ -97,6 +97,8 @@ public final class io/github/sooniln/fastgraph/Edge {
 	public static fun hashCode-impl (J)I
 	public static final synthetic fun opposite-mcSw4oQ (JLio/github/sooniln/fastgraph/Graph;I)I
 	public static final synthetic fun reference-impl (JLio/github/sooniln/fastgraph/Graph;)Lio/github/sooniln/fastgraph/EdgeReference;
+	public static final synthetic fun source-mcSw4oQ (JLio/github/sooniln/fastgraph/Graph;I)I
+	public static final synthetic fun target-mcSw4oQ (JLio/github/sooniln/fastgraph/Graph;I)I
 	public fun toString ()Ljava/lang/String;
 	public static fun toString (J)Ljava/lang/String;
 	public final synthetic fun unbox-impl ()J
@@ -239,10 +241,15 @@ public final class io/github/sooniln/fastgraph/Graphs {
 	public static final synthetic fun addEdge (Lio/github/sooniln/fastgraph/MutableGraph;Lio/github/sooniln/fastgraph/VertexReference;Lio/github/sooniln/fastgraph/VertexReference;)J
 	public static final fun buildGraph (ZZZLkotlin/jvm/functions/Function1;)Lio/github/sooniln/fastgraph/MutableGraph;
 	public static synthetic fun buildGraph$default (ZZZLkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lio/github/sooniln/fastgraph/MutableGraph;
+	public static final fun density (Lio/github/sooniln/fastgraph/Graph;)D
 	public static final fun edgeOpposite (Lio/github/sooniln/fastgraph/Graph;JI)I
 	public static final synthetic fun edgeOpposite-LiHi4qw (Lio/github/sooniln/fastgraph/Graph;JLio/github/sooniln/fastgraph/VertexReference;)I
+	public static final fun edgeSource (Lio/github/sooniln/fastgraph/Graph;JI)I
 	public static final synthetic fun edgeSource (Lio/github/sooniln/fastgraph/Graph;Lio/github/sooniln/fastgraph/EdgeReference;)I
+	public static final synthetic fun edgeSource-LiHi4qw (Lio/github/sooniln/fastgraph/Graph;JLio/github/sooniln/fastgraph/VertexReference;)I
+	public static final fun edgeTarget (Lio/github/sooniln/fastgraph/Graph;JI)I
 	public static final synthetic fun edgeTarget (Lio/github/sooniln/fastgraph/Graph;Lio/github/sooniln/fastgraph/EdgeReference;)I
+	public static final synthetic fun edgeTarget-LiHi4qw (Lio/github/sooniln/fastgraph/Graph;JLio/github/sooniln/fastgraph/VertexReference;)I
 	public static final fun emptyGraph (Z)Lio/github/sooniln/fastgraph/Graph;
 	public static final fun filterEdges (Lio/github/sooniln/fastgraph/Graph;Lio/github/sooniln/fastgraph/EdgePredicate;)Lio/github/sooniln/fastgraph/Graph;
 	public static final fun getEdgeIdProperty (Lio/github/sooniln/fastgraph/Graph;)Lio/github/sooniln/fastgraph/EdgeProperty;
