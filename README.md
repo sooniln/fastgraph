@@ -171,7 +171,8 @@ docs.
 ## Dependencies
 
 * JDK 17+
-* [fastutil-core](https://github.com/vigna/fastutil/) is used to support memory and CPU efficient primitive collections.
+* [fastcollect](https://github.com/sooniln/fastcollect/) is used to support memory and CPU efficient primitive
+  collections.
 
 ## Attributions
 
