@@ -117,7 +117,6 @@ public abstract interface class io/github/sooniln/fastgraph/EdgeCollection : io/
 	public fun contains (Ljava/lang/Object;)Z
 	public fun containsAll (Lio/github/sooniln/fastgraph/EdgeCollection;)Z
 	public fun containsAll (Ljava/util/Collection;)Z
-	public fun foreach (Lio/github/sooniln/fastgraph/EdgeConsumer;)V
 	public fun isEmpty ()Z
 	public fun toLongArray ()[J
 }
@@ -328,7 +327,6 @@ public abstract interface class io/github/sooniln/fastgraph/IndexedEdgeSet : io/
 	public abstract fun contains (J)Z
 	public fun contains (Ljava/lang/Object;)Z
 	public fun containsAll (Ljava/util/Collection;)Z
-	public fun foreach (Lio/github/sooniln/fastgraph/EdgeConsumer;)V
 	public abstract fun get (I)J
 	public abstract fun indexOf (J)I
 	public fun iterator ()Lio/github/sooniln/fastgraph/EdgeIterator;
@@ -344,7 +342,6 @@ public abstract interface class io/github/sooniln/fastgraph/IndexedVertexSet : i
 	public abstract fun contains (I)Z
 	public fun contains (Ljava/lang/Object;)Z
 	public fun containsAll (Ljava/util/Collection;)Z
-	public fun foreach (Lio/github/sooniln/fastgraph/VertexConsumer;)V
 	public abstract fun get (I)I
 	public abstract fun indexOf (I)I
 	public fun iterator ()Lio/github/sooniln/fastgraph/VertexIterator;
@@ -417,62 +414,62 @@ public abstract interface class io/github/sooniln/fastgraph/MutableVertexPropert
 public abstract interface class io/github/sooniln/fastgraph/MutableVertexSet : io/github/sooniln/fastgraph/MutableVertexCollection, io/github/sooniln/fastgraph/VertexSet {
 }
 
-public final class io/github/sooniln/fastgraph/StaticType {
-	public static final field Companion Lio/github/sooniln/fastgraph/StaticType$Companion;
-	public static final fun boolean ()Lio/github/sooniln/fastgraph/StaticType;
+public final class io/github/sooniln/fastgraph/PropertyType {
+	public static final field Companion Lio/github/sooniln/fastgraph/PropertyType$Companion;
+	public static final fun boolean ()Lio/github/sooniln/fastgraph/PropertyType;
 	public static final fun boolean ()Lkotlin/reflect/KType;
-	public static final synthetic fun box-impl (Lkotlin/reflect/KType;)Lio/github/sooniln/fastgraph/StaticType;
-	public static final fun byte ()Lio/github/sooniln/fastgraph/StaticType;
+	public static final synthetic fun box-impl (Lkotlin/reflect/KType;)Lio/github/sooniln/fastgraph/PropertyType;
+	public static final fun byte ()Lio/github/sooniln/fastgraph/PropertyType;
 	public static final fun byte ()Lkotlin/reflect/KType;
 	public static fun constructor-impl (Lkotlin/reflect/KType;Lkotlin/reflect/KClass;)Lkotlin/reflect/KType;
-	public static final fun double ()Lio/github/sooniln/fastgraph/StaticType;
+	public static final fun double ()Lio/github/sooniln/fastgraph/PropertyType;
 	public static final fun double ()Lkotlin/reflect/KType;
 	public fun equals (Ljava/lang/Object;)Z
 	public static fun equals-impl (Lkotlin/reflect/KType;Ljava/lang/Object;)Z
 	public static final fun equals-impl0 (Lkotlin/reflect/KType;Lkotlin/reflect/KType;)Z
-	public static final fun float ()Lio/github/sooniln/fastgraph/StaticType;
+	public static final fun float ()Lio/github/sooniln/fastgraph/PropertyType;
 	public static final fun float ()Lkotlin/reflect/KType;
 	public final fun getKType ()Lkotlin/reflect/KType;
 	public fun hashCode ()I
 	public static fun hashCode-impl (Lkotlin/reflect/KType;)I
-	public static final fun int ()Lio/github/sooniln/fastgraph/StaticType;
+	public static final fun int ()Lio/github/sooniln/fastgraph/PropertyType;
 	public static final fun int ()Lkotlin/reflect/KType;
 	public final fun isUnitType ()Z
 	public static final fun isUnitType-impl (Lkotlin/reflect/KType;)Z
-	public static final fun long ()Lio/github/sooniln/fastgraph/StaticType;
+	public static final fun long ()Lio/github/sooniln/fastgraph/PropertyType;
 	public static final fun long ()Lkotlin/reflect/KType;
-	public final fun mayCastTo (Lio/github/sooniln/fastgraph/StaticType;)Z
+	public final fun mayCastTo (Lio/github/sooniln/fastgraph/PropertyType;)Z
 	public static final fun mayCastTo (Lkotlin/reflect/KType;Lkotlin/reflect/KType;)Z
 	public static final synthetic fun mayCastTo-impl (Lkotlin/reflect/KType;Lkotlin/reflect/KType;)Z
-	public static final fun obj ()Lio/github/sooniln/fastgraph/StaticType;
+	public static final fun obj ()Lio/github/sooniln/fastgraph/PropertyType;
 	public static final fun obj ()Lkotlin/reflect/KType;
-	public static final fun short ()Lio/github/sooniln/fastgraph/StaticType;
+	public static final fun short ()Lio/github/sooniln/fastgraph/PropertyType;
 	public static final fun short ()Lkotlin/reflect/KType;
 	public fun toString ()Ljava/lang/String;
 	public static fun toString-impl (Lkotlin/reflect/KType;)Ljava/lang/String;
 	public final synthetic fun unbox-impl ()Lkotlin/reflect/KType;
-	public static final fun unit ()Lio/github/sooniln/fastgraph/StaticType;
+	public static final fun unit ()Lio/github/sooniln/fastgraph/PropertyType;
 	public static final fun unit ()Lkotlin/reflect/KType;
 }
 
-public final class io/github/sooniln/fastgraph/StaticType$Companion {
-	public final fun boolean ()Lio/github/sooniln/fastgraph/StaticType;
+public final class io/github/sooniln/fastgraph/PropertyType$Companion {
+	public final fun boolean ()Lio/github/sooniln/fastgraph/PropertyType;
 	public final fun boolean ()Lkotlin/reflect/KType;
-	public final fun byte ()Lio/github/sooniln/fastgraph/StaticType;
+	public final fun byte ()Lio/github/sooniln/fastgraph/PropertyType;
 	public final fun byte ()Lkotlin/reflect/KType;
-	public final fun double ()Lio/github/sooniln/fastgraph/StaticType;
+	public final fun double ()Lio/github/sooniln/fastgraph/PropertyType;
 	public final fun double ()Lkotlin/reflect/KType;
-	public final fun float ()Lio/github/sooniln/fastgraph/StaticType;
+	public final fun float ()Lio/github/sooniln/fastgraph/PropertyType;
 	public final fun float ()Lkotlin/reflect/KType;
-	public final fun int ()Lio/github/sooniln/fastgraph/StaticType;
+	public final fun int ()Lio/github/sooniln/fastgraph/PropertyType;
 	public final fun int ()Lkotlin/reflect/KType;
-	public final fun long ()Lio/github/sooniln/fastgraph/StaticType;
+	public final fun long ()Lio/github/sooniln/fastgraph/PropertyType;
 	public final fun long ()Lkotlin/reflect/KType;
-	public final fun obj ()Lio/github/sooniln/fastgraph/StaticType;
+	public final fun obj ()Lio/github/sooniln/fastgraph/PropertyType;
 	public final fun obj ()Lkotlin/reflect/KType;
-	public final fun short ()Lio/github/sooniln/fastgraph/StaticType;
+	public final fun short ()Lio/github/sooniln/fastgraph/PropertyType;
 	public final fun short ()Lkotlin/reflect/KType;
-	public final fun unit ()Lio/github/sooniln/fastgraph/StaticType;
+	public final fun unit ()Lio/github/sooniln/fastgraph/PropertyType;
 	public final fun unit ()Lkotlin/reflect/KType;
 }
 
@@ -538,7 +535,6 @@ public abstract interface class io/github/sooniln/fastgraph/VertexCollection : i
 	public fun contains (Ljava/lang/Object;)Z
 	public fun containsAll (Lio/github/sooniln/fastgraph/VertexCollection;)Z
 	public fun containsAll (Ljava/util/Collection;)Z
-	public fun foreach (Lio/github/sooniln/fastgraph/VertexConsumer;)V
 	public fun isEmpty ()Z
 	public fun toIntArray ()[I
 }

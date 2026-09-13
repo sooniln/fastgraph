@@ -1,13 +1,11 @@
 package io.github.sooniln.fastgraph.internal
 
-import io.github.sooniln.fastcollect.IntHashSet
-import io.github.sooniln.fastcollect.emptyMutableIntIterator
+import io.github.sooniln.fastcollect.*
 import io.github.sooniln.fastgraph.AbstractEdgeSet
 import io.github.sooniln.fastgraph.AbstractGraph
 import io.github.sooniln.fastgraph.AbstractMutableIndexedVertexSet
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeChangeListener
-import io.github.sooniln.fastgraph.EdgeConsumer
 import io.github.sooniln.fastgraph.EdgeFunction
 import io.github.sooniln.fastgraph.EdgeIterator
 import io.github.sooniln.fastgraph.EdgeReference
@@ -19,7 +17,7 @@ import io.github.sooniln.fastgraph.MutableEdgeSet
 import io.github.sooniln.fastgraph.MutableGraph
 import io.github.sooniln.fastgraph.MutableIndexedVertexSet
 import io.github.sooniln.fastgraph.MutableVertexProperty
-import io.github.sooniln.fastgraph.StaticType
+import io.github.sooniln.fastgraph.PropertyType
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
 import io.github.sooniln.fastgraph.VertexFunction
@@ -50,7 +48,7 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
         }
         for (index in successors.indices) {
             val vertex = Vertex(index)
-            successors[vertex].foreach { successor -> predecessors[successor].add(vertex) }
+            for (successor in successors[vertex]) { predecessors[successor].add(vertex) }
         }
         return@lazy predecessors
     }
@@ -179,16 +177,20 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
                     check(predecessors[target].add(vertex))
                 }
             } else {
-                successors[lastVertex].foreachVertex { target ->
-                    // successors hasn't been corrected yet, so treat lastIndex as index when necessary
-                    val newTarget = if (target == lastVertex) vertex else target
+                val hasSelfLoop = successors[lastVertex].remove(lastVertex)
 
+                successors[lastVertex].foreachVertex { target ->
                     val oldEdge = canonicalEdge(lastVertex, target)
-                    val newEdge = canonicalEdge(vertex, newTarget)
+                    val newEdge = canonicalEdge(vertex, target)
                     edgeListeners.notifyEdgeReassigned(oldEdge, newEdge)
 
                     check(successors[target].remove(lastVertex))
                     check(successors[target].add(vertex))
+                }
+
+                if (hasSelfLoop) {
+                    successors[lastVertex].add(vertex)
+                    edgeListeners.notifyEdgeReassigned(canonicalEdge(lastVertex, lastVertex), canonicalEdge(vertex, vertex))
                 }
             }
 
@@ -281,7 +283,7 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
 
         override fun iterator(): MutableEdgeIterator = object : MutableEdgeIterator {
             private var source = INVALID_VERTEX
-            private var successor = emptyMutableIntIterator()
+            private var successor = emptyIntIterator()
             private var target = INVALID_VERTEX
 
             private var ready = false
@@ -332,20 +334,6 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
                 cleanupEdge(canonicalEdge(source, target))
             }
         }
-
-        override fun foreach(action: EdgeConsumer) {
-            for (index in successors.indices) {
-                val source = Vertex(index)
-                successors[source].foreachVertex { target ->
-                    // don't report the same edge twice in undirected graphs - we only report an edge when we see a
-                    // source less than or equal to the target. this works because we know we'll encounter every
-                    // undirected edge twice since we're iterating over all vertices.
-                    if (directed || source <= target) {
-                        action.accept(canonicalSortedEdge(source, target))
-                    }
-                }
-            }
-        }
     }
 
     override fun edgeSource(edge: Edge): Vertex = Vertex(edge.highBits)
@@ -369,12 +357,12 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
     }
 
     override fun <T> createVertexProperty(
-        type: StaticType<T>,
+        type: PropertyType<T>,
         defaultValueFunction: VertexFunction<T>
     ): MutableVertexProperty<T> = createVertexProperty(this, type, defaultValueFunction)
 
     override fun <T> createEdgeProperty(
-        type: StaticType<T>,
+        type: PropertyType<T>,
         defaultValueFunction: EdgeFunction<T>
     ): MutableEdgeProperty<T> = createEdgeProperty(this, type, defaultValueFunction)
 
@@ -404,10 +392,6 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
             private val it = adjacencies.iterator()
             override fun hasNext(): Boolean = it.hasNext()
             override fun next(): Edge = canonicalEdge(vertex, Vertex(it.nextInt()))
-        }
-
-        override fun foreach(action: EdgeConsumer) {
-            adjacencies.foreachVertex { adjacent -> action.accept(canonicalEdge(vertex, adjacent)) }
         }
     }
 
@@ -450,10 +434,6 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
             override fun hasNext(): Boolean = it.hasNext()
             override fun next(): Edge = canonicalEdge(Vertex(it.nextInt()), vertex)
         }
-
-        override fun foreach(action: EdgeConsumer) {
-            adjacencies.foreachVertex { adjacent -> action.accept(canonicalEdge(adjacent, vertex)) }
-        }
     }
 
     private operator fun ArrayList<IntHashSet>.get(vertex: Vertex) = get(vertex.id)
@@ -462,7 +442,7 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
     private fun IntHashSet.contains(vertex: Vertex) = contains(vertex.id)
     private fun IntHashSet.add(vertex: Vertex) = add(vertex.id)
     private fun IntHashSet.remove(vertex: Vertex) = remove(vertex.id)
-    private inline fun IntHashSet.foreachVertex(crossinline action: (Vertex) -> Unit) = foreach { action(Vertex(it)) }
+    private inline fun IntHashSet.foreachVertex(crossinline action: (Vertex) -> Unit) = forEach { action(Vertex(it)) }
 
     private fun canonicalEdge(source: Vertex, target: Vertex): Edge {
         return if (!directed) {

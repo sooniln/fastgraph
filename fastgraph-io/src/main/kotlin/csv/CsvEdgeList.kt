@@ -14,7 +14,7 @@ import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexProperty
 import io.github.sooniln.fastgraph.io.ParsingEdgeProperty
 import io.github.sooniln.fastgraph.io.ParsingVertexProperty
-import io.github.sooniln.fastgraph.io.TypeBinding
+import io.github.sooniln.fastgraph.io.PropertyBinding
 import io.github.sooniln.fastgraph.io.csv.internal.CsvRecordReader
 import io.github.sooniln.fastgraph.io.csv.internal.CsvRecordWriter
 import io.github.sooniln.fastgraph.mutableGraph
@@ -63,7 +63,7 @@ public class MutableCsvEdgeListGraph(
  * first column represents the value of the edge source vertex, the second column represents the value of the edge
  * target vertex, and any following columns represent edge property values. Each distinct parsed vertex value results
  * in exactly one vertex being added to the returned graph. An [edgePropertyTypes] entry must be provided for every
- * column in the input CSV - if you do not want to parse/store a particular column, then supply [TypeBinding.unit] for
+ * column in the input CSV - if you do not want to parse/store a particular column, then supply [PropertyBinding.unit] for
  * that column. The [inputStream] is not closed by this function - that remains the caller's responsibility.
  *
  * Clients are expected to use [io.github.sooniln.fastgraph.safeCast] to convert the output properties in
@@ -76,8 +76,8 @@ public fun readCsvEdgeList(
     directed: Boolean,
     multiEdge: Boolean = false,
     indexEdges: Boolean = false,
-    vertexPropertyType: TypeBinding<Any> = TypeBinding.nonNullString,
-    edgePropertyTypes: List<TypeBinding<*>> = emptyList(),
+    vertexPropertyType: PropertyBinding<Any> = PropertyBinding.nonNullString,
+    edgePropertyTypes: List<PropertyBinding<*>> = emptyList(),
     csvOptions: CsvOptions = CsvOptions(),
 ) : MutableCsvEdgeListGraph {
     require(vertexPropertyType.type.kType != typeOf<Unit>())

@@ -5,10 +5,7 @@
 
 package io.github.sooniln.fastgraph
 
-import io.github.sooniln.fastcollect.IntHashSet
-import io.github.sooniln.fastcollect.IntSet
-import io.github.sooniln.fastcollect.emptyIntIterator
-import io.github.sooniln.fastcollect.intIteratorOf
+import io.github.sooniln.fastcollect.*
 
 private val VERTEX_HEX_FORMAT = HexFormat {
     number {
@@ -182,16 +179,6 @@ public interface VertexCollection : Collection<Vertex>, VertexIterable {
         return size == 0
     }
 
-    /**
-     * A method for iteration guaranteed to be as fast or faster than [iterator].
-     */
-    public fun foreach(action: VertexConsumer) {
-        val it = iterator()
-        while (it.hasNext()) {
-            action.accept(it.next())
-        }
-    }
-
     @JvmName("contains")
     override fun contains(element: Vertex): Boolean {
         for (e in this) {
@@ -285,14 +272,6 @@ public interface IndexedVertexSet : VertexSet {
             return get(index++)
         }
     }
-
-    override fun foreach(action: VertexConsumer) {
-        var index = 0
-        while (index < size) {
-            action.accept(get(index))
-            index++
-        }
-    }
 }
 
 public val IndexedVertexSet.lastIndex: Int @JvmSynthetic get() = size - 1
@@ -344,7 +323,6 @@ private object EmptyVertexSetList : IndexedVertexSet {
 
     override fun containsAll(elements: Collection<Vertex>): Boolean = elements.isEmpty()
     override fun iterator(): VertexIterator = emptyVertexIterator()
-    override fun foreach(action: VertexConsumer) {}
 
     override fun get(index: Int): Vertex = throw IndexOutOfBoundsException()
     override fun indexOf(element: Vertex): Int = -1
@@ -429,7 +407,6 @@ private class SingletonVertexSet(private val vertex: Vertex) : AbstractVertexSet
     override val size: Int get() = 1
     override fun contains(element: Vertex): Boolean = element == vertex
     override fun iterator(): VertexIterator = intIteratorOf(vertex.id).asVertexIterator()
-    override fun foreach(action: VertexConsumer) = action.accept(vertex)
 }
 
 internal fun IntIterator.asVertexIterator(): VertexIterator = VertexIteratorWrapper(this)
@@ -446,7 +423,6 @@ private class VertexSetWrapper(private val vertices: IntSet) : AbstractVertexSet
 
     override fun contains(element: Vertex): Boolean = vertices.contains(element.id)
     override fun iterator(): VertexIterator = vertices.iterator().asVertexIterator()
-    override fun foreach(action: VertexConsumer) = vertices.foreach { vertex -> action.accept(Vertex(vertex)) }
 
-    override fun toIntArray(): IntArray = vertices.toIntArray()
+    override fun toIntArray(): IntArray = vertices.copyInto(IntArray(vertices.size))
 }

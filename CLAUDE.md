@@ -51,7 +51,7 @@ something annotated with @JvmSynthetic. Generally, for any public method/propert
 should be an alternate API for a Java client to invoke the same functionality (@JvmSynthetic is often used on extension
 methods which provide syntactic sugar for Kotlin clients and are not idiomatic to use from Java for example).
 
-## Benchmarking
+# Benchmarking
 
 Local benchmarking for development should use tasks from the jmh subproject which run JVM benchmarks using JMH. It's
 also usually more efficient to filter benchmarks to only the relevant classes and/or methods.

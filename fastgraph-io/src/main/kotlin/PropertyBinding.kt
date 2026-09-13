@@ -4,36 +4,34 @@ import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.MutableEdgeProperty
 import io.github.sooniln.fastgraph.MutableVertexProperty
-import io.github.sooniln.fastgraph.StaticType
+import io.github.sooniln.fastgraph.PropertyType
 import io.github.sooniln.fastgraph.Vertex
-import io.github.sooniln.fastgraph.staticTypeOf
+import io.github.sooniln.fastgraph.propertyTypeOf
 
 @OptIn(ExperimentalStdlibApi::class)
-public class TypeBinding<out T>(
+public class PropertyBinding<out T>(
     @get:JvmName("getType")
     @get:JvmExposeBoxed
-    public val type: StaticType<T>,
+    public val type: PropertyType<T>,
     public val defaultValue: T,
     public val parser: (String) -> T,
 ) {
     public companion object {
-        public val unit: TypeBinding<Unit> = TypeBinding(staticTypeOf(), Unit) {}
-        public val boolean: TypeBinding<Boolean> = TypeBinding(staticTypeOf(), false, String::toBooleanStrict)
-        public val byte: TypeBinding<Byte> = TypeBinding(staticTypeOf(), 0, String::toByte)
-        public val short: TypeBinding<Short> = TypeBinding(staticTypeOf(), 0, String::toShort)
-        public val int: TypeBinding<Int> = TypeBinding(staticTypeOf(), 0, String::toInt)
-        public val long: TypeBinding<Long> = TypeBinding(staticTypeOf(), 0, String::toLong)
-        public val float: TypeBinding<Float> = TypeBinding(staticTypeOf(), 0F, String::toFloat)
-        public val double: TypeBinding<Double> = TypeBinding(staticTypeOf(), 0.0, String::toDouble)
-        public val string: TypeBinding<String?> = TypeBinding(staticTypeOf(), null, String::toString)
+        public val unit: PropertyBinding<Unit> = PropertyBinding(propertyTypeOf(), Unit) {}
+        public val boolean: PropertyBinding<Boolean> = PropertyBinding(propertyTypeOf(), false, String::toBooleanStrict)
+        public val int: PropertyBinding<Int> = PropertyBinding(propertyTypeOf(), 0, String::toInt)
+        public val long: PropertyBinding<Long> = PropertyBinding(propertyTypeOf(), 0, String::toLong)
+        public val float: PropertyBinding<Float> = PropertyBinding(propertyTypeOf(), 0F, String::toFloat)
+        public val double: PropertyBinding<Double> = PropertyBinding(propertyTypeOf(), 0.0, String::toDouble)
+        public val string: PropertyBinding<String?> = PropertyBinding(propertyTypeOf(), null, String::toString)
 
         // internal because using "" as the default value is not generalizable for public use - we use it internally
         // only in parsing situations where we know a priori that the default value will never actually be used
-        internal val nonNullString: TypeBinding<String> = TypeBinding(staticTypeOf(), "", String::toString)
+        internal val nonNullString: PropertyBinding<String> = PropertyBinding(propertyTypeOf(), "", String::toString)
     }
 }
 
-internal class ParsingVertexProperty<V>(graph: Graph, binding: TypeBinding<V>) {
+internal class ParsingVertexProperty<V>(graph: Graph, binding: PropertyBinding<V>) {
     val property: MutableVertexProperty<V>
     private val parser: (String) -> V
 
@@ -54,7 +52,7 @@ internal class ParsingVertexProperty<V>(graph: Graph, binding: TypeBinding<V>) {
     }
 }
 
-internal class ParsingEdgeProperty<E>(graph: Graph, binding: TypeBinding<E>) {
+internal class ParsingEdgeProperty<E>(graph: Graph, binding: PropertyBinding<E>) {
     val property: MutableEdgeProperty<E>
     private val parser: (String) -> E
 

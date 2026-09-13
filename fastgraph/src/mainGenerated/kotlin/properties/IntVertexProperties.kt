@@ -10,11 +10,11 @@ import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.IndexedVertexGraph
 import io.github.sooniln.fastgraph.MutableVertexProperty
-import io.github.sooniln.fastgraph.StaticType
+import io.github.sooniln.fastgraph.PropertyType
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
 import io.github.sooniln.fastgraph.VertexFunction
-import io.github.sooniln.fastgraph.staticTypeOf
+import io.github.sooniln.fastgraph.propertyTypeOf
 import io.github.sooniln.fastgraph.internal.throwIllegalVertex
 
 
@@ -31,11 +31,11 @@ internal class IntArrayVertexProperty(
 
     init {
         property.ensureCapacity(graph.vertices.size)
-        graph.vertices.foreach { onVertexAdded(it) }
+        for (vertex in graph.vertices) { onVertexAdded(vertex) }
         graph.registerVertexChangeListener(this)
     }
 
-    override val type: StaticType<Int> get() = staticTypeOf()
+    override val type: PropertyType<Int> get() = propertyTypeOf()
 
     override fun get(vertex: Vertex): Int {
         try {
@@ -92,7 +92,7 @@ internal class ImmutableIntArrayVertexProperty<G>(
         write(defaultValueFunction.apply(Vertex(vertexId)))
     }
 
-    override val type: StaticType<Int> get() = staticTypeOf()
+    override val type: PropertyType<Int> get() = propertyTypeOf()
 
     override fun get(vertex: Vertex): Int {
         try {
@@ -136,7 +136,7 @@ internal class IntMapVertexProperty(
         graph.registerVertexChangeListener(this)
     }
 
-    override val type: StaticType<Int> get() = staticTypeOf()
+    override val type: PropertyType<Int> get() = propertyTypeOf()
 
     override fun get(vertex: Vertex): Int {
         return read(property.getOrPut(vertex.id) { write(initializer.apply(vertex)) })
@@ -177,12 +177,12 @@ internal class ImmutableIntMapVertexProperty(
 
     init {
         property.ensureCapacity(graph.vertices.size)
-        graph.vertices.foreach { vertex ->
+        for (vertex in graph.vertices) {
             property[vertex.id] = write(defaultValueFunction.apply(vertex))
         }
     }
 
-    override val type: StaticType<Int> get() = staticTypeOf()
+    override val type: PropertyType<Int> get() = propertyTypeOf()
 
     override fun get(vertex: Vertex): Int {
         try {
@@ -216,7 +216,7 @@ internal class WrapperIntVertexKeyProperty(
     private val keyMap = Int2IntHashMap()
 
     init {
-        graph.vertices.foreach { vertex ->
+        for (vertex in graph.vertices) {
             val key = get(vertex)
             if (keyMap.containsKey(key)) throw IllegalArgumentException("\"$key\" is not unique")
             keyMap[key] = vertex.id

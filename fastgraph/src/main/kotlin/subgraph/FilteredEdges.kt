@@ -10,7 +10,7 @@ import io.github.sooniln.fastgraph.EdgePredicate
 import io.github.sooniln.fastgraph.EdgeReference
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.MutableEdgeProperty
-import io.github.sooniln.fastgraph.StaticType
+import io.github.sooniln.fastgraph.PropertyType
 import java.lang.ref.WeakReference
 
 internal class FilteredEdges(
@@ -36,7 +36,7 @@ internal class FilteredEdges(
 
     override val size: Int get() {
         var size = 0
-        parent.edges.foreach { edge ->
+        for (edge in parent.edges) {
             if (test(edge)) {
                 ++size
             }
@@ -70,14 +70,6 @@ internal class FilteredEdges(
         }
     }
 
-    override fun foreach(action: EdgeConsumer) {
-        parent.edges.foreach { edge ->
-            if (test(edge)) {
-                action.accept(edge)
-            }
-        }
-    }
-
     override fun registerEdgeChangeListener(listener: EdgeChangeListener) {
         throw UnsupportedOperationException("A graph with filtered edges cannot support edge listeners")
     }
@@ -87,7 +79,7 @@ internal class FilteredEdges(
     }
 
     override fun <T> createEdgeProperty(
-        type: StaticType<T>,
+        type: PropertyType<T>,
         defaultValueFunction: EdgeFunction<T>
     ): MutableEdgeProperty<T> {
         val property = FilteredEdgeProperty(graph, type, defaultValueFunction, filter)

@@ -1,8 +1,6 @@
 package io.github.sooniln.fastgraph.internal
 
-import io.github.sooniln.fastcollect.Int2AnyHashMap
-import io.github.sooniln.fastcollect.IntArrayList
-import io.github.sooniln.fastcollect.getOrPut
+import io.github.sooniln.fastcollect.*
 import io.github.sooniln.fastgraph.AbstractEdgeSet
 import io.github.sooniln.fastgraph.AbstractGraph
 import io.github.sooniln.fastgraph.AbstractIndexedEdgeSet
@@ -23,7 +21,7 @@ import io.github.sooniln.fastgraph.IndexedVertexSet
 import io.github.sooniln.fastgraph.InternalImmutableGraph
 import io.github.sooniln.fastgraph.MutableEdgeProperty
 import io.github.sooniln.fastgraph.MutableVertexProperty
-import io.github.sooniln.fastgraph.StaticType
+import io.github.sooniln.fastgraph.PropertyType
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
 import io.github.sooniln.fastgraph.VertexConsumer
@@ -121,14 +119,14 @@ internal class ImmutableAdjacencyListNetwork private constructor(
     }
 
     override fun <T> createVertexProperty(
-        type: StaticType<T>,
+        type: PropertyType<T>,
         defaultValueFunction: VertexFunction<T>
     ): MutableVertexProperty<T> {
         return createVertexProperty(this, type, defaultValueFunction)
     }
 
     override fun <T> createEdgeProperty(
-        type: StaticType<T>,
+        type: PropertyType<T>,
         defaultValueFunction: EdgeFunction<T>
     ): MutableEdgeProperty<T> {
         return createEdgeProperty(this, type, defaultValueFunction)
@@ -168,7 +166,6 @@ internal class ImmutableAdjacencyListNetwork private constructor(
         }
 
         override fun iterator(): EdgeIterator = adjacencies.edgeIterator()
-        override fun foreach(action: EdgeConsumer) = adjacencies.foreachEdge(action)
     }
 
     @JvmInline
@@ -204,12 +201,6 @@ internal class ImmutableAdjacencyListNetwork private constructor(
                     override fun next(): Vertex {
                         if (i >= end) throw NoSuchElementException()
                         return Vertex(arr[i++])
-                    }
-                }
-
-                override fun foreach(action: VertexConsumer) {
-                    for (i in 2..<2 + numVertices) {
-                        action.accept(Vertex(arr[i]))
                     }
                 }
             }
@@ -336,7 +327,7 @@ internal class ImmutableAdjacencyListNetwork private constructor(
                         val numVertices = successors.size
                         val numEdges = vertex.outgoingEdges().size
                         var multiEdgeTotal = 0
-                        successors.foreach { successor ->
+                        for (successor in successors) {
                             val numEdges = graph.edges(vertex, successor).size
                             if (numEdges > 1) {
                                 multiEdgeTotal += numEdges
@@ -348,7 +339,7 @@ internal class ImmutableAdjacencyListNetwork private constructor(
                         arr[1] = numVertices
 
                         var i = 2
-                        successors.foreach { successor -> arr[i++] = successor.id }
+                        for (successor in successors) { arr[i++] = successor.id }
                         arr.sort(2, i)
 
                         var tailIdx = i + numVertices
@@ -361,7 +352,7 @@ internal class ImmutableAdjacencyListNetwork private constructor(
                             } else {
                                 arr[tailIdx++] = -edges.size
                                 val edgesStart = tailIdx
-                                edges.foreach { edge ->
+                                for (edge in edges) {
                                     arr[tailIdx++] = edge.id.toInt()
                                 }
                                 arr.sort(edgesStart, tailIdx)
@@ -382,7 +373,7 @@ internal class ImmutableAdjacencyListNetwork private constructor(
                         val numVertices = predecessors.size
                         val numEdges = vertex.incomingEdges().size
                         var multiEdgeTotal = 0
-                        predecessors.foreach { predecessor ->
+                        for (predecessor in predecessors) {
                             val numEdges = graph.edges(predecessor, vertex).size
                             if (numEdges > 1) {
                                 multiEdgeTotal += numEdges
@@ -394,7 +385,7 @@ internal class ImmutableAdjacencyListNetwork private constructor(
                         arr[1] = numVertices
 
                         var i = 2
-                        predecessors.foreach { predecessor -> arr[i++] = predecessor.id }
+                        for (predecessor in predecessors) { arr[i++] = predecessor.id }
                         arr.sort(2, i)
 
                         var tailIdx = i + numVertices
@@ -407,7 +398,7 @@ internal class ImmutableAdjacencyListNetwork private constructor(
                             } else {
                                 arr[tailIdx++] = -edges.size
                                 val edgesStart = tailIdx
-                                edges.foreach { edge ->
+                                for (edge in edges) {
                                     arr[tailIdx++] = graph.edges.indexOf(edge)
                                 }
                                 arr.sort(edgesStart, tailIdx)
@@ -434,7 +425,7 @@ internal class ImmutableAdjacencyListNetwork private constructor(
                     val numVertices = predecessors.keys.size
                     val numEdges = predecessors.values.sumOf { it.size }
                     var multiEdgeTotal = 0
-                    predecessors.foreach { _, edgeIds ->
+                    predecessors.forEach { (_, edgeIds) ->
                         if (edgeIds.size > 1) {
                             multiEdgeTotal += edgeIds.size
                         }
@@ -445,7 +436,7 @@ internal class ImmutableAdjacencyListNetwork private constructor(
                     arr[1] = numVertices
 
                     var i = 2
-                    predecessors.foreachKey { predecessor -> arr[i++] = predecessor }
+                    predecessors.forEach { (predecessor, _) -> arr[i++] = predecessor }
                     arr.sort(2, i)
 
                     var tailIdx = i + numVertices
@@ -458,7 +449,7 @@ internal class ImmutableAdjacencyListNetwork private constructor(
                         } else {
                             arr[tailIdx++] = -edges.size
                             val edgesStart = tailIdx
-                            edges.foreach { edge ->
+                            for (edge in edges) {
                                 arr[tailIdx++] = edge
                             }
                             arr.sort(edgesStart, tailIdx)

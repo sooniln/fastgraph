@@ -29,8 +29,8 @@ class ImmutableGraphsTest {
 
         assertThat(graph.directed).isEqualTo(directed)
         assertThat(graph.isEmpty()).isTrue
-        assertThat(graph.vertexProperty.type).isEqualTo(staticTypeOf<String>())
-        assertThat(graph.edgeProperty.type).isEqualTo(staticTypeOf<Int>())
+        assertThat(graph.vertexProperty.type).isEqualTo(propertyTypeOf<String>())
+        assertThat(graph.edgeProperty.type).isEqualTo(propertyTypeOf<Int>())
 
         assertThrows<IllegalArgumentException> { graph.vertexProperty[Vertex(0)] }
         assertThrows<IllegalArgumentException> { graph.edgeProperty[Edge(0)] }

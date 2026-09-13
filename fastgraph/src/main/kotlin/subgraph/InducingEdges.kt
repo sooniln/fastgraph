@@ -1,6 +1,6 @@
 package io.github.sooniln.fastgraph.subgraph
 
-import io.github.sooniln.fastcollect.LongHashSet
+import io.github.sooniln.fastcollect.*
 import io.github.sooniln.fastgraph.AbstractEdgeSet
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeChangeListener
@@ -11,7 +11,7 @@ import io.github.sooniln.fastgraph.EdgeReference
 import io.github.sooniln.fastgraph.EdgeSet
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.MutableEdgeProperty
-import io.github.sooniln.fastgraph.StaticType
+import io.github.sooniln.fastgraph.PropertyType
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
 import io.github.sooniln.fastgraph.asEdgeIterator
@@ -30,7 +30,7 @@ internal class InducingEdges(
 
     init {
         edges.ensureCapacity(inducers.size)
-        inducers.foreach { edge ->
+        for (edge in inducers) {
             require(parent.edges.contains(edge))
             context(parent) {
                 if (vertices.contains(edge.source) && vertices.contains(edge.target)) {
@@ -57,10 +57,6 @@ internal class InducingEdges(
 
     override fun iterator(): EdgeIterator = edges.iterator().asEdgeIterator()
 
-    override fun foreach(action: EdgeConsumer) {
-        edges.foreach { action.accept(Edge(it)) }
-    }
-
     override fun registerEdgeChangeListener(listener: EdgeChangeListener) {
         listeners.register(listener)
     }
@@ -70,7 +66,7 @@ internal class InducingEdges(
     }
 
     override fun <T> createEdgeProperty(
-        type: StaticType<T>,
+        type: PropertyType<T>,
         defaultValueFunction: EdgeFunction<T>
     ): MutableEdgeProperty<T> = createEdgeProperty(graph, type, defaultValueFunction)
 

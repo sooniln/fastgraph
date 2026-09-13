@@ -12,12 +12,12 @@ import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.IndexedEdgeGraph
 import io.github.sooniln.fastgraph.MutableEdgeKeyProperty
 import io.github.sooniln.fastgraph.MutableEdgeProperty
-import io.github.sooniln.fastgraph.StaticType
+import io.github.sooniln.fastgraph.PropertyType
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
 
 internal class ArrayEdgeProperty<T>(
     override val graph: IndexedEdgeGraph,
-    override val type: StaticType<T>,
+    override val type: PropertyType<T>,
     defaultValueFunction: EdgeFunction<T>,
 ) : MutableEdgeProperty<T>, EdgeChangeListener {
 
@@ -26,7 +26,7 @@ internal class ArrayEdgeProperty<T>(
 
     init {
         property.ensureCapacity(graph.edges.size)
-        graph.edges.foreach { onEdgeAdded(it) }
+        for (edge in graph.edges) { onEdgeAdded(edge) }
         graph.registerEdgeChangeListener(this)
     }
 
@@ -75,7 +75,7 @@ internal class ArrayEdgeProperty<T>(
 
 internal class ImmutableArrayEdgeProperty<G, T>(
     override val graph: G,
-    override val type: StaticType<T>,
+    override val type: PropertyType<T>,
     defaultValueFunction: EdgeFunction<T>,
 ) : MutableEdgeProperty<T> where G : ImmutableGraph, G : IndexedEdgeGraph {
 
@@ -83,7 +83,7 @@ internal class ImmutableArrayEdgeProperty<G, T>(
 
     init {
         property.ensureCapacity(graph.edges.size)
-        graph.edges.foreach { edge ->
+        for (edge in graph.edges) {
             assert(edge.lowBits == property.size)
             property.add(defaultValueFunction.apply(edge))
         }
@@ -116,7 +116,7 @@ internal class ImmutableArrayEdgeProperty<G, T>(
 
 internal class MapEdgeProperty<T>(
     override val graph: Graph,
-    override val type: StaticType<T>,
+    override val type: PropertyType<T>,
     defaultValueFunction: EdgeFunction<T>
 ) : MutableEdgeProperty<T>, EdgeChangeListener {
 
@@ -155,7 +155,7 @@ internal class MapEdgeProperty<T>(
 
 internal class ImmutableMapEdgeProperty<T>(
     override val graph: ImmutableGraph,
-    override val type: StaticType<T>,
+    override val type: PropertyType<T>,
     defaultValueFunction: EdgeFunction<T>
 ) : MutableEdgeProperty<T> {
 
@@ -163,7 +163,7 @@ internal class ImmutableMapEdgeProperty<T>(
 
     init {
         property.ensureCapacity(graph.edges.size)
-        graph.edges.foreach { edge ->
+        for (edge in graph.edges) {
             property[edge.id] = defaultValueFunction.apply(edge)
         }
     }
@@ -195,7 +195,7 @@ internal class WrapperEdgeKeyProperty<T>(
     private val keyMap = HashMap<T, Long>()
 
     init {
-        graph.edges.foreach { edge ->
+        for (edge in graph.edges) {
             val key = get(edge)
             if (keyMap.containsKey(key)) throw IllegalArgumentException("\"$key\" is not unique")
             keyMap[key] = edge.id

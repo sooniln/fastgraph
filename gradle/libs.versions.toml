@@ -5,7 +5,7 @@
 [versions]
 assertJ = "3.27.7"
 dokka = "2.2.0"
-fastcollect = "4.1.0"
+fastcollect = "6.0.0"
 guava = "33.5.0-jre"
 jgrapht = "1.5.2"
 jmh = "0.7.3"
@@ -15,7 +15,7 @@ mavenPublish = "0.35.0"
 
 [libraries]
 assertJ = { module = "org.assertj:assertj-core", version.ref = "assertJ" }
-fastcollect = { module = "io.github.sooniln:fastcollect-kotlin-jvm", version.ref = "fastcollect" }
+fastcollect = { module = "io.github.sooniln:fastcollect-jvm", version.ref = "fastcollect" }
 guava = { module = "com.google.guava:guava", version.ref = "guava" }
 jgrapht = { module = "org.jgrapht:jgrapht-core", version.ref = "jgrapht" }
 jol = { module = "org.openjdk.jol:jol-core", version.ref = "jol" }

@@ -13,8 +13,8 @@ import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.IndexedEdgeGraph
 import io.github.sooniln.fastgraph.MutableEdgeProperty
-import io.github.sooniln.fastgraph.StaticType
-import io.github.sooniln.fastgraph.staticTypeOf
+import io.github.sooniln.fastgraph.PropertyType
+import io.github.sooniln.fastgraph.propertyTypeOf
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
 <% if (Type == "Int" || Type == "Long") { %>
 <% if (Type != "Long" && StorageType != "Long") { %>
@@ -33,11 +33,11 @@ internal class ${Type}ArrayEdgeProperty(
 
     init {
         property.ensureCapacity(graph.edges.size)
-        graph.edges.foreach { onEdgeAdded(it) }
+        for (edge in graph.edges) { onEdgeAdded(edge) }
         graph.registerEdgeChangeListener(this)
     }
 
-    override val type: StaticType<${Type}> get() = staticTypeOf()
+    override val type: PropertyType<${Type}> get() = propertyTypeOf()
 
     override fun get(edge: Edge): ${Type} {
         try {
@@ -94,7 +94,7 @@ internal class Immutable${Type}ArrayEdgeProperty<G>(
         write(defaultValueFunction.apply(graph.edges[edgeId]))
     }
 
-    override val type: StaticType<${Type}> get() = staticTypeOf()
+    override val type: PropertyType<${Type}> get() = propertyTypeOf()
 
     override fun get(edge: Edge): ${Type} {
         try {
@@ -138,7 +138,7 @@ internal class ${Type}MapEdgeProperty(
         graph.registerEdgeChangeListener(this)
     }
 
-    override val type: StaticType<${Type}> get() = staticTypeOf()
+    override val type: PropertyType<${Type}> get() = propertyTypeOf()
 
     override fun get(edge: Edge): ${Type} {
         return read(property.getOrPut(edge.id) { write(initializer.apply(edge)) })
@@ -179,12 +179,12 @@ internal class Immutable${Type}MapEdgeProperty(
 
     init {
         property.ensureCapacity(graph.edges.size)
-        graph.edges.foreach { edge ->
+        for (edge in graph.edges) {
             property[edge.id] = write(defaultValueFunction.apply(edge))
         }
     }
 
-    override val type: StaticType<${Type}> get() = staticTypeOf()
+    override val type: PropertyType<${Type}> get() = propertyTypeOf()
 
     override fun get(edge: Edge): ${Type} {
         try {
@@ -218,7 +218,7 @@ internal class Wrapper${Type}EdgeKeyProperty(
     private val keyMap = ${Type}2LongHashMap()
 
     init {
-        graph.edges.foreach { edge ->
+        for (edge in graph.edges) {
             val key = get(edge)
             if (keyMap.containsKey(key)) throw IllegalArgumentException("\"\$key\" is not unique")
             keyMap[key] = edge.id

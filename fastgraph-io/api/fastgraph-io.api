@@ -1,22 +1,20 @@
-public final class io/github/sooniln/fastgraph/io/TypeBinding {
-	public static final field Companion Lio/github/sooniln/fastgraph/io/TypeBinding$Companion;
+public final class io/github/sooniln/fastgraph/io/PropertyBinding {
+	public static final field Companion Lio/github/sooniln/fastgraph/io/PropertyBinding$Companion;
 	public synthetic fun <init> (Lkotlin/reflect/KType;Ljava/lang/Object;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun getDefaultValue ()Ljava/lang/Object;
 	public final fun getParser ()Lkotlin/jvm/functions/Function1;
-	public final fun getType ()Lio/github/sooniln/fastgraph/StaticType;
+	public final fun getType ()Lio/github/sooniln/fastgraph/PropertyType;
 	public final fun getType ()Lkotlin/reflect/KType;
 }
 
-public final class io/github/sooniln/fastgraph/io/TypeBinding$Companion {
-	public final fun getBoolean ()Lio/github/sooniln/fastgraph/io/TypeBinding;
-	public final fun getByte ()Lio/github/sooniln/fastgraph/io/TypeBinding;
-	public final fun getDouble ()Lio/github/sooniln/fastgraph/io/TypeBinding;
-	public final fun getFloat ()Lio/github/sooniln/fastgraph/io/TypeBinding;
-	public final fun getInt ()Lio/github/sooniln/fastgraph/io/TypeBinding;
-	public final fun getLong ()Lio/github/sooniln/fastgraph/io/TypeBinding;
-	public final fun getShort ()Lio/github/sooniln/fastgraph/io/TypeBinding;
-	public final fun getString ()Lio/github/sooniln/fastgraph/io/TypeBinding;
-	public final fun getUnit ()Lio/github/sooniln/fastgraph/io/TypeBinding;
+public final class io/github/sooniln/fastgraph/io/PropertyBinding$Companion {
+	public final fun getBoolean ()Lio/github/sooniln/fastgraph/io/PropertyBinding;
+	public final fun getDouble ()Lio/github/sooniln/fastgraph/io/PropertyBinding;
+	public final fun getFloat ()Lio/github/sooniln/fastgraph/io/PropertyBinding;
+	public final fun getInt ()Lio/github/sooniln/fastgraph/io/PropertyBinding;
+	public final fun getLong ()Lio/github/sooniln/fastgraph/io/PropertyBinding;
+	public final fun getString ()Lio/github/sooniln/fastgraph/io/PropertyBinding;
+	public final fun getUnit ()Lio/github/sooniln/fastgraph/io/PropertyBinding;
 }
 
 public final class io/github/sooniln/fastgraph/io/csv/CsvEdgeList {
@@ -28,10 +26,10 @@ public final class io/github/sooniln/fastgraph/io/csv/CsvEdgeList {
 	public static final fun readCsvEdgeList (Ljava/io/InputStream;Z)Lio/github/sooniln/fastgraph/io/csv/MutableCsvEdgeListGraph;
 	public static final fun readCsvEdgeList (Ljava/io/InputStream;ZZ)Lio/github/sooniln/fastgraph/io/csv/MutableCsvEdgeListGraph;
 	public static final fun readCsvEdgeList (Ljava/io/InputStream;ZZZ)Lio/github/sooniln/fastgraph/io/csv/MutableCsvEdgeListGraph;
-	public static final fun readCsvEdgeList (Ljava/io/InputStream;ZZZLio/github/sooniln/fastgraph/io/TypeBinding;)Lio/github/sooniln/fastgraph/io/csv/MutableCsvEdgeListGraph;
-	public static final fun readCsvEdgeList (Ljava/io/InputStream;ZZZLio/github/sooniln/fastgraph/io/TypeBinding;Ljava/util/List;)Lio/github/sooniln/fastgraph/io/csv/MutableCsvEdgeListGraph;
-	public static final fun readCsvEdgeList (Ljava/io/InputStream;ZZZLio/github/sooniln/fastgraph/io/TypeBinding;Ljava/util/List;Lio/github/sooniln/fastgraph/io/csv/CsvOptions;)Lio/github/sooniln/fastgraph/io/csv/MutableCsvEdgeListGraph;
-	public static synthetic fun readCsvEdgeList$default (Ljava/io/InputStream;ZZZLio/github/sooniln/fastgraph/io/TypeBinding;Ljava/util/List;Lio/github/sooniln/fastgraph/io/csv/CsvOptions;ILjava/lang/Object;)Lio/github/sooniln/fastgraph/io/csv/MutableCsvEdgeListGraph;
+	public static final fun readCsvEdgeList (Ljava/io/InputStream;ZZZLio/github/sooniln/fastgraph/io/PropertyBinding;)Lio/github/sooniln/fastgraph/io/csv/MutableCsvEdgeListGraph;
+	public static final fun readCsvEdgeList (Ljava/io/InputStream;ZZZLio/github/sooniln/fastgraph/io/PropertyBinding;Ljava/util/List;)Lio/github/sooniln/fastgraph/io/csv/MutableCsvEdgeListGraph;
+	public static final fun readCsvEdgeList (Ljava/io/InputStream;ZZZLio/github/sooniln/fastgraph/io/PropertyBinding;Ljava/util/List;Lio/github/sooniln/fastgraph/io/csv/CsvOptions;)Lio/github/sooniln/fastgraph/io/csv/MutableCsvEdgeListGraph;
+	public static synthetic fun readCsvEdgeList$default (Ljava/io/InputStream;ZZZLio/github/sooniln/fastgraph/io/PropertyBinding;Ljava/util/List;Lio/github/sooniln/fastgraph/io/csv/CsvOptions;ILjava/lang/Object;)Lio/github/sooniln/fastgraph/io/csv/MutableCsvEdgeListGraph;
 	public static final fun writeCsvEdgeList (Ljava/io/OutputStream;Lio/github/sooniln/fastgraph/io/csv/CsvEdgeListGraph;)V
 	public static final fun writeCsvEdgeList (Ljava/io/OutputStream;Lio/github/sooniln/fastgraph/io/csv/CsvEdgeListGraph;Lio/github/sooniln/fastgraph/io/csv/CsvOptions;)V
 	public static synthetic fun writeCsvEdgeList$default (Ljava/io/OutputStream;Lio/github/sooniln/fastgraph/io/csv/CsvEdgeListGraph;Lio/github/sooniln/fastgraph/io/csv/CsvOptions;ILjava/lang/Object;)V
@@ -90,9 +88,9 @@ public final class io/github/sooniln/fastgraph/io/dot/Dot {
 	public static final fun readDot (Ljava/io/InputStream;)Lio/github/sooniln/fastgraph/io/dot/MutableDotGraph;
 	public static final fun readDot (Ljava/io/InputStream;Z)Lio/github/sooniln/fastgraph/io/dot/MutableDotGraph;
 	public static final fun readDot (Ljava/io/InputStream;ZZ)Lio/github/sooniln/fastgraph/io/dot/MutableDotGraph;
-	public static final fun readDot (Ljava/io/InputStream;ZZLio/github/sooniln/fastgraph/io/TypeBinding;)Lio/github/sooniln/fastgraph/io/dot/MutableDotGraph;
-	public static final fun readDot (Ljava/io/InputStream;ZZLio/github/sooniln/fastgraph/io/TypeBinding;Ljava/util/Map;)Lio/github/sooniln/fastgraph/io/dot/MutableDotGraph;
-	public static synthetic fun readDot$default (Ljava/io/InputStream;ZZLio/github/sooniln/fastgraph/io/TypeBinding;Ljava/util/Map;ILjava/lang/Object;)Lio/github/sooniln/fastgraph/io/dot/MutableDotGraph;
+	public static final fun readDot (Ljava/io/InputStream;ZZLio/github/sooniln/fastgraph/io/PropertyBinding;)Lio/github/sooniln/fastgraph/io/dot/MutableDotGraph;
+	public static final fun readDot (Ljava/io/InputStream;ZZLio/github/sooniln/fastgraph/io/PropertyBinding;Ljava/util/Map;)Lio/github/sooniln/fastgraph/io/dot/MutableDotGraph;
+	public static synthetic fun readDot$default (Ljava/io/InputStream;ZZLio/github/sooniln/fastgraph/io/PropertyBinding;Ljava/util/Map;ILjava/lang/Object;)Lio/github/sooniln/fastgraph/io/dot/MutableDotGraph;
 	public static final fun writeDot (Ljava/io/OutputStream;Lio/github/sooniln/fastgraph/io/dot/DotGraph;)V
 }
 

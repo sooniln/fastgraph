@@ -1,8 +1,6 @@
 package io.github.sooniln.fastgraph.internal
 
-import io.github.sooniln.fastcollect.LongArrayList
-import io.github.sooniln.fastcollect.indices
-import io.github.sooniln.fastcollect.lastIndex
+import io.github.sooniln.fastcollect.*
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeConsumer
 import io.github.sooniln.fastgraph.EdgeIterator
@@ -68,7 +66,6 @@ internal value class EdgeValueArrayList private constructor(private val arrayLis
 
     val size: Int inline get() = arrayList.size
     val lastIndex: Int inline get() = arrayList.lastIndex
-    val indices: IntRange inline get() = arrayList.indices
 
     inline fun isEmpty(): Boolean = arrayList.isEmpty()
     inline operator fun get(index: Int): EdgeValue = EdgeValue(arrayList[index])

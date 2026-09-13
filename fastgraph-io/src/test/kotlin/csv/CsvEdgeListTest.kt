@@ -1,7 +1,7 @@
 package io.github.sooniln.fastgraph.io.csv
 
 import io.github.sooniln.fastgraph.EdgeProperty
-import io.github.sooniln.fastgraph.io.TypeBinding
+import io.github.sooniln.fastgraph.io.PropertyBinding
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -111,7 +111,7 @@ class CsvEdgeListTest {
             "a,b,42,3.5\n".byteInputStream(),
             directed = true,
             multiEdge = false,
-            edgePropertyTypes = listOf(TypeBinding.int, TypeBinding.double),
+            edgePropertyTypes = listOf(PropertyBinding.int, PropertyBinding.double),
         )
         val edge = result.graph.edges.single()
 
@@ -146,7 +146,7 @@ class CsvEdgeListTest {
                 "a,b,notanumber\n".byteInputStream(),
                 directed = true,
                 multiEdge = false,
-                edgePropertyTypes = listOf(TypeBinding.int),
+                edgePropertyTypes = listOf(PropertyBinding.int),
             )
         }
 

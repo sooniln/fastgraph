@@ -11,7 +11,7 @@ import io.github.sooniln.fastgraph.MutableGraph
 import io.github.sooniln.fastgraph.MutableVertexProperty
 import io.github.sooniln.fastgraph.ValueGraph
 import io.github.sooniln.fastgraph.VertexProperty
-import io.github.sooniln.fastgraph.io.TypeBinding
+import io.github.sooniln.fastgraph.io.PropertyBinding
 import io.github.sooniln.fastgraph.io.dot.internal.DotLexer
 import io.github.sooniln.fastgraph.io.dot.internal.DotParser
 import io.github.sooniln.fastgraph.vertexIdProperty
@@ -82,7 +82,7 @@ public class MutableDotGraph(
  * defaults to `String`, but can be overriden via [nodeIdType]. Since DOT attributes have no type information, they are
  * loaded by default as `String?` properties, unless overridden in [attributeTypes] (i.e. if the attribute named
  * "weight" should be loaded as a float, there should be an entry in [attributeTypes] mapping "weight" to
- * [TypeBinding.float]). If you do not want to parse/store a particular attribute, then supply [TypeBinding.unit] for
+ * [PropertyBinding.float]). If you do not want to parse/store a particular attribute, then supply [PropertyBinding.unit] for
  * that attribute. The [inputStream] is not closed by this function - that remains the caller's responsibility.
  *
  * Clients are expected to use [io.github.sooniln.fastgraph.safeCast] to convert the output properties in
@@ -94,8 +94,8 @@ public fun readDot(
     inputStream: InputStream,
     multiEdge: Boolean = false,
     indexEdges: Boolean = false,
-    nodeIdType: TypeBinding<Any> = TypeBinding.nonNullString,
-    attributeTypes: Map<String, TypeBinding<*>> = emptyMap(),
+    nodeIdType: PropertyBinding<Any> = PropertyBinding.nonNullString,
+    attributeTypes: Map<String, PropertyBinding<*>> = emptyMap(),
 ): MutableDotGraph {
     val lexer = DotLexer(inputStream)
     try {

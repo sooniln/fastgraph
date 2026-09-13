@@ -8,8 +8,6 @@ package io.github.sooniln.fastgraph
 import io.github.sooniln.fastgraph.properties.ArrayVertexProperty
 import io.github.sooniln.fastgraph.properties.BooleanArrayVertexProperty
 import io.github.sooniln.fastgraph.properties.BooleanMapVertexProperty
-import io.github.sooniln.fastgraph.properties.ByteArrayVertexProperty
-import io.github.sooniln.fastgraph.properties.ByteMapVertexProperty
 import io.github.sooniln.fastgraph.properties.DoubleArrayVertexProperty
 import io.github.sooniln.fastgraph.properties.DoubleMapVertexProperty
 import io.github.sooniln.fastgraph.properties.FloatArrayVertexProperty
@@ -17,8 +15,6 @@ import io.github.sooniln.fastgraph.properties.FloatMapVertexProperty
 import io.github.sooniln.fastgraph.properties.ImmutableArrayVertexProperty
 import io.github.sooniln.fastgraph.properties.ImmutableBooleanArrayVertexProperty
 import io.github.sooniln.fastgraph.properties.ImmutableBooleanMapVertexProperty
-import io.github.sooniln.fastgraph.properties.ImmutableByteArrayVertexProperty
-import io.github.sooniln.fastgraph.properties.ImmutableByteMapVertexProperty
 import io.github.sooniln.fastgraph.properties.ImmutableDoubleArrayVertexProperty
 import io.github.sooniln.fastgraph.properties.ImmutableDoubleMapVertexProperty
 import io.github.sooniln.fastgraph.properties.ImmutableFloatArrayVertexProperty
@@ -28,15 +24,11 @@ import io.github.sooniln.fastgraph.properties.ImmutableIntMapVertexProperty
 import io.github.sooniln.fastgraph.properties.ImmutableLongArrayVertexProperty
 import io.github.sooniln.fastgraph.properties.ImmutableLongMapVertexProperty
 import io.github.sooniln.fastgraph.properties.ImmutableMapVertexProperty
-import io.github.sooniln.fastgraph.properties.ImmutableShortArrayVertexProperty
-import io.github.sooniln.fastgraph.properties.ImmutableShortMapVertexProperty
 import io.github.sooniln.fastgraph.properties.IntArrayVertexProperty
 import io.github.sooniln.fastgraph.properties.IntMapVertexProperty
 import io.github.sooniln.fastgraph.properties.LongArrayVertexProperty
 import io.github.sooniln.fastgraph.properties.LongMapVertexProperty
 import io.github.sooniln.fastgraph.properties.MapVertexProperty
-import io.github.sooniln.fastgraph.properties.ShortArrayVertexProperty
-import io.github.sooniln.fastgraph.properties.ShortMapVertexProperty
 import io.github.sooniln.fastgraph.properties.WrapperIntVertexKeyProperty
 import io.github.sooniln.fastgraph.properties.WrapperLongVertexKeyProperty
 import io.github.sooniln.fastgraph.properties.WrapperVertexKeyProperty
@@ -58,7 +50,7 @@ public interface VertexProperty<V> {
 
     /** The type of this property. */
     @get:JvmName("getType")
-    public val type: StaticType<V>
+    public val type: PropertyType<V>
 
     /**
      * Retrieves the value associated with the given vertex, but has undefined behavior if the vertex does not belong to
@@ -122,7 +114,7 @@ public fun <V> MutableVertexProperty<V>.put(vertexReference: VertexReference, va
 public fun unitVertexProperty(graph: Graph): MutableVertexProperty<Unit> {
     return object : MutableVertexProperty<Unit> {
         override val graph: Graph get() = graph
-        override val type: StaticType<Unit> get() = staticTypeOf()
+        override val type: PropertyType<Unit> get() = propertyTypeOf()
         override fun get(vertex: Vertex): Unit = Unit
         override fun set(vertex: Vertex, value: Unit) {}
     }
@@ -137,7 +129,7 @@ public fun unitVertexProperty(graph: Graph): MutableVertexProperty<Unit> {
 @JvmName("createVertexProperty")
 public fun <T> createVertexProperty(
     graph: Graph,
-    type: StaticType<T>,
+    type: PropertyType<T>,
     defaultValueFunction: VertexFunction<T>
 ): MutableVertexProperty<T> {
     if (type.kType == typeOf<Unit>()) {
@@ -153,18 +145,6 @@ public fun <T> createVertexProperty(
                     ImmutableBooleanArrayVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Boolean>
-                    ) as MutableVertexProperty<T>
-
-                typeOf<Byte>() ->
-                    ImmutableByteArrayVertexProperty(
-                        graph,
-                        defaultValueFunction as VertexFunction<Byte>
-                    ) as MutableVertexProperty<T>
-
-                typeOf<Short>() ->
-                    ImmutableShortArrayVertexProperty(
-                        graph,
-                        defaultValueFunction as VertexFunction<Short>
                     ) as MutableVertexProperty<T>
 
                 typeOf<Int>() ->
@@ -199,18 +179,6 @@ public fun <T> createVertexProperty(
                     ImmutableBooleanMapVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Boolean>
-                    ) as MutableVertexProperty<T>
-
-                typeOf<Byte>() ->
-                    ImmutableByteMapVertexProperty(
-                        graph,
-                        defaultValueFunction as VertexFunction<Byte>
-                    ) as MutableVertexProperty<T>
-
-                typeOf<Short>() ->
-                    ImmutableShortMapVertexProperty(
-                        graph,
-                        defaultValueFunction as VertexFunction<Short>
                     ) as MutableVertexProperty<T>
 
                 typeOf<Int>() ->
@@ -249,18 +217,6 @@ public fun <T> createVertexProperty(
                         defaultValueFunction as VertexFunction<Boolean>
                     ) as MutableVertexProperty<T>
 
-                typeOf<Byte>() ->
-                    ByteArrayVertexProperty(
-                        graph,
-                        defaultValueFunction as VertexFunction<Byte>
-                    ) as MutableVertexProperty<T>
-
-                typeOf<Short>() ->
-                    ShortArrayVertexProperty(
-                        graph,
-                        defaultValueFunction as VertexFunction<Short>
-                    ) as MutableVertexProperty<T>
-
                 typeOf<Int>() ->
                     IntArrayVertexProperty(
                         graph,
@@ -293,18 +249,6 @@ public fun <T> createVertexProperty(
                     BooleanMapVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Boolean>
-                    ) as MutableVertexProperty<T>
-
-                typeOf<Byte>() ->
-                    ByteMapVertexProperty(
-                        graph,
-                        defaultValueFunction as VertexFunction<Byte>
-                    ) as MutableVertexProperty<T>
-
-                typeOf<Short>() ->
-                    ShortMapVertexProperty(
-                        graph,
-                        defaultValueFunction as VertexFunction<Short>
                     ) as MutableVertexProperty<T>
 
                 typeOf<Int>() ->
@@ -345,6 +289,9 @@ public fun <T> createVertexProperty(
 public interface VertexKeyProperty<V> : VertexProperty<V> {
     public fun hasVertex(key: V): Boolean
 
+    /**
+     * Retrieves the vertex for the given property value, or throws [NoSuchElementException] if there is no such vertex.
+     */
     @JvmName("getVertex")
     public fun getVertex(key: V): Vertex
 
@@ -382,10 +329,10 @@ public fun <E> MutableVertexProperty<E>.asVertexKeyProperty(): MutableVertexKeyP
  * any data, and references the input property indefinitely.
  */
 @JvmName("map")
-public fun <V, O> map(property: VertexProperty<V>, type: StaticType<O>, transform: (V) -> O): VertexProperty<O> {
+public fun <V, O> map(property: VertexProperty<V>, type: PropertyType<O>, transform: (V) -> O): VertexProperty<O> {
     return object : VertexProperty<O> {
         override val graph: Graph get() = property.graph
-        override val type: StaticType<O> get() = type
+        override val type: PropertyType<O> get() = type
         override fun get(vertex: Vertex): O = transform(property[vertex])
     }
 }
@@ -393,14 +340,14 @@ public fun <V, O> map(property: VertexProperty<V>, type: StaticType<O>, transfor
 /** See [map]. */
 @JvmSynthetic
 @JvmName("#vertexPropertyMap")
-public fun <V, O> VertexProperty<V>.map(type: StaticType<O>, transform: (V) -> O): VertexProperty<O> {
+public fun <V, O> VertexProperty<V>.map(type: PropertyType<O>, transform: (V) -> O): VertexProperty<O> {
     return map(this, type, transform)
 }
 
 /** See [map]. */
 @JvmSynthetic
 public inline fun <V, reified O> VertexProperty<V>.map(noinline transform: (V) -> O): VertexProperty<O> {
-    return map(this, staticTypeOf(), transform)
+    return map(this, propertyTypeOf(), transform)
 }
 
 /**
@@ -412,13 +359,13 @@ public inline fun <V, reified O> VertexProperty<V>.map(noinline transform: (V) -
 @JvmName("map")
 public fun <V, O> map(
     property: MutableVertexProperty<V>,
-    type: StaticType<O>,
+    type: PropertyType<O>,
     transform: (V) -> O,
     reverseTransform: (O) -> V
 ): MutableVertexProperty<O> {
     return object : MutableVertexProperty<O> {
         override val graph: Graph get() = property.graph
-        override val type: StaticType<O> get() = type
+        override val type: PropertyType<O> get() = type
         override fun get(vertex: Vertex): O = transform(property[vertex])
         override fun set(vertex: Vertex, value: O) { property[vertex] = reverseTransform(value)}
         override fun put(vertex: Vertex, value: O) = transform(property.put(vertex, reverseTransform(value)))
@@ -429,7 +376,7 @@ public fun <V, O> map(
 @JvmSynthetic
 @JvmName("#mutableVertexPropertyMap")
 public fun <V, O> MutableVertexProperty<V>.map(
-    type: StaticType<O>,
+    type: PropertyType<O>,
     transform: (V) -> O,
     reverseTransform: (O) -> V
 ): MutableVertexProperty<O> {
@@ -442,7 +389,7 @@ public inline fun <V, reified O> MutableVertexProperty<V>.map(
     noinline transform: (V) -> O,
     noinline reverseTransform: (O) -> V
 ): MutableVertexProperty<O> {
-    return map(this, staticTypeOf(), transform, reverseTransform)
+    return map(this, propertyTypeOf(), transform, reverseTransform)
 }
 
 /**
@@ -480,12 +427,12 @@ public inline fun <reified E> MutableVertexProperty<*>.safeCast(): MutableVertex
 }
 
 /** Returns an empty vertex property to be associated with an empty [ImmutableGraph]. */
-internal fun <T> emptyVertexProperty(graph: ImmutableGraph, type: StaticType<T>): MutableVertexProperty<T> {
+internal fun <T> emptyVertexProperty(graph: ImmutableGraph, type: PropertyType<T>): MutableVertexProperty<T> {
     require(graph.vertices.isEmpty())
 
     return object : MutableVertexProperty<T> {
         override val graph: Graph get() = graph
-        override val type: StaticType<T> get() = type
+        override val type: PropertyType<T> get() = type
 
         override fun get(vertex: Vertex): T = throw IllegalArgumentException()
 

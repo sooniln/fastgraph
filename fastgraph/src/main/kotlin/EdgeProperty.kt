@@ -8,8 +8,6 @@ package io.github.sooniln.fastgraph
 import io.github.sooniln.fastgraph.properties.ArrayEdgeProperty
 import io.github.sooniln.fastgraph.properties.BooleanArrayEdgeProperty
 import io.github.sooniln.fastgraph.properties.BooleanMapEdgeProperty
-import io.github.sooniln.fastgraph.properties.ByteArrayEdgeProperty
-import io.github.sooniln.fastgraph.properties.ByteMapEdgeProperty
 import io.github.sooniln.fastgraph.properties.DoubleArrayEdgeProperty
 import io.github.sooniln.fastgraph.properties.DoubleMapEdgeProperty
 import io.github.sooniln.fastgraph.properties.FloatArrayEdgeProperty
@@ -17,8 +15,6 @@ import io.github.sooniln.fastgraph.properties.FloatMapEdgeProperty
 import io.github.sooniln.fastgraph.properties.ImmutableArrayEdgeProperty
 import io.github.sooniln.fastgraph.properties.ImmutableBooleanArrayEdgeProperty
 import io.github.sooniln.fastgraph.properties.ImmutableBooleanMapEdgeProperty
-import io.github.sooniln.fastgraph.properties.ImmutableByteArrayEdgeProperty
-import io.github.sooniln.fastgraph.properties.ImmutableByteMapEdgeProperty
 import io.github.sooniln.fastgraph.properties.ImmutableDoubleArrayEdgeProperty
 import io.github.sooniln.fastgraph.properties.ImmutableDoubleMapEdgeProperty
 import io.github.sooniln.fastgraph.properties.ImmutableFloatArrayEdgeProperty
@@ -28,15 +24,11 @@ import io.github.sooniln.fastgraph.properties.ImmutableIntMapEdgeProperty
 import io.github.sooniln.fastgraph.properties.ImmutableLongArrayEdgeProperty
 import io.github.sooniln.fastgraph.properties.ImmutableLongMapEdgeProperty
 import io.github.sooniln.fastgraph.properties.ImmutableMapEdgeProperty
-import io.github.sooniln.fastgraph.properties.ImmutableShortArrayEdgeProperty
-import io.github.sooniln.fastgraph.properties.ImmutableShortMapEdgeProperty
 import io.github.sooniln.fastgraph.properties.IntArrayEdgeProperty
 import io.github.sooniln.fastgraph.properties.IntMapEdgeProperty
 import io.github.sooniln.fastgraph.properties.LongArrayEdgeProperty
 import io.github.sooniln.fastgraph.properties.LongMapEdgeProperty
 import io.github.sooniln.fastgraph.properties.MapEdgeProperty
-import io.github.sooniln.fastgraph.properties.ShortArrayEdgeProperty
-import io.github.sooniln.fastgraph.properties.ShortMapEdgeProperty
 import io.github.sooniln.fastgraph.properties.WrapperEdgeKeyProperty
 import io.github.sooniln.fastgraph.properties.WrapperIntEdgeKeyProperty
 import io.github.sooniln.fastgraph.properties.WrapperLongEdgeKeyProperty
@@ -58,7 +50,7 @@ public interface EdgeProperty<E> {
 
     /** The type of this property. */
     @get:JvmName("getType")
-    public val type: StaticType<E>
+    public val type: PropertyType<E>
 
     /**
      * Retrieves the value associated with the given edge, but has undefined behavior if the edge does not belong to
@@ -121,7 +113,7 @@ public fun <E> MutableEdgeProperty<E>.put(edgeReference: EdgeReference, value: E
 public fun unitEdgeProperty(graph: Graph): MutableEdgeProperty<Unit> {
     return object : MutableEdgeProperty<Unit> {
         override val graph: Graph get() = graph
-        override val type: StaticType<Unit> get() = staticTypeOf()
+        override val type: PropertyType<Unit> get() = propertyTypeOf()
         override fun get(edge: Edge): Unit = Unit
         override fun set(edge: Edge, value: Unit) {}
     }
@@ -136,7 +128,7 @@ public fun unitEdgeProperty(graph: Graph): MutableEdgeProperty<Unit> {
 @JvmName("createEdgeProperty")
 public fun <T> createEdgeProperty(
     graph: Graph,
-    type: StaticType<T>,
+    type: PropertyType<T>,
     defaultValueFunction: EdgeFunction<T>
 ): MutableEdgeProperty<T> {
     if (type.kType == typeOf<Unit>()) {
@@ -152,18 +144,6 @@ public fun <T> createEdgeProperty(
                     ImmutableBooleanArrayEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Boolean>
-                    ) as MutableEdgeProperty<T>
-
-                typeOf<Byte>() ->
-                    ImmutableByteArrayEdgeProperty(
-                        graph,
-                        defaultValueFunction as EdgeFunction<Byte>
-                    ) as MutableEdgeProperty<T>
-
-                typeOf<Short>() ->
-                    ImmutableShortArrayEdgeProperty(
-                        graph,
-                        defaultValueFunction as EdgeFunction<Short>
                     ) as MutableEdgeProperty<T>
 
                 typeOf<Int>() ->
@@ -198,18 +178,6 @@ public fun <T> createEdgeProperty(
                     ImmutableBooleanMapEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Boolean>
-                    ) as MutableEdgeProperty<T>
-
-                typeOf<Byte>() ->
-                    ImmutableByteMapEdgeProperty(
-                        graph,
-                        defaultValueFunction as EdgeFunction<Byte>
-                    ) as MutableEdgeProperty<T>
-
-                typeOf<Short>() ->
-                    ImmutableShortMapEdgeProperty(
-                        graph,
-                        defaultValueFunction as EdgeFunction<Short>
                     ) as MutableEdgeProperty<T>
 
                 typeOf<Int>() ->
@@ -248,18 +216,6 @@ public fun <T> createEdgeProperty(
                         defaultValueFunction as EdgeFunction<Boolean>
                     ) as MutableEdgeProperty<T>
 
-                typeOf<Byte>() ->
-                    ByteArrayEdgeProperty(
-                        graph,
-                        defaultValueFunction as EdgeFunction<Byte>
-                    ) as MutableEdgeProperty<T>
-
-                typeOf<Short>() ->
-                    ShortArrayEdgeProperty(
-                        graph,
-                        defaultValueFunction as EdgeFunction<Short>
-                    ) as MutableEdgeProperty<T>
-
                 typeOf<Int>() ->
                     IntArrayEdgeProperty(
                         graph,
@@ -292,18 +248,6 @@ public fun <T> createEdgeProperty(
                     BooleanMapEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Boolean>
-                    ) as MutableEdgeProperty<T>
-
-                typeOf<Byte>() ->
-                    ByteMapEdgeProperty(
-                        graph,
-                        defaultValueFunction as EdgeFunction<Byte>
-                    ) as MutableEdgeProperty<T>
-
-                typeOf<Short>() ->
-                    ShortMapEdgeProperty(
-                        graph,
-                        defaultValueFunction as EdgeFunction<Short>
                     ) as MutableEdgeProperty<T>
 
                 typeOf<Int>() ->
@@ -344,6 +288,9 @@ public fun <T> createEdgeProperty(
 public interface EdgeKeyProperty<E> : EdgeProperty<E> {
     public fun hasEdge(key: E): Boolean
 
+    /**
+     * Retrieves the edge for the given property value, or throws [NoSuchElementException] if there is no such edge.
+     */
     @JvmName("getEdge")
     public fun getEdge(key: E): Edge
 
@@ -381,10 +328,10 @@ public fun <E> MutableEdgeProperty<E>.asEdgeKeyProperty(): MutableEdgeKeyPropert
  * data, and references the input property indefinitely.
  */
 @JvmName("map")
-public fun <E, O> map(property: EdgeProperty<E>, type: StaticType<O>, transform: (E) -> O): EdgeProperty<O> {
+public fun <E, O> map(property: EdgeProperty<E>, type: PropertyType<O>, transform: (E) -> O): EdgeProperty<O> {
     return object : EdgeProperty<O> {
         override val graph: Graph get() = property.graph
-        override val type: StaticType<O> get() = type
+        override val type: PropertyType<O> get() = type
         override fun get(edge: Edge): O  = transform(property[edge])
     }
 }
@@ -392,14 +339,14 @@ public fun <E, O> map(property: EdgeProperty<E>, type: StaticType<O>, transform:
 /** See [map]. */
 @JvmSynthetic
 @JvmName("#map")
-public fun <E, O> EdgeProperty<E>.map(type: StaticType<O>, transform: (E) -> O): EdgeProperty<O> {
+public fun <E, O> EdgeProperty<E>.map(type: PropertyType<O>, transform: (E) -> O): EdgeProperty<O> {
     return map(this, type, transform)
 }
 
 /** See [map]. */
 @JvmSynthetic
 public inline fun <E, reified O> EdgeProperty<E>.map(noinline transform: (E) -> O): EdgeProperty<O> {
-    return map(this, staticTypeOf(), transform)
+    return map(this, propertyTypeOf(), transform)
 }
 
 /**
@@ -411,13 +358,13 @@ public inline fun <E, reified O> EdgeProperty<E>.map(noinline transform: (E) -> 
 @JvmName("map")
 public fun <E, O> map(
     property: MutableEdgeProperty<E>,
-    type: StaticType<O>,
+    type: PropertyType<O>,
     transform: (E) -> O,
     reverseTransform: (O) -> E
 ): MutableEdgeProperty<O> {
     return object : MutableEdgeProperty<O> {
         override val graph: Graph get() = property.graph
-        override val type: StaticType<O> get() = type
+        override val type: PropertyType<O> get() = type
         override fun get(edge: Edge): O = transform(property[edge])
         override fun set(edge: Edge, value: O) { property[edge] = reverseTransform(value)}
         override fun put(edge: Edge, value: O) = transform(property.put(edge, reverseTransform(value)))
@@ -428,7 +375,7 @@ public fun <E, O> map(
 @JvmSynthetic
 @JvmName("#mutableEdgePropertyMap")
 public fun <E, O> MutableEdgeProperty<E>.map(
-    type: StaticType<O>,
+    type: PropertyType<O>,
     transform: (E) -> O,
     reverseTransform: (O) -> E
 ): MutableEdgeProperty<O> {
@@ -441,7 +388,7 @@ public inline fun <E, reified O> MutableEdgeProperty<E>.map(
     noinline transform: (E) -> O,
     noinline reverseTransform: (O) -> E
 ): MutableEdgeProperty<O> {
-    return map(this, staticTypeOf(), transform, reverseTransform)
+    return map(this, propertyTypeOf(), transform, reverseTransform)
 }
 
 /**
@@ -479,12 +426,12 @@ public inline fun <reified E> MutableEdgeProperty<*>.safeCast(): MutableEdgeProp
 }
 
 /** Returns an empty edge property to be associated with an empty [ImmutableGraph]. */
-internal fun <T> emptyEdgeProperty(graph: ImmutableGraph, type: StaticType<T>): MutableEdgeProperty<T> {
+internal fun <T> emptyEdgeProperty(graph: ImmutableGraph, type: PropertyType<T>): MutableEdgeProperty<T> {
     require(graph.edges.isEmpty())
 
     return object : MutableEdgeProperty<T> {
         override val graph: Graph get() = graph
-        override val type: StaticType<T> get() = type
+        override val type: PropertyType<T> get() = type
 
         override fun get(edge: Edge): T = throw IllegalArgumentException()
 

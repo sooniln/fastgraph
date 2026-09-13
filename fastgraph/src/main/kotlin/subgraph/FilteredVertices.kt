@@ -3,7 +3,7 @@ package io.github.sooniln.fastgraph.subgraph
 import io.github.sooniln.fastgraph.AbstractVertexSet
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.MutableVertexProperty
-import io.github.sooniln.fastgraph.StaticType
+import io.github.sooniln.fastgraph.PropertyType
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
 import io.github.sooniln.fastgraph.VertexConsumer
@@ -29,7 +29,7 @@ internal class FilteredVertices(
 
     override val size: Int get() {
         var size = 0
-        parent.vertices.foreach { vertex ->
+        for (vertex in parent.vertices) {
             if (filter.test(vertex)) {
                 ++size
             }
@@ -63,14 +63,6 @@ internal class FilteredVertices(
         }
     }
 
-    override fun foreach(action: VertexConsumer) {
-        parent.vertices.foreach { vertex ->
-            if (filter.test(vertex)) {
-                action.accept(vertex)
-            }
-        }
-    }
-
     override fun registerVertexChangeListener(listener: VertexChangeListener) {
         throw UnsupportedOperationException("A graph with filtered vertices cannot support vertex listeners")
     }
@@ -80,7 +72,7 @@ internal class FilteredVertices(
     }
 
     override fun <T> createVertexProperty(
-        type: StaticType<T>,
+        type: PropertyType<T>,
         defaultValueFunction: VertexFunction<T>
     ): MutableVertexProperty<T> {
         val property = FilteredVertexProperty(graph, type, defaultValueFunction, filter)

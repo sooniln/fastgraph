@@ -13,8 +13,8 @@ import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.IndexedEdgeGraph
 import io.github.sooniln.fastgraph.MutableEdgeProperty
-import io.github.sooniln.fastgraph.StaticType
-import io.github.sooniln.fastgraph.staticTypeOf
+import io.github.sooniln.fastgraph.PropertyType
+import io.github.sooniln.fastgraph.propertyTypeOf
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
 
 
@@ -28,11 +28,11 @@ internal class DoubleArrayEdgeProperty(
 
     init {
         property.ensureCapacity(graph.edges.size)
-        graph.edges.foreach { onEdgeAdded(it) }
+        for (edge in graph.edges) { onEdgeAdded(edge) }
         graph.registerEdgeChangeListener(this)
     }
 
-    override val type: StaticType<Double> get() = staticTypeOf()
+    override val type: PropertyType<Double> get() = propertyTypeOf()
 
     override fun get(edge: Edge): Double {
         try {
@@ -89,7 +89,7 @@ internal class ImmutableDoubleArrayEdgeProperty<G>(
         write(defaultValueFunction.apply(graph.edges[edgeId]))
     }
 
-    override val type: StaticType<Double> get() = staticTypeOf()
+    override val type: PropertyType<Double> get() = propertyTypeOf()
 
     override fun get(edge: Edge): Double {
         try {
@@ -133,7 +133,7 @@ internal class DoubleMapEdgeProperty(
         graph.registerEdgeChangeListener(this)
     }
 
-    override val type: StaticType<Double> get() = staticTypeOf()
+    override val type: PropertyType<Double> get() = propertyTypeOf()
 
     override fun get(edge: Edge): Double {
         return read(property.getOrPut(edge.id) { write(initializer.apply(edge)) })
@@ -174,12 +174,12 @@ internal class ImmutableDoubleMapEdgeProperty(
 
     init {
         property.ensureCapacity(graph.edges.size)
-        graph.edges.foreach { edge ->
+        for (edge in graph.edges) {
             property[edge.id] = write(defaultValueFunction.apply(edge))
         }
     }
 
-    override val type: StaticType<Double> get() = staticTypeOf()
+    override val type: PropertyType<Double> get() = propertyTypeOf()
 
     override fun get(edge: Edge): Double {
         try {

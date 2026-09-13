@@ -9,7 +9,7 @@ import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.IndexedVertexGraph
 import io.github.sooniln.fastgraph.MutableVertexKeyProperty
 import io.github.sooniln.fastgraph.MutableVertexProperty
-import io.github.sooniln.fastgraph.StaticType
+import io.github.sooniln.fastgraph.PropertyType
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
 import io.github.sooniln.fastgraph.VertexFunction
@@ -17,7 +17,7 @@ import io.github.sooniln.fastgraph.internal.throwIllegalVertex
 
 internal class ArrayVertexProperty<T>(
     override val graph: IndexedVertexGraph,
-    override val type: StaticType<T>,
+    override val type: PropertyType<T>,
     defaultValueFunction: VertexFunction<T>,
 ) : MutableVertexProperty<T>, VertexChangeListener {
 
@@ -26,7 +26,7 @@ internal class ArrayVertexProperty<T>(
 
     init {
         property.ensureCapacity(graph.vertices.size)
-        graph.vertices.foreach { onVertexAdded(it) }
+        for (vertex in graph.vertices) { onVertexAdded(vertex) }
         graph.registerVertexChangeListener(this)
     }
 
@@ -75,7 +75,7 @@ internal class ArrayVertexProperty<T>(
 
 internal class ImmutableArrayVertexProperty<G, T>(
     override val graph: G,
-    override val type: StaticType<T>,
+    override val type: PropertyType<T>,
     defaultValueFunction: VertexFunction<T>,
 ) : MutableVertexProperty<T> where G : ImmutableGraph, G : IndexedVertexGraph {
 
@@ -83,7 +83,7 @@ internal class ImmutableArrayVertexProperty<G, T>(
 
     init {
         property.ensureCapacity(graph.vertices.size)
-        graph.vertices.foreach { vertex ->
+        for (vertex in graph.vertices) {
             assert(vertex.id == property.size)
             property.add(defaultValueFunction.apply(vertex))
         }
@@ -116,7 +116,7 @@ internal class ImmutableArrayVertexProperty<G, T>(
 
 internal class MapVertexProperty<T>(
     override val graph: Graph,
-    override val type: StaticType<T>,
+    override val type: PropertyType<T>,
     defaultValueFunction: VertexFunction<T>
 ) : MutableVertexProperty<T>, VertexChangeListener {
 
@@ -155,7 +155,7 @@ internal class MapVertexProperty<T>(
 
 internal class ImmutableMapVertexProperty<T>(
     override val graph: ImmutableGraph,
-    override val type: StaticType<T>,
+    override val type: PropertyType<T>,
     defaultValueFunction: VertexFunction<T>
 ) : MutableVertexProperty<T> {
 
@@ -163,7 +163,7 @@ internal class ImmutableMapVertexProperty<T>(
 
     init {
         property.ensureCapacity(graph.vertices.size)
-        graph.vertices.foreach { vertex ->
+        for (vertex in graph.vertices) {
             property[vertex.id] = defaultValueFunction.apply(vertex)
         }
     }
@@ -195,7 +195,7 @@ internal class WrapperVertexKeyProperty<T>(
     private val keyMap = HashMap<T, Int>()
 
     init {
-        graph.vertices.foreach { vertex ->
+        for (vertex in graph.vertices) {
             val key = get(vertex)
             if (keyMap.containsKey(key)) throw IllegalArgumentException("\"$key\" is not unique")
             keyMap[key] = vertex.id

@@ -11,13 +11,13 @@ import io.github.sooniln.fastgraph.IndexedVertexGraph
 import io.github.sooniln.fastgraph.MutableEdgeProperty
 import io.github.sooniln.fastgraph.MutableGraph
 import io.github.sooniln.fastgraph.MutableVertexProperty
-import io.github.sooniln.fastgraph.StaticType
+import io.github.sooniln.fastgraph.PropertyType
 import io.github.sooniln.fastgraph.ValueGraph
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexProperty
 import io.github.sooniln.fastgraph.io.ParsingEdgeProperty
 import io.github.sooniln.fastgraph.io.ParsingVertexProperty
-import io.github.sooniln.fastgraph.io.TypeBinding
+import io.github.sooniln.fastgraph.io.PropertyBinding
 import io.github.sooniln.fastgraph.io.graphml.internal.IndentingXMLStreamWriter
 import io.github.sooniln.fastgraph.mutableGraph
 import java.io.InputStream
@@ -84,7 +84,7 @@ public class MutableGraphMLGraph(
  * Loads a [GraphMLGraph] from the given [inputStream]. Only the first `<graph>` element in the document is read. Since
  * GraphML specifies attribute types (boolean, int, long, float, double, string), these are mapped to properties of the
  * specified type. If you wish to override the type stated in the graph, supply an entry within [attributeTypeOverrides]
- * - if you do not want to parse/store a particular attribute, then supply [TypeBinding.unit] for that attribute. Note
+ * - if you do not want to parse/store a particular attribute, then supply [PropertyBinding.unit] for that attribute. Note
  * that the keys in [attributeTypeOverrides] are the attribute *names*, not the attribute *ids*. The [inputStream] is
  * not closed by this function - that remains the caller's responsibility.
  *
@@ -97,7 +97,7 @@ public fun readGraphML(
     inputStream: InputStream,
     multiEdge: Boolean = false,
     indexEdges: Boolean = false,
-    attributeTypeOverrides: Map<String, TypeBinding<*>> = emptyMap(),
+    attributeTypeOverrides: Map<String, PropertyBinding<*>> = emptyMap(),
 ): MutableGraphMLGraph {
     val factory = XMLInputFactory.newFactory()
     factory.setProperty(XMLInputFactory.SUPPORT_DTD, false)
@@ -117,7 +117,7 @@ private fun parseGraphML(
     reader: XMLStreamReader,
     multiEdge: Boolean,
     indexEdges: Boolean,
-    attributeTypeOverrides: Map<String, TypeBinding<*>>
+    attributeTypeOverrides: Map<String, PropertyBinding<*>>
 ): MutableGraphMLGraph {
     while (reader.eventType != START_ELEMENT) {
         reader.next()
@@ -165,7 +165,7 @@ private fun parseGraphML(
     val attrNameById = keys.associate { it.id to it.attrName }
     val vertexBindings = HashMap<String, ParsingVertexProperty<*>>()
     val edgeBindings = HashMap<String, ParsingEdgeProperty<*>>()
-    val graphBindings = HashMap<String, TypeBinding<*>>()
+    val graphBindings = HashMap<String, PropertyBinding<*>>()
     val graphAttributes = HashMap<String, Any>()
     for (key in keys) {
         val typeOverride = attributeTypeOverrides[key.attrName]
@@ -281,26 +281,26 @@ private fun parseGraphML(
         graphAttributes)
 }
 
-private fun keyBinding(attrType: String, defaultText: String?, typeOverride: TypeBinding<*>?): TypeBinding<*> {
+private fun keyBinding(attrType: String, defaultText: String?, typeOverride: PropertyBinding<*>?): PropertyBinding<*> {
     if (typeOverride != null) {
-        return TypeBinding(
+        return PropertyBinding(
             typeOverride.type,
             if (defaultText != null) typeOverride.parser(defaultText) else typeOverride.defaultValue,
             typeOverride.parser)
     }
     if (attrType == "string" && defaultText != null) {
-        return TypeBinding(TypeBinding.nonNullString.type, defaultText, TypeBinding.nonNullString.parser)
+        return PropertyBinding(PropertyBinding.nonNullString.type, defaultText, PropertyBinding.nonNullString.parser)
     }
     val base = when (attrType) {
-        "boolean" -> TypeBinding.boolean
-        "int" -> TypeBinding.int
-        "long" -> TypeBinding.long
-        "float" -> TypeBinding.float
-        "double" -> TypeBinding.double
-        "string" -> TypeBinding.string
+        "boolean" -> PropertyBinding.boolean
+        "int" -> PropertyBinding.int
+        "long" -> PropertyBinding.long
+        "float" -> PropertyBinding.float
+        "double" -> PropertyBinding.double
+        "string" -> PropertyBinding.string
         else -> throw IllegalArgumentException("unsupported attr.type \"$attrType\"")
     }
-    return if (defaultText == null) base else TypeBinding(base.type, base.parser(defaultText), base.parser)
+    return if (defaultText == null) base else PropertyBinding(base.type, base.parser(defaultText), base.parser)
 }
 
 private fun XMLStreamReader.requiredAttribute(name: String): String =
@@ -329,7 +329,8 @@ private fun XMLStreamReader.skipElement() {
 
 /**
  * Writes [graph] as a GraphML document to [outputStream]. The [outputStream] is not closed by this function - that
- * remains the caller's responsibility.
+ * remains the caller's responsibility. Graph properties types that are unsupported natively by the GraphML format
+ * (boolean, int, long, float, double, string) will be serialized as strings.
  */
 public fun writeGraphML(
     outputStream: OutputStream,
@@ -347,7 +348,7 @@ public fun writeGraphML(
     writer.writeStartElement("graphml")
     writer.writeDefaultNamespace("http://graphml.graphdrawing.org/xmlns")
 
-    fun StaticType<*>.toAttrType(): String = when (this.kType) {
+    fun PropertyType<*>.toAttrType(): String = when (this.kType) {
         typeOf<Boolean>() -> "boolean"
         typeOf<Int>() -> "int"
         typeOf<Long>() -> "long"

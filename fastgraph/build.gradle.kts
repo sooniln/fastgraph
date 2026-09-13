@@ -12,6 +12,7 @@ plugins {
 }
 
 repositories {
+    mavenLocal()
     mavenCentral()
 }
 
@@ -37,7 +38,7 @@ java {
 }
 
 dependencies {
-    implementation(libs.fastcollect)
+    api(libs.fastcollect)
 
     testImplementation(libs.assertJ)
     testImplementation(libs.junitCore)
@@ -57,8 +58,6 @@ tasks.register<Sync>("GenerateMain") {
                 "EdgeProperties.kte",
                 listOf(
                     mapOf("Type" to "Boolean", "StorageType" to "Byte", "ReadLambda" to "{ return it != 0.toByte() }", "WriteLambda" to "{ return if (it) 1 else 0 }"),
-                    mapOf("Type" to "Byte"),
-                    mapOf("Type" to "Short", "StorageType" to "Int", "ReadLambda" to "{ return it.toShort() }", "WriteLambda" to "{ return it.toInt() }"),
                     mapOf("Type" to "Int"),
                     mapOf("Type" to "Long"),
                     mapOf("Type" to "Float"),
@@ -68,8 +67,6 @@ tasks.register<Sync>("GenerateMain") {
                 "VertexProperties.kte",
                 listOf(
                     mapOf("Type" to "Boolean", "StorageType" to "Byte", "ReadLambda" to "{ return it != 0.toByte() }", "WriteLambda" to "{ return if (it) 1 else 0 }"),
-                    mapOf("Type" to "Byte"),
-                    mapOf("Type" to "Short", "StorageType" to "Int", "ReadLambda" to "{ return it.toShort() }", "WriteLambda" to "{ return it.toInt() }"),
                     mapOf("Type" to "Int"),
                     mapOf("Type" to "Long"),
                     mapOf("Type" to "Float"),

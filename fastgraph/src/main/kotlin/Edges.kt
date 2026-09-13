@@ -5,10 +5,10 @@
 
 package io.github.sooniln.fastgraph
 
-import io.github.sooniln.fastcollect.LongHashSet
-import io.github.sooniln.fastcollect.LongSet
-import io.github.sooniln.fastcollect.emptyLongIterator
-import io.github.sooniln.fastcollect.longIteratorOf
+import io.github.sooniln.fastcollect.*
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 
 private val EDGE_HEX_FORMAT = HexFormat {
     number {
@@ -173,16 +173,6 @@ public interface EdgeCollection : Collection<Edge>, EdgeIterable {
         return size == 0
     }
 
-    /**
-     * A method for iteration guaranteed to be as fast or faster than [iterator].
-     */
-    public fun foreach(action: EdgeConsumer) {
-        val it = iterator()
-        while (it.hasNext()) {
-            action.accept(it.next())
-        }
-    }
-
     @JvmName("contains")
     override fun contains(element: Edge): Boolean {
         for (e in this) {
@@ -276,14 +266,6 @@ public interface IndexedEdgeSet : EdgeSet {
             return get(index++)
         }
     }
-
-    override fun foreach(action: EdgeConsumer) {
-        var index = 0
-        while (index < size) {
-            action.accept(get(index))
-            index++
-        }
-    }
 }
 
 public val IndexedEdgeSet.lastIndex: Int @JvmSynthetic get() = size - 1
@@ -338,7 +320,6 @@ private object EmptyEdgeSet : IndexedEdgeSet {
 
     override fun containsAll(elements: Collection<Edge>): Boolean = elements.isEmpty()
     override fun iterator(): EdgeIterator = emptyEdgeIterator()
-    override fun foreach(action: EdgeConsumer) {}
 
     override fun get(index: Int): Edge = throw IndexOutOfBoundsException()
     override fun indexOf(element: Edge): Int = -1
@@ -409,7 +390,6 @@ private class SingletonEdgeSet(private val edge: Edge) : AbstractEdgeSet() {
     override val size: Int get() = 1
     override fun contains(element: Edge): Boolean = element == edge
     override fun iterator(): EdgeIterator = longIteratorOf(edge.id).asEdgeIterator()
-    override fun foreach(action: EdgeConsumer) = action.accept(edge)
 }
 
 internal fun LongIterator.asEdgeIterator(): EdgeIterator = EdgeIteratorWrapper(this)
@@ -428,7 +408,6 @@ private class EdgeSetWrapper(private val edges: LongSet) : AbstractEdgeSet() {
 
     override fun contains(element: Edge): Boolean = edges.contains(element.id)
     override fun iterator(): EdgeIterator = EdgeIteratorWrapper(edges.iterator())
-    override fun foreach(action: EdgeConsumer) = edges.foreach { edge -> action.accept(Edge(edge)) }
 
-    override fun toLongArray(): LongArray = edges.toLongArray()
+    override fun toLongArray(): LongArray = edges.copyInto(LongArray(edges.size))
 }

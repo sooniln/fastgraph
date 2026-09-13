@@ -13,8 +13,8 @@ import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.IndexedEdgeGraph
 import io.github.sooniln.fastgraph.MutableEdgeProperty
-import io.github.sooniln.fastgraph.StaticType
-import io.github.sooniln.fastgraph.staticTypeOf
+import io.github.sooniln.fastgraph.PropertyType
+import io.github.sooniln.fastgraph.propertyTypeOf
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
 
 
@@ -28,11 +28,11 @@ internal class BooleanArrayEdgeProperty(
 
     init {
         property.ensureCapacity(graph.edges.size)
-        graph.edges.foreach { onEdgeAdded(it) }
+        for (edge in graph.edges) { onEdgeAdded(edge) }
         graph.registerEdgeChangeListener(this)
     }
 
-    override val type: StaticType<Boolean> get() = staticTypeOf()
+    override val type: PropertyType<Boolean> get() = propertyTypeOf()
 
     override fun get(edge: Edge): Boolean {
         try {
@@ -89,7 +89,7 @@ internal class ImmutableBooleanArrayEdgeProperty<G>(
         write(defaultValueFunction.apply(graph.edges[edgeId]))
     }
 
-    override val type: StaticType<Boolean> get() = staticTypeOf()
+    override val type: PropertyType<Boolean> get() = propertyTypeOf()
 
     override fun get(edge: Edge): Boolean {
         try {
@@ -133,7 +133,7 @@ internal class BooleanMapEdgeProperty(
         graph.registerEdgeChangeListener(this)
     }
 
-    override val type: StaticType<Boolean> get() = staticTypeOf()
+    override val type: PropertyType<Boolean> get() = propertyTypeOf()
 
     override fun get(edge: Edge): Boolean {
         return read(property.getOrPut(edge.id) { write(initializer.apply(edge)) })
@@ -174,12 +174,12 @@ internal class ImmutableBooleanMapEdgeProperty(
 
     init {
         property.ensureCapacity(graph.edges.size)
-        graph.edges.foreach { edge ->
+        for (edge in graph.edges) {
             property[edge.id] = write(defaultValueFunction.apply(edge))
         }
     }
 
-    override val type: StaticType<Boolean> get() = staticTypeOf()
+    override val type: PropertyType<Boolean> get() = propertyTypeOf()
 
     override fun get(edge: Edge): Boolean {
         try {

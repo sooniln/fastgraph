@@ -38,7 +38,7 @@ class PropertyTest {
     }
 
     class PropertyCase<T>(
-        val type: StaticType<T>,
+        val type: PropertyType<T>,
         val defaultValue: T,
         val valueAt: (Int) -> T,
     ) {
@@ -48,15 +48,15 @@ class PropertyTest {
     companion object {
         @JvmStatic
         fun propertyCases(): List<PropertyCase<*>> = listOf(
-            PropertyCase(staticTypeOf(), Unit) { },
-            PropertyCase(staticTypeOf(), true) { index -> index % 2 == 0 },
-            PropertyCase(staticTypeOf(), 1.toByte()) { index -> (2 shl index).toByte() },
-            PropertyCase(staticTypeOf(), 1.toShort()) { index -> (2 shl index).toShort() },
-            PropertyCase(staticTypeOf(), 1) { index -> 2 shl index },
-            PropertyCase(staticTypeOf(), 1L) { index -> 2L shl index },
-            PropertyCase(staticTypeOf(), 1f) { index -> (2 shl index).toFloat() },
-            PropertyCase(staticTypeOf(), 1.0) { index -> (2 shl index).toDouble() },
-            PropertyCase(staticTypeOf(), "hello") { index -> "test$index" },
+            PropertyCase(propertyTypeOf(), Unit) { },
+            PropertyCase(propertyTypeOf(), true) { index -> index % 2 == 0 },
+            PropertyCase(propertyTypeOf(), 1.toByte()) { index -> (2 shl index).toByte() },
+            PropertyCase(propertyTypeOf(), 1.toShort()) { index -> (2 shl index).toShort() },
+            PropertyCase(propertyTypeOf(), 1) { index -> 2 shl index },
+            PropertyCase(propertyTypeOf(), 1L) { index -> 2L shl index },
+            PropertyCase(propertyTypeOf(), 1f) { index -> (2 shl index).toFloat() },
+            PropertyCase(propertyTypeOf(), 1.0) { index -> (2 shl index).toDouble() },
+            PropertyCase(propertyTypeOf(), "hello") { index -> "test$index" },
         )
 
         @JvmStatic

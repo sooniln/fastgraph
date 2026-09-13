@@ -1,10 +1,10 @@
 package io.github.sooniln.fastgraph.subgraph
 
-import io.github.sooniln.fastcollect.IntHashSet
+import io.github.sooniln.fastcollect.*
 import io.github.sooniln.fastgraph.AbstractVertexSet
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.MutableVertexProperty
-import io.github.sooniln.fastgraph.StaticType
+import io.github.sooniln.fastgraph.PropertyType
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
 import io.github.sooniln.fastgraph.VertexConsumer
@@ -24,7 +24,7 @@ internal class InducingVertices(parent: Graph, inducers: VertexSet) : SubgraphVe
 
     init {
         vertices.ensureCapacity(inducers.size)
-        inducers.foreach { vertex ->
+        for (vertex in inducers) {
             require(parent.vertices.contains(vertex))
             vertices.add(vertex.id)
         }
@@ -46,10 +46,6 @@ internal class InducingVertices(parent: Graph, inducers: VertexSet) : SubgraphVe
 
     override fun iterator(): VertexIterator = vertices.iterator().asVertexIterator()
 
-    override fun foreach(action: VertexConsumer) {
-        vertices.foreach { action.accept(Vertex(it)) }
-    }
-
     override fun registerVertexChangeListener(listener: VertexChangeListener) {
         listeners.register(listener)
     }
@@ -59,7 +55,7 @@ internal class InducingVertices(parent: Graph, inducers: VertexSet) : SubgraphVe
     }
 
     override fun <T> createVertexProperty(
-        type: StaticType<T>,
+        type: PropertyType<T>,
         defaultValueFunction: VertexFunction<T>
     ): MutableVertexProperty<T> = createVertexProperty(graph, type, defaultValueFunction)
 

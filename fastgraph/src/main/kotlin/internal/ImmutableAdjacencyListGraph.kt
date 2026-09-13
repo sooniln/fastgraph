@@ -18,7 +18,7 @@ import io.github.sooniln.fastgraph.IndexedVertexSet
 import io.github.sooniln.fastgraph.InternalImmutableGraph
 import io.github.sooniln.fastgraph.MutableEdgeProperty
 import io.github.sooniln.fastgraph.MutableVertexProperty
-import io.github.sooniln.fastgraph.StaticType
+import io.github.sooniln.fastgraph.PropertyType
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
 import io.github.sooniln.fastgraph.VertexConsumer
@@ -61,7 +61,7 @@ internal class ImmutableAdjacencyListGraph private constructor(
                 pds[successor.id].add(vertexIntValue)
             }
         }
-        return@lazy Array(pds.size) { pds[it].toIntArray().apply { sort() } }
+        return@lazy Array(pds.size) { pds[it].copyInto(IntArray(pds[it].size)).apply { sort() } }
     }
 
     init {
@@ -141,20 +141,6 @@ internal class ImmutableAdjacencyListGraph private constructor(
                 } while (!directed && source > target)
             }
         }
-
-        override fun foreach(action: EdgeConsumer) {
-            for (index in successors.indices) {
-                val source = Vertex(index)
-                successors[source].foreachVertex { target ->
-                    // don't report the same edge twice in undirected graphs - we only report an edge when we see a
-                    // source less than or equal to the target. this works because we know we'll encounter every
-                    // undirected edge twice since we're iterating over all vertices.
-                    if (directed || source <= target) {
-                        action.accept(canonicalSortedEdge(source, target))
-                    }
-                }
-            }
-        }
     }
 
     override fun edgeSource(edge: Edge): Vertex = Vertex(edge.highBits)
@@ -178,14 +164,14 @@ internal class ImmutableAdjacencyListGraph private constructor(
     }
 
     override fun <T> createVertexProperty(
-        type: StaticType<T>,
+        type: PropertyType<T>,
         defaultValueFunction: VertexFunction<T>
     ): MutableVertexProperty<T> {
         return createVertexProperty(this, type, defaultValueFunction)
     }
 
     override fun <T> createEdgeProperty(
-        type: StaticType<T>,
+        type: PropertyType<T>,
         defaultValueFunction: EdgeFunction<T>
     ): MutableEdgeProperty<T> {
         return createEdgeProperty(this, type, defaultValueFunction)
@@ -200,14 +186,7 @@ internal class ImmutableAdjacencyListGraph private constructor(
         override val size: Int get() = sortedNeighbors.size
 
         override fun contains(element: Vertex): Boolean = sortedNeighbors.binarySearch(element.id) >= 0
-
         override fun iterator(): VertexIterator = sortedNeighbors.iterator().asVertexIterator()
-        override fun foreach(action: VertexConsumer) {
-            for (neighbor in sortedNeighbors) {
-                action.accept(Vertex(neighbor))
-            }
-        }
-
         override fun toIntArray(): IntArray = sortedNeighbors.copyOf()
     }
 
@@ -234,12 +213,6 @@ internal class ImmutableAdjacencyListGraph private constructor(
             override fun hasNext(): Boolean = it.hasNext()
             override fun next(): Edge = canonicalEdge(vertex, Vertex(it.nextInt()))
         }
-
-        override fun foreach(action: EdgeConsumer) {
-            for (neighbor in sortedNeighbors) {
-                action.accept(canonicalEdge(vertex, Vertex(neighbor)))
-            }
-        }
     }
 
     private inner class IncomingIncidentEdgeSet(
@@ -265,21 +238,10 @@ internal class ImmutableAdjacencyListGraph private constructor(
             override fun hasNext(): Boolean = it.hasNext()
             override fun next(): Edge = canonicalEdge(Vertex(it.nextInt()), vertex)
         }
-
-        override fun foreach(action: EdgeConsumer) {
-            for (neighbor in sortedNeighbors) {
-                action.accept(canonicalEdge(Vertex(neighbor), vertex))
-            }
-        }
     }
 
     private operator fun Array<IntArray>.get(vertex: Vertex) = get(vertex.id)
     private fun IntArray.binarySearch(vertex: Vertex) = binarySearch(vertex.id)
-    private inline fun IntArray.foreachVertex(crossinline action: (Vertex) -> Unit) {
-        for (value in this) {
-            action(Vertex(value))
-        }
-    }
 
     private fun canonicalEdge(source: Vertex, target: Vertex): Edge {
         return if (!directed) {
@@ -303,7 +265,7 @@ internal class ImmutableAdjacencyListGraph private constructor(
                 val vertex = Vertex(vertexId)
                 IntArray(vertex.outDegree).also {
                     var i = 0
-                    vertex.successors().foreach { successorId -> it[i++] = successorId.id }
+                    for (successor in vertex.successors()) { it[i++] = successor.id }
                 }.apply { sort() }
             } }
             return ImmutableAdjacencyListGraph(graph.directed, successors, null, graph.edges.size)

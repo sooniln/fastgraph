@@ -5,7 +5,7 @@ import io.github.sooniln.fastgraph.MutableGraph
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.io.ParsingEdgeProperty
 import io.github.sooniln.fastgraph.io.ParsingVertexProperty
-import io.github.sooniln.fastgraph.io.TypeBinding
+import io.github.sooniln.fastgraph.io.PropertyBinding
 import io.github.sooniln.fastgraph.io.dot.MutableDotGraph
 import io.github.sooniln.fastgraph.mutableGraph
 import kotlin.reflect.typeOf
@@ -29,7 +29,7 @@ internal class DotParser(private val lexer: DotLexer) {
     private lateinit var graph: MutableGraph
     private val vertexIds = HashMap<Any, Vertex>()
     private lateinit var vertexIdProperty: ParsingVertexProperty<Any>
-    private lateinit var propertyTypes: Map<String, TypeBinding<*>>
+    private lateinit var propertyTypes: Map<String, PropertyBinding<*>>
     private val vertexProperties = HashMap<String, ParsingVertexProperty<*>>()
     private val edgeProperties = HashMap<String, ParsingEdgeProperty<*>>()
     private var scope = Scope(null)
@@ -69,8 +69,8 @@ internal class DotParser(private val lexer: DotLexer) {
     fun parse(
         multiEdge: Boolean,
         indexEdges: Boolean,
-        nodeIdType: TypeBinding<Any>,
-        attributeTypes: Map<String, TypeBinding<*>>
+        nodeIdType: PropertyBinding<Any>,
+        attributeTypes: Map<String, PropertyBinding<*>>
     ): MutableDotGraph {
         require(nodeIdType.type.kType != typeOf<Unit>())
 
@@ -129,7 +129,7 @@ internal class DotParser(private val lexer: DotLexer) {
                     parsePropertyStatement(attributes).also {
                         for ((attribute, value) in attributes) {
                             graphAttributes[attribute] =
-                                parsingValue { propertyTypes.getOrDefault(attribute, TypeBinding.string).parser(value) }
+                                parsingValue { propertyTypes.getOrDefault(attribute, PropertyBinding.string).parser(value) }
                         }
                     }
                 } else {
@@ -196,7 +196,7 @@ internal class DotParser(private val lexer: DotLexer) {
             advance()
             val value = expectIdToken() // plain "ID = ID" graph attribute shorthand, same as "graph [...]"
             if (subgraphDepth == 0) {
-                graphAttributes[nodeId] = parsingValue { propertyTypes.getOrDefault(nodeId, TypeBinding.string).parser(value) }
+                graphAttributes[nodeId] = parsingValue { propertyTypes.getOrDefault(nodeId, PropertyBinding.string).parser(value) }
             }
             return emptySet()
         }
@@ -278,7 +278,7 @@ internal class DotParser(private val lexer: DotLexer) {
     private fun applyVertexProperties(vertex: Vertex, attrs: Map<String, String>) {
         for ((name, value) in attrs) {
             val property = vertexProperties.getOrPut(name) {
-                ParsingVertexProperty(graph, propertyTypes.getOrDefault(name, TypeBinding.string))
+                ParsingVertexProperty(graph, propertyTypes.getOrDefault(name, PropertyBinding.string))
             }
             parsingValue { property.parseAndSet(vertex, value) }
         }
@@ -287,7 +287,7 @@ internal class DotParser(private val lexer: DotLexer) {
     private fun applyEdgeProperties(edge: Edge, attrs: Map<String, String>) {
         for ((name, value) in attrs) {
             val property = edgeProperties.getOrPut(name) {
-                ParsingEdgeProperty(graph, propertyTypes.getOrDefault(name, TypeBinding.string))
+                ParsingEdgeProperty(graph, propertyTypes.getOrDefault(name, PropertyBinding.string))
             }
             parsingValue { property.parseAndSet(edge, value) }
         }

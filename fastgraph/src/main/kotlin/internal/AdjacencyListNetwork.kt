@@ -1,13 +1,6 @@
 package io.github.sooniln.fastgraph.internal
 
-import io.github.sooniln.fastcollect.Int2AnyHashMap
-import io.github.sooniln.fastcollect.Int2IntHashMap
-import io.github.sooniln.fastcollect.IntArrayList
-import io.github.sooniln.fastcollect.IntList
-import io.github.sooniln.fastcollect.emptyIntIterator
-import io.github.sooniln.fastcollect.emptyIntList
-import io.github.sooniln.fastcollect.intIteratorOf
-import io.github.sooniln.fastcollect.intListOf
+import io.github.sooniln.fastcollect.*
 import io.github.sooniln.fastgraph.AbstractEdgeSet
 import io.github.sooniln.fastgraph.AbstractGraph
 import io.github.sooniln.fastgraph.AbstractMutableIndexedEdgeSet
@@ -26,7 +19,7 @@ import io.github.sooniln.fastgraph.MutableGraph
 import io.github.sooniln.fastgraph.MutableIndexedEdgeSet
 import io.github.sooniln.fastgraph.MutableIndexedVertexSet
 import io.github.sooniln.fastgraph.MutableVertexProperty
-import io.github.sooniln.fastgraph.StaticType
+import io.github.sooniln.fastgraph.PropertyType
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
 import io.github.sooniln.fastgraph.VertexFunction
@@ -79,7 +72,7 @@ internal class AdjacencyListNetwork(
     }
 
     override fun validateEdge(edge: Edge): Edge {
-        if (edge.edgeId !in edgeValues.indices) throwIllegalEdge(edge)
+        if (edge.edgeId !in 0..<edgeValues.size) throwIllegalEdge(edge)
         return edge
     }
 
@@ -143,7 +136,7 @@ internal class AdjacencyListNetwork(
                     edgeValues[edgeId] = EdgeValue(true, source, vertex)
                 }
 
-                predecessors[lastVertex].vertices.foreach { source ->
+                for (source in predecessors[lastVertex].vertices) {
                     successors[source].updateVertex(lastVertex, vertex)
                 }
 
@@ -152,7 +145,7 @@ internal class AdjacencyListNetwork(
                     edgeValues[edgeId] = EdgeValue(true, vertex, adjacencyVertex)
                 }
 
-                successors[lastVertex].vertices.foreach { newTarget ->
+                for (newTarget in successors[lastVertex].vertices) {
                     // successors has already been updated, so treat index as lastIndex when necessary
                     val target = if (newTarget == vertex) lastVertex else newTarget
                     predecessors[target].updateVertex(lastVertex, vertex)
@@ -165,7 +158,7 @@ internal class AdjacencyListNetwork(
                 }
 
                 var updateSelfLoop = false
-                successors[lastVertex].vertices.foreach { newTarget ->
+                for (newTarget in successors[lastVertex].vertices) {
                     if (newTarget == lastVertex) {
                         // a self-loop on lastVertex is its own entry in successors[lastVertex], so updating it in place
                         // would mutate successors while we're looping through it - defer that update until after
@@ -318,12 +311,12 @@ internal class AdjacencyListNetwork(
     }
 
     override fun <T> createVertexProperty(
-        type: StaticType<T>,
+        type: PropertyType<T>,
         defaultValueFunction: VertexFunction<T>
     ): MutableVertexProperty<T> = createVertexProperty(this, type, defaultValueFunction)
 
     override fun <T> createEdgeProperty(
-        type: StaticType<T>,
+        type: PropertyType<T>,
         defaultValueFunction: EdgeFunction<T>
     ): MutableEdgeProperty<T> = createEdgeProperty(this, type, defaultValueFunction)
 
@@ -378,7 +371,6 @@ internal class AdjacencyListNetwork(
         }
 
         override fun iterator(): EdgeIterator = adjacencies.edgeIterator()
-        override fun foreach(action: EdgeConsumer) = adjacencies.foreachEdge(action)
     }
 
     private class AdjacencySet(degreeHint: Int = 0) : EdgeAdjacencySet {
@@ -444,21 +436,11 @@ internal class AdjacencyListNetwork(
             }
         }
 
-        override fun foreachEdge(action: EdgeConsumer) {
-            map.foreach { _, edgeId ->
-                if (edgeId < 0) {
-                    edgeListMap.getValue(edgeId).foreach { edgeId -> action.accept(canonicalEdge(edgeId)) }
-                } else {
-                    action.accept(canonicalEdge(edgeId))
-                }
-            }
-        }
-
         inline fun foreachAdjacency(crossinline action: (Vertex, Int) -> Unit) {
-            map.foreach { vertex, edgeId ->
-                val vertex = Vertex(vertex)
+            map.forEach { (vertexId, edgeId) ->
+                val vertex = Vertex(vertexId)
                 if (edgeId < 0) {
-                    edgeListMap.getValue(edgeId).foreach { edgeId -> action(vertex, edgeId) }
+                    for (edgeId in edgeListMap.getValue(edgeId)) { action(vertex, edgeId) }
                 } else {
                     action(vertex, edgeId)
                 }
@@ -558,16 +540,12 @@ internal class AdjacencyListNetwork(
                 override fun hasNext(): Boolean = it.hasNext()
                 override fun next(): Edge = canonicalEdge(it.nextInt())
             }
-
-            override fun foreachEdge(action: EdgeConsumer) {
-                edgeIds.foreach { edgeId -> action.accept(canonicalEdge(edgeId)) }
-            }
         }
 
         fun trimToSize() {
             map.trimToSize()
             edgeListMap.trimToSize()
-            edgeListMap.foreach { _, v -> v.trimToSize() }
+            edgeListMap.forEach { (_, edgeList) -> edgeList.trimToSize() }
         }
 
         private operator fun Int2IntHashMap.get(vertex: Vertex) = get(vertex.id)

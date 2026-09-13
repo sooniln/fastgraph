@@ -14,7 +14,7 @@ import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.InternalImmutableGraph
 import io.github.sooniln.fastgraph.MutableEdgeProperty
 import io.github.sooniln.fastgraph.MutableVertexProperty
-import io.github.sooniln.fastgraph.StaticType
+import io.github.sooniln.fastgraph.PropertyType
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
 import io.github.sooniln.fastgraph.VertexFunction
@@ -67,7 +67,7 @@ internal interface SubgraphVertices : VertexSet {
     fun unregisterVertexChangeListener(listener: VertexChangeListener)
 
     fun <T> createVertexProperty(
-        type: StaticType<T>,
+        type: PropertyType<T>,
         defaultValueFunction: VertexFunction<T>
     ): MutableVertexProperty<T>
     fun createVertexReference(vertex: Vertex): VertexReference
@@ -81,7 +81,7 @@ internal interface SubgraphEdges : EdgeSet {
     fun registerEdgeChangeListener(listener: EdgeChangeListener)
     fun unregisterEdgeChangeListener(listener: EdgeChangeListener)
 
-    fun <T> createEdgeProperty(type: StaticType<T>, defaultValueFunction: EdgeFunction<T>): MutableEdgeProperty<T>
+    fun <T> createEdgeProperty(type: PropertyType<T>, defaultValueFunction: EdgeFunction<T>): MutableEdgeProperty<T>
     fun createEdgeReference(edge: Edge): EdgeReference
 
     fun trimToSize()
@@ -113,7 +113,7 @@ private abstract class AbstractSubgraph(
     override fun getOutDegree(vertex: Vertex): Int {
         val parentEdges = parent.outgoingEdges(vertex)
         var count = 0
-        parentEdges.foreach { edge ->
+        for (edge in parentEdges) {
             if (edges.contains(edge)) {
                 ++count
             }
@@ -124,7 +124,7 @@ private abstract class AbstractSubgraph(
     override fun getInDegree(vertex: Vertex): Int {
         val parentEdges = parent.incomingEdges(vertex)
         var count = 0
-        parentEdges.foreach { edge ->
+        for (edge in parentEdges) {
             if (edges.contains(edge)) {
                 ++count
             }
@@ -135,7 +135,7 @@ private abstract class AbstractSubgraph(
     override fun getSuccessors(vertex: Vertex): VertexSet {
         val parentVertices = parent.successors(vertex)
         var successors: IntHashSet? = null
-        parentVertices.foreach { vertex ->
+        for (vertex in parentVertices) {
             if (vertices.contains(vertex)) {
                 if (successors == null) {
                     successors = IntHashSet(parentVertices.size)
@@ -149,7 +149,7 @@ private abstract class AbstractSubgraph(
     override fun getPredecessors(vertex: Vertex): VertexSet {
         val parentVertices = parent.predecessors(vertex)
         var predecessors: IntHashSet? = null
-        parentVertices.foreach { vertex ->
+        for (vertex in parentVertices) {
             if (vertices.contains(vertex)) {
                 if (predecessors == null) {
                     predecessors = IntHashSet(parentVertices.size)
@@ -163,7 +163,7 @@ private abstract class AbstractSubgraph(
     override fun getOutgoingEdges(vertex: Vertex): EdgeSet {
         val parentEdges = parent.outgoingEdges(vertex)
         var outgoing: LongHashSet? = null
-        parentEdges.foreach { edge ->
+        for (edge in parentEdges) {
             if (edges.contains(edge)) {
                 if (outgoing == null) {
                     outgoing = LongHashSet(parentEdges.size)
@@ -177,7 +177,7 @@ private abstract class AbstractSubgraph(
     override fun getIncomingEdges(vertex: Vertex): EdgeSet {
         val parentEdges = parent.incomingEdges(vertex)
         var incoming: LongHashSet? = null
-        parentEdges.foreach { edge ->
+        for (edge in parentEdges) {
             if (edges.contains(edge)) {
                 if (incoming == null) {
                     incoming = LongHashSet(parentEdges.size)
@@ -218,7 +218,7 @@ private abstract class AbstractSubgraph(
     override fun getEdges(source: Vertex, target: Vertex): EdgeSet {
         val parentEdges = parent.edges(source, target)
         var all: LongHashSet? = null
-        parentEdges.foreach { edge ->
+        for (edge in parentEdges) {
             if (edges.contains(edge)) {
                 if (all == null) {
                     all = LongHashSet(parentEdges.size)
@@ -230,14 +230,14 @@ private abstract class AbstractSubgraph(
     }
 
     override fun <T> createVertexProperty(
-        type: StaticType<T>,
+        type: PropertyType<T>,
         defaultValueFunction: VertexFunction<T>
     ): MutableVertexProperty<T> {
         return vertices.createVertexProperty(type, defaultValueFunction)
     }
 
     override fun <T> createEdgeProperty(
-        type: StaticType<T>,
+        type: PropertyType<T>,
         defaultValueFunction: EdgeFunction<T>
     ): MutableEdgeProperty<T> {
         return edges.createEdgeProperty(type, defaultValueFunction)
