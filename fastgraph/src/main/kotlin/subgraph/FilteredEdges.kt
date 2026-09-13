@@ -9,6 +9,7 @@ import io.github.sooniln.fastgraph.EdgeIterator
 import io.github.sooniln.fastgraph.EdgePredicate
 import io.github.sooniln.fastgraph.EdgeReference
 import io.github.sooniln.fastgraph.Graph
+import io.github.sooniln.fastgraph.MutableEdgeKeyProperty
 import io.github.sooniln.fastgraph.MutableEdgeProperty
 import io.github.sooniln.fastgraph.PropertyType
 import java.lang.ref.WeakReference
@@ -85,6 +86,10 @@ internal class FilteredEdges(
         val property = FilteredEdgeProperty(graph, type, defaultValueFunction, filter)
         properties.add(WeakReference(property))
         return property
+    }
+
+    override fun <T> createEdgeKeyProperty(type: PropertyType<T>): MutableEdgeKeyProperty<T> {
+        throw UnsupportedOperationException("A graph with filtered edges cannot support edge key properties")
     }
 
     override fun createEdgeReference(edge: Edge): EdgeReference {

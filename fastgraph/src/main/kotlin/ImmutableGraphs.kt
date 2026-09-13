@@ -9,6 +9,8 @@ import io.github.sooniln.fastgraph.internal.AdjacencyListGraph
 import io.github.sooniln.fastgraph.internal.AdjacencyListNetwork
 import io.github.sooniln.fastgraph.internal.ImmutableAdjacencyListGraph
 import io.github.sooniln.fastgraph.internal.ImmutableAdjacencyListNetwork
+import io.github.sooniln.fastgraph.properties.MapEdgeKeyProperty
+import io.github.sooniln.fastgraph.properties.MapVertexKeyProperty
 import io.github.sooniln.fastgraph.subgraph.Subgraphs
 
 /**
@@ -242,6 +244,14 @@ private class EmptyGraph(override val directed: Boolean) : ImmutableGraph, Index
         defaultValueFunction: EdgeFunction<T>
     ): MutableEdgeProperty<T> {
         return emptyEdgeProperty(this, type)
+    }
+
+    override fun <T> createVertexKeyProperty(type: PropertyType<T>): MutableVertexKeyProperty<T> {
+        return emptyVertexKeyProperty(this, type)
+    }
+
+    override fun <T> createEdgeKeyProperty(type: PropertyType<T>): MutableEdgeKeyProperty<T> {
+        return emptyEdgeKeyProperty(this, type)
     }
 
     override fun createVertexReference(vertex: Vertex): VertexReference = throw IllegalArgumentException()

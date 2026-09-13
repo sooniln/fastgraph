@@ -5,6 +5,7 @@
 
 package io.github.sooniln.fastgraph
 
+import io.github.sooniln.fastgraph.properties.ArrayVertexKeyProperty
 import io.github.sooniln.fastgraph.properties.ArrayVertexProperty
 import io.github.sooniln.fastgraph.properties.BooleanArrayVertexProperty
 import io.github.sooniln.fastgraph.properties.BooleanMapVertexProperty
@@ -24,14 +25,16 @@ import io.github.sooniln.fastgraph.properties.ImmutableIntMapVertexProperty
 import io.github.sooniln.fastgraph.properties.ImmutableLongArrayVertexProperty
 import io.github.sooniln.fastgraph.properties.ImmutableLongMapVertexProperty
 import io.github.sooniln.fastgraph.properties.ImmutableMapVertexProperty
+import io.github.sooniln.fastgraph.properties.IntArrayVertexKeyProperty
 import io.github.sooniln.fastgraph.properties.IntArrayVertexProperty
+import io.github.sooniln.fastgraph.properties.IntMapVertexKeyProperty
 import io.github.sooniln.fastgraph.properties.IntMapVertexProperty
+import io.github.sooniln.fastgraph.properties.LongArrayVertexKeyProperty
 import io.github.sooniln.fastgraph.properties.LongArrayVertexProperty
+import io.github.sooniln.fastgraph.properties.LongMapVertexKeyProperty
 import io.github.sooniln.fastgraph.properties.LongMapVertexProperty
+import io.github.sooniln.fastgraph.properties.MapVertexKeyProperty
 import io.github.sooniln.fastgraph.properties.MapVertexProperty
-import io.github.sooniln.fastgraph.properties.WrapperIntVertexKeyProperty
-import io.github.sooniln.fastgraph.properties.WrapperLongVertexKeyProperty
-import io.github.sooniln.fastgraph.properties.WrapperVertexKeyProperty
 import kotlin.reflect.typeOf
 
 /**
@@ -282,44 +285,61 @@ public fun <T> createVertexProperty(
 }
 
 /**
- * A specialization of [VertexProperty] where each edge is identified by a unique value, and a [Vertex] can thus be
- * retrieved for a unique value.
+ * A specialization of [VertexProperty] where each vertex is identified by a unique key, and a [Vertex] can thus be
+ * retrieved for a key.
+ *
+ * A VertexKeyProperty has no default value - a vertex has no key until one is explicitly set via [set]. While any
+ * vertex in [graph] has no key, the property is incomplete and any read operation ([get], [hasVertex], [getVertex],
+ * [copy], [put], etc...) will fail with [IllegalStateException].
  */
 @Suppress("INAPPLICABLE_JVM_NAME")
 public interface VertexKeyProperty<V> : VertexProperty<V> {
+    /** Returns true if some vertex has the given key. */
     public fun hasVertex(key: V): Boolean
 
     /**
-     * Retrieves the vertex for the given property value, or throws [NoSuchElementException] if there is no such vertex.
+     * Retrieves the vertex for the given key, or throws [NoSuchElementException] if there is no such vertex.
      */
     @JvmName("getVertex")
     public fun getVertex(key: V): Vertex
 
     /**
-     * Creates a new [MutableVertexKeyProperty] of the same type and with the given [defaultValueFunction], with all
-     * values copied from this property.
+     * Creates a new [MutableVertexKeyProperty] of the same type, with all keys copied from this property.
      */
-    override fun copy(defaultValueFunction: VertexFunction<V>): MutableVertexKeyProperty<V> {
-        return super.copy(defaultValueFunction).asVertexKeyProperty()
+    public fun copy(): MutableVertexKeyProperty<V> {
+        val copy = graph.createVertexKeyProperty(type)
+        copyInto(copy)
+        return copy
     }
 }
 
 /**
- * A specialization of [VertexProperty] where each edge is identified by a unique value, and a [Vertex] can thus be
- * retrieved for a unique value.
+ * A mutable specialization of [VertexKeyProperty]. [set] is the only operation permitted while the property is
+ * incomplete (see [VertexKeyProperty]). [set] does nothing if the value is already the key of the given vertex, and
+ * throws [IllegalArgumentException] if the value is the key of a different vertex. [put] behaves as [set] but
+ * additionally returns the previous key.
  */
-public interface MutableVertexKeyProperty<E> : VertexKeyProperty<E>, MutableVertexProperty<E>
+public interface MutableVertexKeyProperty<V> : VertexKeyProperty<V>, MutableVertexProperty<V>
 
-public fun <E> MutableVertexProperty<E>.asVertexKeyProperty(): MutableVertexKeyProperty<E> {
-    if (this is MutableVertexKeyProperty<E>) {
-        return this
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    return when (type.kType) {
-        typeOf<Int>() -> WrapperIntVertexKeyProperty(this as MutableVertexProperty<Int>) as MutableVertexKeyProperty<E>
-        typeOf<Long>() -> WrapperLongVertexKeyProperty(this as MutableVertexProperty<Long>) as MutableVertexKeyProperty<E>
-        else -> WrapperVertexKeyProperty(this)
+/**
+ * Creates a vertex key property that is as specialized and efficient as possible for the given graph and type. See
+ * [VertexKeyProperty] for the semantics of key properties.
+ */
+@Suppress("UNCHECKED_CAST")
+@JvmName("createVertexKeyProperty")
+public fun <T> createVertexKeyProperty(graph: Graph, type: PropertyType<T>): MutableVertexKeyProperty<T> {
+    return if (graph is IndexedVertexGraph) {
+        when (type.kType) {
+            typeOf<Int>() -> IntArrayVertexKeyProperty(graph) as MutableVertexKeyProperty<T>
+            typeOf<Long>() -> LongArrayVertexKeyProperty(graph) as MutableVertexKeyProperty<T>
+            else -> ArrayVertexKeyProperty(graph, type)
+        }
+    } else {
+        when (type.kType) {
+            typeOf<Int>() -> IntMapVertexKeyProperty(graph) as MutableVertexKeyProperty<T>
+            typeOf<Long>() -> LongMapVertexKeyProperty(graph) as MutableVertexKeyProperty<T>
+            else -> MapVertexKeyProperty(graph, type)
+        }
     }
 }
 
@@ -415,15 +435,35 @@ public inline fun <reified E> VertexProperty<*>.safeCast(): VertexProperty<E> {
 }
 
 /**
- * Convenience function that casts a [MutableVertexProperty] to the given type safely (types must match). Does not
- * support casting to super-types - although this may be legal, this function does not have access to enough information
- * to do so safely.
+ * Convenience function that casts a [MutableVertexProperty] to the given type safely (types must match).
  */
 @Suppress("UNCHECKED_CAST")
 public inline fun <reified E> MutableVertexProperty<*>.safeCast(): MutableVertexProperty<E> {
     val desiredType = typeOf<E>()
     if (!type.mayCastTo(desiredType)) throw TypeCastException("$type cannot be safely cast to $desiredType")
     return this as MutableVertexProperty<E>
+}
+
+/**
+ * Convenience function that casts a [VertexKeyProperty] to the given type safely (types must match). Does not support
+ * casting directly to super-types of the real type - although this may be legal, this function does not have access to
+ * enough information to do so safely. Instead, [safeCast] to the real type, and then implicit cast to the super type.
+ */
+@Suppress("UNCHECKED_CAST")
+public inline fun <reified E> VertexKeyProperty<*>.safeCast(): VertexKeyProperty<E> {
+    val desiredType = typeOf<E>()
+    if (!type.mayCastTo(desiredType)) throw TypeCastException("$type cannot be safely cast to $desiredType")
+    return this as VertexKeyProperty<E>
+}
+
+/**
+ * Convenience function that casts a [MutableVertexKeyProperty] to the given type safely (types must match).
+ */
+@Suppress("UNCHECKED_CAST")
+public inline fun <reified E> MutableVertexKeyProperty<*>.safeCast(): MutableVertexKeyProperty<E> {
+    val desiredType = typeOf<E>()
+    if (!type.mayCastTo(desiredType)) throw TypeCastException("$type cannot be safely cast to $desiredType")
+    return this as MutableVertexKeyProperty<E>
 }
 
 /** Returns an empty vertex property to be associated with an empty [ImmutableGraph]. */
@@ -435,8 +475,22 @@ internal fun <T> emptyVertexProperty(graph: ImmutableGraph, type: PropertyType<T
         override val type: PropertyType<T> get() = type
 
         override fun get(vertex: Vertex): T = throw IllegalArgumentException()
-
         override fun set(vertex: Vertex, value: T) = throw IllegalArgumentException()
+    }
+}
+
+/** Returns an empty vertex key property to be associated with an empty [ImmutableGraph]. */
+internal fun <T> emptyVertexKeyProperty(graph: ImmutableGraph, type: PropertyType<T>): MutableVertexKeyProperty<T> {
+    require(graph.vertices.isEmpty())
+
+    return object : MutableVertexKeyProperty<T> {
+        override val graph: Graph get() = graph
+        override val type: PropertyType<T> get() = type
+
+        override fun get(vertex: Vertex): T = throw IllegalArgumentException()
+        override fun set(vertex: Vertex, value: T) = throw IllegalArgumentException()
+        override fun hasVertex(key: T): Boolean = false
+        override fun getVertex(key: T): Vertex = throw NoSuchElementException()
     }
 }
 

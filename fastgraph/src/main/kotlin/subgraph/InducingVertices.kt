@@ -3,6 +3,7 @@ package io.github.sooniln.fastgraph.subgraph
 import io.github.sooniln.fastcollect.*
 import io.github.sooniln.fastgraph.AbstractVertexSet
 import io.github.sooniln.fastgraph.Graph
+import io.github.sooniln.fastgraph.MutableVertexKeyProperty
 import io.github.sooniln.fastgraph.MutableVertexProperty
 import io.github.sooniln.fastgraph.PropertyType
 import io.github.sooniln.fastgraph.Vertex
@@ -13,6 +14,7 @@ import io.github.sooniln.fastgraph.VertexIterator
 import io.github.sooniln.fastgraph.VertexReference
 import io.github.sooniln.fastgraph.VertexSet
 import io.github.sooniln.fastgraph.asVertexIterator
+import io.github.sooniln.fastgraph.createVertexKeyProperty
 import io.github.sooniln.fastgraph.createVertexProperty
 import io.github.sooniln.fastgraph.listeners.VertexChangeListenerManager
 import io.github.sooniln.fastgraph.references.VertexReferenceManager
@@ -58,6 +60,9 @@ internal class InducingVertices(parent: Graph, inducers: VertexSet) : SubgraphVe
         type: PropertyType<T>,
         defaultValueFunction: VertexFunction<T>
     ): MutableVertexProperty<T> = createVertexProperty(graph, type, defaultValueFunction)
+
+    override fun <T> createVertexKeyProperty(type: PropertyType<T>): MutableVertexKeyProperty<T> =
+        createVertexKeyProperty(graph, type)
 
     override fun createVertexReference(vertex: Vertex): VertexReference {
         return references.getReference(vertex)

@@ -12,7 +12,9 @@ import io.github.sooniln.fastgraph.EdgeSet
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.InternalImmutableGraph
+import io.github.sooniln.fastgraph.MutableEdgeKeyProperty
 import io.github.sooniln.fastgraph.MutableEdgeProperty
+import io.github.sooniln.fastgraph.MutableVertexKeyProperty
 import io.github.sooniln.fastgraph.MutableVertexProperty
 import io.github.sooniln.fastgraph.PropertyType
 import io.github.sooniln.fastgraph.Vertex
@@ -70,6 +72,7 @@ internal interface SubgraphVertices : VertexSet {
         type: PropertyType<T>,
         defaultValueFunction: VertexFunction<T>
     ): MutableVertexProperty<T>
+    fun <T> createVertexKeyProperty(type: PropertyType<T>): MutableVertexKeyProperty<T>
     fun createVertexReference(vertex: Vertex): VertexReference
 
     fun trimToSize()
@@ -82,6 +85,7 @@ internal interface SubgraphEdges : EdgeSet {
     fun unregisterEdgeChangeListener(listener: EdgeChangeListener)
 
     fun <T> createEdgeProperty(type: PropertyType<T>, defaultValueFunction: EdgeFunction<T>): MutableEdgeProperty<T>
+    fun <T> createEdgeKeyProperty(type: PropertyType<T>): MutableEdgeKeyProperty<T>
     fun createEdgeReference(edge: Edge): EdgeReference
 
     fun trimToSize()
@@ -241,6 +245,14 @@ private abstract class AbstractSubgraph(
         defaultValueFunction: EdgeFunction<T>
     ): MutableEdgeProperty<T> {
         return edges.createEdgeProperty(type, defaultValueFunction)
+    }
+
+    override fun <T> createVertexKeyProperty(type: PropertyType<T>): MutableVertexKeyProperty<T> {
+        return vertices.createVertexKeyProperty(type)
+    }
+
+    override fun <T> createEdgeKeyProperty(type: PropertyType<T>): MutableEdgeKeyProperty<T> {
+        return edges.createEdgeKeyProperty(type)
     }
 
     override fun trimToSize() {

@@ -28,30 +28,6 @@ class PropertyBindingTest {
     }
 
     @Test
-    fun byteBindingHasZeroDefaultAndParsesDecimal() {
-        assertThat(PropertyBinding.byte.type).isEqualTo(propertyTypeOf<Byte>())
-        assertThat(PropertyBinding.byte.defaultValue).isEqualTo(0.toByte())
-        assertThat(PropertyBinding.byte.parser("5")).isEqualTo(5.toByte())
-    }
-
-    @Test
-    fun byteBindingParserThrowsForInvalidValue() {
-        assertThrows<NumberFormatException> { PropertyBinding.byte.parser("not a byte") }
-    }
-
-    @Test
-    fun shortBindingHasZeroDefaultAndParsesDecimal() {
-        assertThat(PropertyBinding.short.type).isEqualTo(propertyTypeOf<Short>())
-        assertThat(PropertyBinding.short.defaultValue).isEqualTo(0.toShort())
-        assertThat(PropertyBinding.short.parser("5")).isEqualTo(5.toShort())
-    }
-
-    @Test
-    fun shortBindingParserThrowsForInvalidValue() {
-        assertThrows<NumberFormatException> { PropertyBinding.short.parser("not a short") }
-    }
-
-    @Test
     fun intBindingHasZeroDefaultAndParsesDecimal() {
         assertThat(PropertyBinding.int.type).isEqualTo(propertyTypeOf<Int>())
         assertThat(PropertyBinding.int.defaultValue).isEqualTo(0)

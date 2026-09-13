@@ -10,11 +10,13 @@ import io.github.sooniln.fastgraph.EdgeIterator
 import io.github.sooniln.fastgraph.EdgeReference
 import io.github.sooniln.fastgraph.EdgeSet
 import io.github.sooniln.fastgraph.Graph
+import io.github.sooniln.fastgraph.MutableEdgeKeyProperty
 import io.github.sooniln.fastgraph.MutableEdgeProperty
 import io.github.sooniln.fastgraph.PropertyType
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
 import io.github.sooniln.fastgraph.asEdgeIterator
+import io.github.sooniln.fastgraph.createEdgeKeyProperty
 import io.github.sooniln.fastgraph.createEdgeProperty
 import io.github.sooniln.fastgraph.listeners.EdgeChangeListenerManager
 import io.github.sooniln.fastgraph.references.EdgeReferenceManager
@@ -69,6 +71,9 @@ internal class InducingEdges(
         type: PropertyType<T>,
         defaultValueFunction: EdgeFunction<T>
     ): MutableEdgeProperty<T> = createEdgeProperty(graph, type, defaultValueFunction)
+
+    override fun <T> createEdgeKeyProperty(type: PropertyType<T>): MutableEdgeKeyProperty<T> =
+        createEdgeKeyProperty(graph, type)
 
     override fun createEdgeReference(edge: Edge): EdgeReference {
         return references.getReference(edge)

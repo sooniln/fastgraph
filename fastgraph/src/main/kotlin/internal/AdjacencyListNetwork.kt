@@ -14,10 +14,12 @@ import io.github.sooniln.fastgraph.EdgeReference
 import io.github.sooniln.fastgraph.EdgeSet
 import io.github.sooniln.fastgraph.IndexedEdgeGraph
 import io.github.sooniln.fastgraph.IndexedVertexGraph
+import io.github.sooniln.fastgraph.MutableEdgeKeyProperty
 import io.github.sooniln.fastgraph.MutableEdgeProperty
 import io.github.sooniln.fastgraph.MutableGraph
 import io.github.sooniln.fastgraph.MutableIndexedEdgeSet
 import io.github.sooniln.fastgraph.MutableIndexedVertexSet
+import io.github.sooniln.fastgraph.MutableVertexKeyProperty
 import io.github.sooniln.fastgraph.MutableVertexProperty
 import io.github.sooniln.fastgraph.PropertyType
 import io.github.sooniln.fastgraph.Vertex
@@ -26,7 +28,9 @@ import io.github.sooniln.fastgraph.VertexFunction
 import io.github.sooniln.fastgraph.VertexReference
 import io.github.sooniln.fastgraph.VertexSet
 import io.github.sooniln.fastgraph.asVertexSet
+import io.github.sooniln.fastgraph.createEdgeKeyProperty
 import io.github.sooniln.fastgraph.createEdgeProperty
+import io.github.sooniln.fastgraph.createVertexKeyProperty
 import io.github.sooniln.fastgraph.createVertexProperty
 import io.github.sooniln.fastgraph.indices
 import io.github.sooniln.fastgraph.listeners.EdgeChangeListenerManager
@@ -319,6 +323,12 @@ internal class AdjacencyListNetwork(
         type: PropertyType<T>,
         defaultValueFunction: EdgeFunction<T>
     ): MutableEdgeProperty<T> = createEdgeProperty(this, type, defaultValueFunction)
+
+    override fun <T> createVertexKeyProperty(type: PropertyType<T>): MutableVertexKeyProperty<T> =
+        createVertexKeyProperty(this, type)
+
+    override fun <T> createEdgeKeyProperty(type: PropertyType<T>): MutableEdgeKeyProperty<T> =
+        createEdgeKeyProperty(this, type)
 
     override fun createVertexReference(vertex: Vertex): VertexReference =
         vertexRefs.getReference(validateVertex(vertex))

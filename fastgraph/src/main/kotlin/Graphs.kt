@@ -246,6 +246,27 @@ public interface Graph {
     ): MutableEdgeProperty<T>
 
     /**
+     * Returns a new [MutableVertexKeyProperty] associated with this graph. Key properties have no default value -
+     * see [VertexKeyProperty] for their semantics. The returned property is guaranteed to remain in sync with the
+     * graph.
+     *
+     * The extension method of the same name allows for not passing in the [PropertyType] parameter explicitly - this
+     * should be simpler to use where possible.
+     */
+    @JvmName("createVertexKeyProperty")
+    public fun <T> createVertexKeyProperty(type: PropertyType<T>): MutableVertexKeyProperty<T>
+
+    /**
+     * Returns a new [MutableEdgeKeyProperty] associated with this graph. Key properties have no default value - see
+     * [EdgeKeyProperty] for their semantics. The returned property is guaranteed to remain in sync with the graph.
+     *
+     * The extension method of the same name allows for not passing in the [PropertyType] parameter explicitly - this
+     * should be simpler to use where possible.
+     */
+    @JvmName("createEdgeKeyProperty")
+    public fun <T> createEdgeKeyProperty(type: PropertyType<T>): MutableEdgeKeyProperty<T>
+
+    /**
      * Returns a stable reference to the given vertex. For more information about vertices and stable references to
      * vertices, see [VertexReference].
      */
@@ -503,11 +524,11 @@ public inline fun <reified T> Graph.createVertexProperty(
 ): MutableVertexProperty<T> = createVertexProperty(propertyTypeOf<T>(), defaultValueFunction)
 
 /**
- * A convenient extension method for [Graph.createVertexProperty] that creates a [VertexKeyProperty].
+ * A convenient extension method for [Graph.createVertexKeyProperty] that does not require explicitly providing the
+ * [PropertyType].
  */
-public inline fun <reified T> Graph.createVertexKeyProperty(
-    defaultValueFunction: VertexFunction<T>
-): MutableVertexKeyProperty<T> = createVertexProperty(defaultValueFunction).asVertexKeyProperty()
+public inline fun <reified T> Graph.createVertexKeyProperty(): MutableVertexKeyProperty<T> =
+    createVertexKeyProperty(propertyTypeOf<T>())
 
 /**
  * A convenient extension method for [Graph.createEdgeProperty] that does not require explicitly providing the
@@ -518,11 +539,11 @@ public inline fun <reified T> Graph.createEdgeProperty(
 ): MutableEdgeProperty<T> = createEdgeProperty(propertyTypeOf<T>(), defaultValueFunction)
 
 /**
- * A convenient extension method for [Graph.createEdgeProperty] that creates an [EdgeKeyProperty].
+ * A convenient extension method for [Graph.createEdgeKeyProperty] that does not require explicitly providing the
+ * [PropertyType].
  */
-public inline fun <reified T> Graph.createEdgeKeyProperty(
-    defaultValueFunction: EdgeFunction<T>
-): MutableEdgeKeyProperty<T> = createEdgeProperty(defaultValueFunction).asEdgeKeyProperty()
+public inline fun <reified T> Graph.createEdgeKeyProperty(): MutableEdgeKeyProperty<T> =
+    createEdgeKeyProperty(propertyTypeOf<T>())
 
 /**
  * A convenient extension method for [Graph.createVertexProperty] that does not require explicitly providing the
@@ -987,17 +1008,21 @@ public fun Graph.subgraph(vertexFilter: VertexPredicate, edgeFilter: EdgePredica
 public fun Graph.filterEdges(edgeFilter: EdgePredicate): Graph = subgraph(vertices, edgeFilter)
 
 /** An integer property that simply returns the [Vertex.id] for every vertex. */
-public val Graph.vertexIdProperty: VertexProperty<Int> get() = object : VertexProperty<Int> {
+public val Graph.vertexIdProperty: VertexKeyProperty<Int> get() = object : VertexKeyProperty<Int> {
     override val graph: Graph get() = this@vertexIdProperty
     override val type: PropertyType<Int> get() = propertyTypeOf()
     override fun get(vertex: Vertex): Int = vertex.id
+    override fun hasVertex(key: Int): Boolean = graph.vertices.contains(Vertex(key))
+    override fun getVertex(key: Int): Vertex = Vertex(key)
 }
 
 /** A long property that simply returns the [Edge.id] for every edge. */
-public val Graph.edgeIdProperty: EdgeProperty<Long> get() = object : EdgeProperty<Long> {
+public val Graph.edgeIdProperty: EdgeKeyProperty<Long> get() = object : EdgeKeyProperty<Long> {
     override val graph: Graph get() = this@edgeIdProperty
     override val type: PropertyType<Long> get() = propertyTypeOf()
     override fun get(edge: Edge): Long = edge.id
+    override fun hasEdge(key: Long): Boolean = graph.edges.contains(Edge(key))
+    override fun getEdge(key: Long): Edge = Edge(key)
 }
 
 /** A base class that provides some basic functionality to implement [Graph]. */

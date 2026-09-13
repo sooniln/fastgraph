@@ -189,42 +189,155 @@ internal class ImmutableMapEdgeProperty<T>(
     }
 }
 
-internal class WrapperEdgeKeyProperty<T>(
-    private val property: MutableEdgeProperty<T>
-) : MutableEdgeKeyProperty<T>, MutableEdgeProperty<T> by property {
-    private val keyMap = HashMap<T, Long>()
+@Suppress("UNCHECKED_CAST")
+internal class ArrayEdgeKeyProperty<T>(
+    override val graph: IndexedEdgeGraph,
+    override val type: PropertyType<T>,
+) : MutableEdgeKeyProperty<T>, EdgeChangeListener {
+
+    private val keys = ArrayList<T?>()
+    private val index = HashMap<T, Long>()
 
     init {
-        for (edge in graph.edges) {
-            val key = get(edge)
-            if (keyMap.containsKey(key)) throw IllegalArgumentException("\"$key\" is not unique")
-            keyMap[key] = edge.id
+        keys.ensureCapacity(graph.edges.size)
+        for (edge in graph.edges) { onEdgeAdded(edge) }
+        graph.registerEdgeChangeListener(this)
+    }
+
+    private fun checkComplete() {
+        check(index.size == keys.size) {
+            "edges have no key: ${graph.edges.filter { index[keys[it.lowBits] as T] != it.id }}"
         }
     }
 
-    override fun hasEdge(key: T): Boolean = keyMap.containsKey(key)
-    override fun getEdge(key: T): Edge = Edge(keyMap.getValue(key))
+    override fun get(edge: Edge): T {
+        checkComplete()
+        try {
+            return keys[edge.lowBits] as T
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalEdge(graph, edge, e)
+        }
+    }
 
     override fun set(edge: Edge, value: T) {
-        put(edge, value)
+        val existingId = index[value]
+        if (existingId != null) {
+            if (existingId == edge.id) return
+            val existingEdge = Edge(existingId)
+            throw IllegalArgumentException("\"$value\" is already associated with $existingEdge (${graph.edgeSource(existingEdge)} -> ${graph.edgeTarget(existingEdge)})")
+        }
+
+        val oldValue = try {
+            keys.set(edge.lowBits, value)
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalEdge(graph, edge, e)
+        }
+        index.remove(oldValue as T, edge.id)
+        index[value] = edge.id
     }
 
     override fun put(edge: Edge, value: T): T {
-        val oldEdgeId = keyMap[value]
-        if (oldEdgeId != null) {
-            val oldEdge = Edge(oldEdgeId)
-            if (oldEdge == edge) return value
-            throw IllegalArgumentException("\"$value\" is already associated with $oldEdge")
-        }
-
-        val oldValue = property[edge]
-        check(keyMap.remove(oldValue, edge.id))
-        property[edge] = value
-        keyMap[value] = edge.id
+        val oldValue = get(edge)
+        set(edge, value)
         return oldValue
     }
 
-    override fun copy(defaultValueFunction: EdgeFunction<T>): MutableEdgeKeyProperty<T> {
-        return super<MutableEdgeKeyProperty>.copy(defaultValueFunction)
+    override fun hasEdge(key: T): Boolean {
+        checkComplete()
+        return index.containsKey(key)
     }
+
+    override fun getEdge(key: T): Edge {
+        checkComplete()
+        return Edge(index.getValue(key))
+    }
+
+    override fun onEdgeAdded(edge: Edge) {
+        check(edge.lowBits == keys.size)
+        keys.add(null)
+    }
+
+    override fun onEdgeRemoved(edge: Edge) {
+        check(edge.lowBits == keys.lastIndex)
+        index.remove(keys.removeAt(edge.lowBits) as T, edge.id)
+    }
+
+    override fun onEdgeReassigned(oldEdge: Edge, newEdge: Edge) {
+        check(oldEdge.lowBits == keys.lastIndex)
+        index.remove(keys[newEdge.lowBits] as T, newEdge.id)
+        val moved = keys.removeAt(oldEdge.lowBits) as T
+        keys[newEdge.lowBits] = moved
+        if (index.remove(moved, oldEdge.id)) index[moved] = newEdge.id
+    }
+
+    override fun ensureEdgeCapacity(edgeCapacity: Int) = keys.ensureCapacity(edgeCapacity)
+    override fun trimToSize() = keys.trimToSize()
+}
+
+@Suppress("UNCHECKED_CAST")
+internal class MapEdgeKeyProperty<T>(
+    override val graph: Graph,
+    override val type: PropertyType<T>,
+) : MutableEdgeKeyProperty<T>, EdgeChangeListener {
+
+    private val keys = Long2AnyHashMap<T>()
+    private val index = HashMap<T, Long>()
+
+    init {
+        graph.registerEdgeChangeListener(this)
+    }
+
+    private fun checkComplete() {
+        check(index.size == graph.edges.size) {
+            "edges have no key: ${graph.edges.filter { !keys.containsKey(it.id) }}"
+        }
+    }
+
+    override fun get(edge: Edge): T {
+        checkComplete()
+        return keys.getValue(edge.id)
+    }
+
+    override fun set(edge: Edge, value: T) {
+        val existingId = index[value]
+        if (existingId != null) {
+            if (existingId == edge.id) return
+            val existingEdge = Edge(existingId)
+            throw IllegalArgumentException("\"$value\" is already associated with $existingEdge (${graph.edgeSource(existingEdge)} -> ${graph.edgeTarget(existingEdge)})")
+        }
+
+        index.remove(keys.put(edge.id, value) as T, edge.id)
+        index[value] = edge.id
+    }
+
+    override fun put(edge: Edge, value: T): T {
+        val oldValue = get(edge)
+        set(edge, value)
+        return oldValue
+    }
+
+    override fun hasEdge(key: T): Boolean {
+        checkComplete()
+        return index.containsKey(key)
+    }
+
+    override fun getEdge(key: T): Edge {
+        checkComplete()
+        return Edge(index.getValue(key))
+    }
+
+    override fun onEdgeAdded(edge: Edge) {}
+
+    override fun onEdgeRemoved(edge: Edge) {
+        index.remove(keys.remove(edge.id) as T, edge.id)
+    }
+
+    override fun onEdgeReassigned(oldEdge: Edge, newEdge: Edge) {
+        index.remove(keys.remove(newEdge.id) as T, newEdge.id)
+        val moved = keys.removeOrElse(oldEdge.id) { return }
+        keys[newEdge.id] = moved
+        if (index.remove(moved, oldEdge.id)) index[moved] = newEdge.id
+    }
+
+    override fun trimToSize() = keys.trimToSize()
 }

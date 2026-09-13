@@ -2,6 +2,7 @@ package io.github.sooniln.fastgraph.subgraph
 
 import io.github.sooniln.fastgraph.AbstractVertexSet
 import io.github.sooniln.fastgraph.Graph
+import io.github.sooniln.fastgraph.MutableVertexKeyProperty
 import io.github.sooniln.fastgraph.MutableVertexProperty
 import io.github.sooniln.fastgraph.PropertyType
 import io.github.sooniln.fastgraph.Vertex
@@ -78,6 +79,10 @@ internal class FilteredVertices(
         val property = FilteredVertexProperty(graph, type, defaultValueFunction, filter)
         properties.add(WeakReference(property))
         return property
+    }
+
+    override fun <T> createVertexKeyProperty(type: PropertyType<T>): MutableVertexKeyProperty<T> {
+        throw UnsupportedOperationException("A graph with filtered vertices cannot support vertex key properties")
     }
 
     override fun createVertexReference(vertex: Vertex): VertexReference {
