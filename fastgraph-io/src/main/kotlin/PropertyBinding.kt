@@ -3,6 +3,7 @@ package io.github.sooniln.fastgraph.io
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.MutableEdgeProperty
+import io.github.sooniln.fastgraph.MutableVertexKeyProperty
 import io.github.sooniln.fastgraph.MutableVertexProperty
 import io.github.sooniln.fastgraph.PropertyType
 import io.github.sooniln.fastgraph.Vertex
@@ -28,6 +29,26 @@ public class PropertyBinding<out T>(
         // internal because using "" as the default value is not generalizable for public use - we use it internally
         // only in parsing situations where we know a priori that the default value will never actually be used
         internal val nonNullString: PropertyBinding<String> = PropertyBinding(propertyTypeOf(), "", String::toString)
+    }
+}
+
+internal class ParsingVertexKeyProperty<V>(graph: Graph, binding: PropertyBinding<V>) {
+    val property: MutableVertexKeyProperty<V>
+    private val parser: (String) -> V
+
+    init {
+        property = graph.createVertexKeyProperty(binding.type)
+        parser = binding.parser
+    }
+
+    internal fun parse(input: String): V = parser(input)
+
+    internal operator fun set(vertex: Vertex, value: V) {
+        property[vertex] = value
+    }
+
+    internal fun parseAndSet(vertex: Vertex, valueString: String) {
+        property[vertex] = parser(valueString)
     }
 }
 

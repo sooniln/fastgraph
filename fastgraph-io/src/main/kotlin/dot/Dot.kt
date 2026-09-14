@@ -8,8 +8,10 @@ import io.github.sooniln.fastgraph.EdgeProperty
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.MutableEdgeProperty
 import io.github.sooniln.fastgraph.MutableGraph
+import io.github.sooniln.fastgraph.MutableVertexKeyProperty
 import io.github.sooniln.fastgraph.MutableVertexProperty
 import io.github.sooniln.fastgraph.ValueGraph
+import io.github.sooniln.fastgraph.VertexKeyProperty
 import io.github.sooniln.fastgraph.VertexProperty
 import io.github.sooniln.fastgraph.io.PropertyBinding
 import io.github.sooniln.fastgraph.io.dot.internal.DotLexer
@@ -24,7 +26,7 @@ import java.io.Writer
 public interface DotGraph {
     public val graph: Graph
     public val graphId: String?
-    public val vertexIdProperty: VertexProperty<out Any>
+    public val vertexIdProperty: VertexKeyProperty<out Any>
     public val vertexProperties: Map<String, VertexProperty<*>>
     public val edgeProperties: Map<String, EdgeProperty<*>>
     public val graphProperties: Map<String, Any?>
@@ -35,34 +37,16 @@ public interface DotGraph {
 public fun DotGraph(
     graph: Graph,
     graphId: String? = null,
-    vertexIdProperty: VertexProperty<out Any> = graph.vertexIdProperty,
+    vertexIdProperty: VertexKeyProperty<out Any> = graph.vertexIdProperty,
     vertexProperties: Map<String, VertexProperty<*>> = emptyMap(),
     edgeProperties: Map<String, EdgeProperty<*>> = emptyMap(),
     graphProperties: Map<String, String> = emptyMap(),
 ) : DotGraph = object : DotGraph {
     override val graph: Graph get() = graph
     override val graphId: String? get() = graphId
-    override val vertexIdProperty: VertexProperty<out Any> get() = vertexIdProperty
+    override val vertexIdProperty: VertexKeyProperty<out Any> get() = vertexIdProperty
     override val vertexProperties: Map<String, VertexProperty<*>> get() = vertexProperties
     override val edgeProperties: Map<String, EdgeProperty<*>> get() = edgeProperties
-    override val graphProperties: Map<String, Any?> get() = graphProperties
-}
-
-/** A convenient way to construct a [DotGraph] for writing. */
-@JvmOverloads
-public fun DotGraph(
-    graph: ValueGraph<out Any, *>,
-    edgePropertyName: String,
-    graphId: String? = null,
-    graphProperties: Map<String, String> = emptyMap(),
-) : DotGraph = object : DotGraph {
-    override val graph: Graph get() = graph.graph
-    override val graphId: String? get() = graphId
-    override val vertexIdProperty: VertexProperty<out Any> get() = graph.vertexProperty
-    override val vertexProperties: Map<String, VertexProperty<*>> get() = emptyMap()
-    override val edgeProperties: Map<String, EdgeProperty<*>> get() {
-        return if (graph.edgeProperty.type.isUnitType()) emptyMap() else mapOf(edgePropertyName to graph.edgeProperty)
-    }
     override val graphProperties: Map<String, Any?> get() = graphProperties
 }
 
@@ -70,7 +54,7 @@ public fun DotGraph(
 public class MutableDotGraph(
     override val graph: MutableGraph,
     override val graphId: String?,
-    override val vertexIdProperty: MutableVertexProperty<out Any>,
+    override val vertexIdProperty: MutableVertexKeyProperty<out Any>,
     override val vertexProperties: Map<String, MutableVertexProperty<*>>,
     override val edgeProperties: Map<String, MutableEdgeProperty<*>>,
     override val graphProperties: Map<String, Any?>,

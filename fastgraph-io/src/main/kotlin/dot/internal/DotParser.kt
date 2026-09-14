@@ -4,6 +4,7 @@ import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.MutableGraph
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.io.ParsingEdgeProperty
+import io.github.sooniln.fastgraph.io.ParsingVertexKeyProperty
 import io.github.sooniln.fastgraph.io.ParsingVertexProperty
 import io.github.sooniln.fastgraph.io.PropertyBinding
 import io.github.sooniln.fastgraph.io.dot.MutableDotGraph
@@ -28,7 +29,7 @@ internal class DotParser(private val lexer: DotLexer) {
     private var strict = false
     private lateinit var graph: MutableGraph
     private val vertexIds = HashMap<Any, Vertex>()
-    private lateinit var vertexIdProperty: ParsingVertexProperty<Any>
+    private lateinit var vertexIdProperty: ParsingVertexKeyProperty<Any>
     private lateinit var propertyTypes: Map<String, PropertyBinding<*>>
     private val vertexProperties = HashMap<String, ParsingVertexProperty<*>>()
     private val edgeProperties = HashMap<String, ParsingEdgeProperty<*>>()
@@ -89,7 +90,7 @@ internal class DotParser(private val lexer: DotLexer) {
         val id = if (current.type == TokenType.ID) advance().text else null
 
         graph = mutableGraph(directed, multiEdge && !strict, indexEdges)
-        vertexIdProperty = ParsingVertexProperty(graph, nodeIdType)
+        vertexIdProperty = ParsingVertexKeyProperty(graph, nodeIdType)
         propertyTypes = attributeTypes
 
         expect(TokenType.LBRACE)
