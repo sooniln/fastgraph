@@ -1,5 +1,6 @@
 package io.github.sooniln.fastgraph.io.dot.internal
 
+import io.github.sooniln.fastcollect.IntArrayDeque
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.io.Reader
@@ -35,7 +36,7 @@ internal class DotLexer(input: InputStream) {
     private var bufferLen = 0
     private var bufferPos = 0
     private var eof = false
-    private val lookahead = ArrayDeque<Int>()
+    private val lookahead = IntArrayDeque()
 
     /** The 1-based line/column the lexer is currently positioned at, for use in error messages. */
     var line = 1
@@ -88,7 +89,7 @@ internal class DotLexer(input: InputStream) {
      */
     private fun skipWhitespaceAndComments() {
         while (true) {
-            when (val c = peek()) {
+            when (peek()) {
                 -1 -> return
                 ' '.code, '\t'.code, '\r'.code, '\n'.code -> next()
                 '#'.code -> if (!lineHasContent) skipToEndOfLine() else return

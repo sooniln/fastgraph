@@ -450,7 +450,7 @@ internal class AdjacencyListNetwork(
             map.forEach { (vertexId, edgeId) ->
                 val vertex = Vertex(vertexId)
                 if (edgeId < 0) {
-                    for (edgeId in edgeListMap.getValue(edgeId)) { action(vertex, edgeId) }
+                    edgeListMap.getValue(edgeId).forEach { edgeId -> action(vertex, edgeId) }
                 } else {
                     action(vertex, edgeId)
                 }

@@ -52,7 +52,7 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
         }
         for (index in successors.indices) {
             val vertex = Vertex(index)
-            for (successor in successors[vertex]) { predecessors[successor].add(vertex) }
+            successors[vertex].forEach { successor -> predecessors[successor].add(vertex) }
         }
         return@lazy predecessors
     }
@@ -116,7 +116,7 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
         // remove outbound edges
         val successorsIt = successors[vertex].iterator()
         while (successorsIt.hasNext()) {
-            val target = Vertex(successorsIt.next())
+            val target = Vertex(successorsIt.nextInt())
             successorsIt.remove()
             if (!directed) {
                 if (vertex != target) {
@@ -133,7 +133,7 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
         if (directed) {
             val predecessorsIt = predecessors[vertex].iterator()
             while (predecessorsIt.hasNext()) {
-                val source = Vertex(predecessorsIt.next())
+                val source = Vertex(predecessorsIt.nextInt())
                 predecessorsIt.remove()
                 check(successors[source].remove(vertex))
                 cleanupEdge(canonicalEdge(source, vertex))

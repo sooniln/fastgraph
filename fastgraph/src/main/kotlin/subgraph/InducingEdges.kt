@@ -92,7 +92,7 @@ internal class InducingEdges(
         val it = edges.iterator()
         while (it.hasNext()) {
             context(parent) {
-                val edge = Edge(it.next())
+                val edge = Edge(it.nextLong())
                 if (edge.source == vertex || edge.target == vertex) {
                     it.remove()
 

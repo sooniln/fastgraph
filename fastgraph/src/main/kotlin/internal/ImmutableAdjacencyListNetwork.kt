@@ -461,9 +461,7 @@ internal class ImmutableAdjacencyListNetwork private constructor(
                         } else {
                             arr[tailIdx++] = -edges.size
                             val edgesStart = tailIdx
-                            for (edge in edges) {
-                                arr[tailIdx++] = edge
-                            }
+                            edges.forEach { edge -> arr[tailIdx++] = edge }
                             arr.sort(edgesStart, tailIdx)
                         }
                     }
