@@ -12,7 +12,6 @@ plugins {
 }
 
 repositories {
-    mavenLocal()
     mavenCentral()
 }
 
@@ -99,15 +98,14 @@ tasks.test {
 dokka {
     moduleName.set("FastGraph")
     dokkaPublications.html {
-        includes.from("README.md")
-        suppressInheritedMembers.set(true)
         failOnWarning.set(true)
     }
 
     dokkaSourceSets.all {
+        includes.from("module.md")
         sourceLink {
             localDirectory.set(file("src/main/kotlin"))
-            remoteUrl.set(uri("https://github.com/sooniln/fastgraph/blob/main/"))
+            remoteUrl.set(uri("https://github.com/sooniln/fastgraph/blob/main/fastgraph/src/main/kotlin"))
             remoteLineSuffix.set("#L")
         }
     }

@@ -11,7 +11,6 @@ plugins {
 }
 
 repositories {
-    mavenLocal()
     mavenCentral()
 }
 
@@ -65,18 +64,26 @@ tasks.test {
 dokka {
     moduleName.set("FastGraph IO")
     dokkaPublications.html {
-        includes.from("README.md")
-        suppressInheritedMembers.set(true)
         failOnWarning.set(true)
     }
 
     dokkaSourceSets.all {
+        includes.from("module.md")
         sourceLink {
             localDirectory.set(file("src/main/kotlin"))
-            remoteUrl.set(uri("https://github.com/sooniln/fastgraph/blob/main/"))
+            remoteUrl.set(uri("https://github.com/sooniln/fastgraph/blob/main/fastgraph-io/src/main/kotlin"))
             remoteLineSuffix.set("#L")
         }
+        externalDocumentationLinks.register("fastgraph") {
+            val fastgraph = project(":fastgraph")
+            url.set(provider { uri("https://javadoc.io/doc/io.github.sooniln/fastgraph/${fastgraph.version}/") })
+            packageListUrl.set(fastgraph.layout.buildDirectory.file("dokka/html/-fast-graph/package-list").map { it.asFile.toURI() })
+        }
     }
+}
+
+tasks.named("dokkaGeneratePublicationHtml") {
+    dependsOn(":fastgraph:dokkaGeneratePublicationHtml")
 }
 
 mavenPublishing {
