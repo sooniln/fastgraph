@@ -1,0 +1,11 @@
+public final class io/github/sooniln/fastgraph/jgrapht/JGraphT {
+	public static final fun asJGraphT (Lio/github/sooniln/fastgraph/Graph;Lio/github/sooniln/fastgraph/VertexKeyProperty;Lio/github/sooniln/fastgraph/EdgeKeyProperty;)Lorg/jgrapht/Graph;
+	public static final fun asJGraphT (Lio/github/sooniln/fastgraph/Graph;Lio/github/sooniln/fastgraph/VertexKeyProperty;Lio/github/sooniln/fastgraph/EdgeKeyProperty;Lio/github/sooniln/fastgraph/EdgeProperty;)Lorg/jgrapht/Graph;
+	public static synthetic fun asJGraphT$default (Lio/github/sooniln/fastgraph/Graph;Lio/github/sooniln/fastgraph/VertexKeyProperty;Lio/github/sooniln/fastgraph/EdgeKeyProperty;Lio/github/sooniln/fastgraph/EdgeProperty;ILjava/lang/Object;)Lorg/jgrapht/Graph;
+	public static final fun asMutableJGraphT (Lio/github/sooniln/fastgraph/MutableGraph;Lio/github/sooniln/fastgraph/MutableVertexKeyProperty;Lio/github/sooniln/fastgraph/MutableEdgeKeyProperty;)Lorg/jgrapht/Graph;
+	public static final fun asMutableJGraphT (Lio/github/sooniln/fastgraph/MutableGraph;Lio/github/sooniln/fastgraph/MutableVertexKeyProperty;Lio/github/sooniln/fastgraph/MutableEdgeKeyProperty;Lio/github/sooniln/fastgraph/MutableEdgeProperty;)Lorg/jgrapht/Graph;
+	public static final fun asMutableJGraphT (Lio/github/sooniln/fastgraph/MutableGraph;Lio/github/sooniln/fastgraph/MutableVertexKeyProperty;Lio/github/sooniln/fastgraph/MutableEdgeKeyProperty;Lio/github/sooniln/fastgraph/MutableEdgeProperty;Ljava/util/function/Supplier;)Lorg/jgrapht/Graph;
+	public static final fun asMutableJGraphT (Lio/github/sooniln/fastgraph/MutableGraph;Lio/github/sooniln/fastgraph/MutableVertexKeyProperty;Lio/github/sooniln/fastgraph/MutableEdgeKeyProperty;Lio/github/sooniln/fastgraph/MutableEdgeProperty;Ljava/util/function/Supplier;Ljava/util/function/Supplier;)Lorg/jgrapht/Graph;
+	public static synthetic fun asMutableJGraphT$default (Lio/github/sooniln/fastgraph/MutableGraph;Lio/github/sooniln/fastgraph/MutableVertexKeyProperty;Lio/github/sooniln/fastgraph/MutableEdgeKeyProperty;Lio/github/sooniln/fastgraph/MutableEdgeProperty;Ljava/util/function/Supplier;Ljava/util/function/Supplier;ILjava/lang/Object;)Lorg/jgrapht/Graph;
+}
+

@@ -2,7 +2,7 @@ package io.github.sooniln.fastgraph.io.csv
 
 import io.github.sooniln.fastgraph.buildValueGraph
 import io.github.sooniln.fastgraph.createEdgeProperty
-import io.github.sooniln.fastgraph.createVertexProperty
+import io.github.sooniln.fastgraph.createVertexKeyProperty
 import io.github.sooniln.fastgraph.mutableGraph
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -16,7 +16,7 @@ class CsvEdgeListWriterTest {
     @Test
     fun basicWrite() {
         val graph = mutableGraph(directed = true)
-        val vertexProperty = graph.createVertexProperty<String>("")
+        val vertexProperty = graph.createVertexKeyProperty<String>()
         val a = graph.addVertex().also { vertexProperty[it] = "a" }
         val b = graph.addVertex().also { vertexProperty[it] = "b" }
         graph.addEdge(a, b)
@@ -30,7 +30,7 @@ class CsvEdgeListWriterTest {
     @Test
     fun multipleEdgesAreWrittenInInsertionOrder() {
         val graph = mutableGraph(directed = true)
-        val vertexProperty = graph.createVertexProperty<String>("")
+        val vertexProperty = graph.createVertexKeyProperty<String>()
         val a = graph.addVertex().also { vertexProperty[it] = "a" }
         val b = graph.addVertex().also { vertexProperty[it] = "b" }
         val c = graph.addVertex().also { vertexProperty[it] = "c" }
@@ -46,7 +46,7 @@ class CsvEdgeListWriterTest {
     @Test
     fun edgePropertyValuesAreWritten() {
         val graph = mutableGraph(directed = true)
-        val vertexProperty = graph.createVertexProperty<String>("")
+        val vertexProperty = graph.createVertexKeyProperty<String>()
         val a = graph.addVertex().also { vertexProperty[it] = "a" }
         val b = graph.addVertex().also { vertexProperty[it] = "b" }
         val edge = graph.addEdge(a, b)
@@ -60,23 +60,9 @@ class CsvEdgeListWriterTest {
     }
 
     @Test
-    fun nullValuesAreWrittenAsEmptyFields() {
-        val graph = mutableGraph(directed = true)
-        val vertexProperty = graph.createVertexProperty<String>("")
-        val a = graph.addVertex().also { vertexProperty[it] = "a" }
-        val b = graph.addVertex()
-        graph.addEdge(a, b)
-
-        val output = ByteArrayOutputStream()
-        writeCsvEdgeList(output, CsvEdgeListGraph(graph, vertexProperty))
-
-        assertThat(output.toString(Charsets.UTF_8)).isEqualTo("a,\n")
-    }
-
-    @Test
     fun fieldsRequiringQuotingAreQuoted() {
         val graph = mutableGraph(directed = true)
-        val vertexProperty = graph.createVertexProperty<String>("")
+        val vertexProperty = graph.createVertexKeyProperty<String>()
         val a = graph.addVertex().also { vertexProperty[it] = "a,x" }
         val b = graph.addVertex().also { vertexProperty[it] = "b" }
         graph.addEdge(a, b)
@@ -101,33 +87,9 @@ class CsvEdgeListWriterTest {
     }
 
     @Test
-    fun valueGraphOverloadWritesVertexAndEdgeProperty() {
-        val valueGraph = buildValueGraph(directed = true, vertexDefaultValue = "", edgeDefaultValue = 0) {
-            addEdge("a", "b", 42)
-        }
-
-        val output = ByteArrayOutputStream()
-        writeCsvEdgeList(output, CsvEdgeListGraph(valueGraph))
-
-        assertThat(output.toString(Charsets.UTF_8)).isEqualTo("a,b,42\n")
-    }
-
-    @Test
-    fun valueGraphWithUnitEdgePropertyOmitsEdgeColumn() {
-        val valueGraph = buildValueGraph(directed = true, vertexDefaultValue = "", edgeDefaultValue = Unit) {
-            addEdge("a", "b")
-        }
-
-        val output = ByteArrayOutputStream()
-        writeCsvEdgeList(output, CsvEdgeListGraph(valueGraph))
-
-        assertThat(output.toString(Charsets.UTF_8)).isEqualTo("a,b\n")
-    }
-
-    @Test
     fun customDelimiterOptionIsRespected() {
         val graph = mutableGraph(directed = true)
-        val vertexProperty = graph.createVertexProperty<String>("")
+        val vertexProperty = graph.createVertexKeyProperty<String>()
         val a = graph.addVertex().also { vertexProperty[it] = "a" }
         val b = graph.addVertex().also { vertexProperty[it] = "b" }
         graph.addEdge(a, b)
@@ -141,7 +103,7 @@ class CsvEdgeListWriterTest {
     @Test
     fun pathOverloadWritesFile(@TempDir tempDir: Path) {
         val graph = mutableGraph(directed = true)
-        val vertexProperty = graph.createVertexProperty<String>("")
+        val vertexProperty = graph.createVertexKeyProperty<String>()
         val a = graph.addVertex().also { vertexProperty[it] = "a" }
         val b = graph.addVertex().also { vertexProperty[it] = "b" }
         graph.addEdge(a, b)
@@ -155,7 +117,7 @@ class CsvEdgeListWriterTest {
     @Test
     fun roundTripsThroughLoadCsvEdgeList() {
         val graph = mutableGraph(directed = true)
-        val vertexProperty = graph.createVertexProperty<String>("")
+        val vertexProperty = graph.createVertexKeyProperty<String>()
         val a = graph.addVertex().also { vertexProperty[it] = "a" }
         val b = graph.addVertex().also { vertexProperty[it] = "b" }
         val c = graph.addVertex().also { vertexProperty[it] = "c" }

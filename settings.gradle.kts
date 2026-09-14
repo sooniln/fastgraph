@@ -14,4 +14,5 @@ plugins {
 
 include("fastgraph")
 include("fastgraph-io")
+include("fastgraph-jgrapht")
 include("jmh")

@@ -19,10 +19,9 @@ public final class io/github/sooniln/fastgraph/io/PropertyBinding$Companion {
 
 public final class io/github/sooniln/fastgraph/io/csv/CsvEdgeList {
 	public static final fun CsvEdgeListGraph (Lio/github/sooniln/fastgraph/Graph;)Lio/github/sooniln/fastgraph/io/csv/CsvEdgeListGraph;
-	public static final fun CsvEdgeListGraph (Lio/github/sooniln/fastgraph/Graph;Lio/github/sooniln/fastgraph/VertexProperty;)Lio/github/sooniln/fastgraph/io/csv/CsvEdgeListGraph;
-	public static final fun CsvEdgeListGraph (Lio/github/sooniln/fastgraph/Graph;Lio/github/sooniln/fastgraph/VertexProperty;Ljava/util/List;)Lio/github/sooniln/fastgraph/io/csv/CsvEdgeListGraph;
-	public static final fun CsvEdgeListGraph (Lio/github/sooniln/fastgraph/ValueGraph;)Lio/github/sooniln/fastgraph/io/csv/CsvEdgeListGraph;
-	public static synthetic fun CsvEdgeListGraph$default (Lio/github/sooniln/fastgraph/Graph;Lio/github/sooniln/fastgraph/VertexProperty;Ljava/util/List;ILjava/lang/Object;)Lio/github/sooniln/fastgraph/io/csv/CsvEdgeListGraph;
+	public static final fun CsvEdgeListGraph (Lio/github/sooniln/fastgraph/Graph;Lio/github/sooniln/fastgraph/VertexKeyProperty;)Lio/github/sooniln/fastgraph/io/csv/CsvEdgeListGraph;
+	public static final fun CsvEdgeListGraph (Lio/github/sooniln/fastgraph/Graph;Lio/github/sooniln/fastgraph/VertexKeyProperty;Ljava/util/List;)Lio/github/sooniln/fastgraph/io/csv/CsvEdgeListGraph;
+	public static synthetic fun CsvEdgeListGraph$default (Lio/github/sooniln/fastgraph/Graph;Lio/github/sooniln/fastgraph/VertexKeyProperty;Ljava/util/List;ILjava/lang/Object;)Lio/github/sooniln/fastgraph/io/csv/CsvEdgeListGraph;
 	public static final fun readCsvEdgeList (Ljava/io/InputStream;Z)Lio/github/sooniln/fastgraph/io/csv/MutableCsvEdgeListGraph;
 	public static final fun readCsvEdgeList (Ljava/io/InputStream;ZZ)Lio/github/sooniln/fastgraph/io/csv/MutableCsvEdgeListGraph;
 	public static final fun readCsvEdgeList (Ljava/io/InputStream;ZZZ)Lio/github/sooniln/fastgraph/io/csv/MutableCsvEdgeListGraph;
@@ -38,7 +37,7 @@ public final class io/github/sooniln/fastgraph/io/csv/CsvEdgeList {
 public abstract interface class io/github/sooniln/fastgraph/io/csv/CsvEdgeListGraph {
 	public abstract fun getEdgeProperties ()Ljava/util/List;
 	public abstract fun getGraph ()Lio/github/sooniln/fastgraph/Graph;
-	public abstract fun getVertexProperty ()Lio/github/sooniln/fastgraph/VertexProperty;
+	public abstract fun getVertexProperty ()Lio/github/sooniln/fastgraph/VertexKeyProperty;
 }
 
 public final class io/github/sooniln/fastgraph/io/csv/CsvFormatException : java/lang/Exception {
@@ -65,26 +64,22 @@ public final class io/github/sooniln/fastgraph/io/csv/CsvOptions {
 }
 
 public final class io/github/sooniln/fastgraph/io/csv/MutableCsvEdgeListGraph : io/github/sooniln/fastgraph/io/csv/CsvEdgeListGraph {
-	public fun <init> (Lio/github/sooniln/fastgraph/MutableGraph;Lio/github/sooniln/fastgraph/MutableVertexProperty;Ljava/util/List;)V
+	public fun <init> (Lio/github/sooniln/fastgraph/MutableGraph;Lio/github/sooniln/fastgraph/MutableVertexKeyProperty;Ljava/util/List;)V
 	public fun getEdgeProperties ()Ljava/util/List;
 	public synthetic fun getGraph ()Lio/github/sooniln/fastgraph/Graph;
 	public fun getGraph ()Lio/github/sooniln/fastgraph/MutableGraph;
-	public fun getVertexProperty ()Lio/github/sooniln/fastgraph/MutableVertexProperty;
-	public synthetic fun getVertexProperty ()Lio/github/sooniln/fastgraph/VertexProperty;
+	public fun getVertexProperty ()Lio/github/sooniln/fastgraph/MutableVertexKeyProperty;
+	public synthetic fun getVertexProperty ()Lio/github/sooniln/fastgraph/VertexKeyProperty;
 }
 
 public final class io/github/sooniln/fastgraph/io/dot/Dot {
 	public static final fun DotGraph (Lio/github/sooniln/fastgraph/Graph;)Lio/github/sooniln/fastgraph/io/dot/DotGraph;
 	public static final fun DotGraph (Lio/github/sooniln/fastgraph/Graph;Ljava/lang/String;)Lio/github/sooniln/fastgraph/io/dot/DotGraph;
-	public static final fun DotGraph (Lio/github/sooniln/fastgraph/Graph;Ljava/lang/String;Lio/github/sooniln/fastgraph/VertexProperty;)Lio/github/sooniln/fastgraph/io/dot/DotGraph;
-	public static final fun DotGraph (Lio/github/sooniln/fastgraph/Graph;Ljava/lang/String;Lio/github/sooniln/fastgraph/VertexProperty;Ljava/util/Map;)Lio/github/sooniln/fastgraph/io/dot/DotGraph;
-	public static final fun DotGraph (Lio/github/sooniln/fastgraph/Graph;Ljava/lang/String;Lio/github/sooniln/fastgraph/VertexProperty;Ljava/util/Map;Ljava/util/Map;)Lio/github/sooniln/fastgraph/io/dot/DotGraph;
-	public static final fun DotGraph (Lio/github/sooniln/fastgraph/Graph;Ljava/lang/String;Lio/github/sooniln/fastgraph/VertexProperty;Ljava/util/Map;Ljava/util/Map;Ljava/util/Map;)Lio/github/sooniln/fastgraph/io/dot/DotGraph;
-	public static final fun DotGraph (Lio/github/sooniln/fastgraph/ValueGraph;Ljava/lang/String;)Lio/github/sooniln/fastgraph/io/dot/DotGraph;
-	public static final fun DotGraph (Lio/github/sooniln/fastgraph/ValueGraph;Ljava/lang/String;Ljava/lang/String;)Lio/github/sooniln/fastgraph/io/dot/DotGraph;
-	public static final fun DotGraph (Lio/github/sooniln/fastgraph/ValueGraph;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;)Lio/github/sooniln/fastgraph/io/dot/DotGraph;
-	public static synthetic fun DotGraph$default (Lio/github/sooniln/fastgraph/Graph;Ljava/lang/String;Lio/github/sooniln/fastgraph/VertexProperty;Ljava/util/Map;Ljava/util/Map;Ljava/util/Map;ILjava/lang/Object;)Lio/github/sooniln/fastgraph/io/dot/DotGraph;
-	public static synthetic fun DotGraph$default (Lio/github/sooniln/fastgraph/ValueGraph;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)Lio/github/sooniln/fastgraph/io/dot/DotGraph;
+	public static final fun DotGraph (Lio/github/sooniln/fastgraph/Graph;Ljava/lang/String;Lio/github/sooniln/fastgraph/VertexKeyProperty;)Lio/github/sooniln/fastgraph/io/dot/DotGraph;
+	public static final fun DotGraph (Lio/github/sooniln/fastgraph/Graph;Ljava/lang/String;Lio/github/sooniln/fastgraph/VertexKeyProperty;Ljava/util/Map;)Lio/github/sooniln/fastgraph/io/dot/DotGraph;
+	public static final fun DotGraph (Lio/github/sooniln/fastgraph/Graph;Ljava/lang/String;Lio/github/sooniln/fastgraph/VertexKeyProperty;Ljava/util/Map;Ljava/util/Map;)Lio/github/sooniln/fastgraph/io/dot/DotGraph;
+	public static final fun DotGraph (Lio/github/sooniln/fastgraph/Graph;Ljava/lang/String;Lio/github/sooniln/fastgraph/VertexKeyProperty;Ljava/util/Map;Ljava/util/Map;Ljava/util/Map;)Lio/github/sooniln/fastgraph/io/dot/DotGraph;
+	public static synthetic fun DotGraph$default (Lio/github/sooniln/fastgraph/Graph;Ljava/lang/String;Lio/github/sooniln/fastgraph/VertexKeyProperty;Ljava/util/Map;Ljava/util/Map;Ljava/util/Map;ILjava/lang/Object;)Lio/github/sooniln/fastgraph/io/dot/DotGraph;
 	public static final fun readDot (Ljava/io/InputStream;)Lio/github/sooniln/fastgraph/io/dot/MutableDotGraph;
 	public static final fun readDot (Ljava/io/InputStream;Z)Lio/github/sooniln/fastgraph/io/dot/MutableDotGraph;
 	public static final fun readDot (Ljava/io/InputStream;ZZ)Lio/github/sooniln/fastgraph/io/dot/MutableDotGraph;
@@ -104,19 +99,19 @@ public abstract interface class io/github/sooniln/fastgraph/io/dot/DotGraph {
 	public abstract fun getGraph ()Lio/github/sooniln/fastgraph/Graph;
 	public abstract fun getGraphId ()Ljava/lang/String;
 	public abstract fun getGraphProperties ()Ljava/util/Map;
-	public abstract fun getVertexIdProperty ()Lio/github/sooniln/fastgraph/VertexProperty;
+	public abstract fun getVertexIdProperty ()Lio/github/sooniln/fastgraph/VertexKeyProperty;
 	public abstract fun getVertexProperties ()Ljava/util/Map;
 }
 
 public final class io/github/sooniln/fastgraph/io/dot/MutableDotGraph : io/github/sooniln/fastgraph/io/dot/DotGraph {
-	public fun <init> (Lio/github/sooniln/fastgraph/MutableGraph;Ljava/lang/String;Lio/github/sooniln/fastgraph/MutableVertexProperty;Ljava/util/Map;Ljava/util/Map;Ljava/util/Map;)V
+	public fun <init> (Lio/github/sooniln/fastgraph/MutableGraph;Ljava/lang/String;Lio/github/sooniln/fastgraph/MutableVertexKeyProperty;Ljava/util/Map;Ljava/util/Map;Ljava/util/Map;)V
 	public fun getEdgeProperties ()Ljava/util/Map;
 	public synthetic fun getGraph ()Lio/github/sooniln/fastgraph/Graph;
 	public fun getGraph ()Lio/github/sooniln/fastgraph/MutableGraph;
 	public fun getGraphId ()Ljava/lang/String;
 	public fun getGraphProperties ()Ljava/util/Map;
-	public fun getVertexIdProperty ()Lio/github/sooniln/fastgraph/MutableVertexProperty;
-	public synthetic fun getVertexIdProperty ()Lio/github/sooniln/fastgraph/VertexProperty;
+	public fun getVertexIdProperty ()Lio/github/sooniln/fastgraph/MutableVertexKeyProperty;
+	public synthetic fun getVertexIdProperty ()Lio/github/sooniln/fastgraph/VertexKeyProperty;
 	public fun getVertexProperties ()Ljava/util/Map;
 }
 
