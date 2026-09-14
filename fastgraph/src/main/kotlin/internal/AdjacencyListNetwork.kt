@@ -278,9 +278,13 @@ internal class AdjacencyListNetwork(
     override fun getOutDegree(vertex: Vertex): Int = successors[vertex].size
     override fun getInDegree(vertex: Vertex): Int = predecessors[vertex].size
     override fun getSuccessors(vertex: Vertex): VertexSet = successors[vertex].vertices
+    override fun getSuccessor(vertex: Vertex): Vertex = successors[vertex].vertex
     override fun getPredecessors(vertex: Vertex): VertexSet = predecessors[vertex].vertices
+    override fun getPredecessor(vertex: Vertex): Vertex = predecessors[vertex].vertex
     override fun getOutgoingEdges(vertex: Vertex): EdgeSet = IncidentEdgeSet(true, vertex, successors[vertex])
+    override fun getOutgoingEdge(vertex: Vertex): Edge = successors[vertex].edge
     override fun getIncomingEdges(vertex: Vertex): EdgeSet = IncidentEdgeSet(false, vertex, predecessors[vertex])
+    override fun getIncomingEdge(vertex: Vertex): Edge = predecessors[vertex].edge
 
     override val edges: MutableIndexedEdgeSet = object : AbstractMutableIndexedEdgeSet(this@AdjacencyListNetwork) {
         override val size: Int get() = edgeValues.size
@@ -304,11 +308,7 @@ internal class AdjacencyListNetwork(
 
     override fun containsEdge(source: Vertex, target: Vertex): Boolean = successors[source.id].contains(target)
 
-    override fun getEdge(source: Vertex, target: Vertex): Edge {
-        val edgeIt = successors[source].edgesTo(target).edgeIterator()
-        if (!edgeIt.hasNext()) throw NoSuchElementException()
-        return edgeIt.next()
-    }
+    override fun getEdge(source: Vertex, target: Vertex): Edge = successors[source].edgeTo(target)
 
     override fun getEdges(source: Vertex, target: Vertex): EdgeSet {
         return IncidentEdgeSet(true, source, successors[source].edgesTo(target))
@@ -400,6 +400,23 @@ internal class AdjacencyListNetwork(
             private set
 
         override val vertices: VertexSet get() = map.keys.asVertexSet()
+
+        val vertex: Vertex get() {
+            check(map.size == 1)
+            map.forEach { (vertex, _) ->
+                return Vertex(vertex)
+            }
+            throw IllegalStateException()
+        }
+
+        val edge: Edge get() {
+            check(map.size == 1)
+            map.forEach { (_, v) ->
+                if (v >= 0) return canonicalEdge(v)
+                throw IllegalStateException()
+            }
+            throw IllegalStateException()
+        }
 
         override fun contains(element: EdgeAdjacency): Boolean {
             val v = map.getOrDefault(element.vertex.id, Int.MIN_VALUE)
@@ -550,6 +567,12 @@ internal class AdjacencyListNetwork(
                 override fun hasNext(): Boolean = it.hasNext()
                 override fun next(): Edge = canonicalEdge(it.nextInt())
             }
+        }
+
+        fun edgeTo(target: Vertex): Edge {
+            val v = map[target.id]
+            if (v < 0) throw IllegalStateException()
+            return canonicalEdge(v)
         }
 
         fun trimToSize() {

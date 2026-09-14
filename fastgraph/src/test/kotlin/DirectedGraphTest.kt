@@ -149,6 +149,20 @@ class DirectedGraphTest {
 
     @ParameterizedTest(name = "immutable={0}")
     @ValueSource(booleans = [true, false])
+    fun successor(immutable: Boolean) {
+        constructGraph(immutable)
+
+        // v0 has two successors (itself via e3 and v1 via e0)
+        assertThrows<IllegalStateException> { graph.successor(v0) }
+        assertThat(graph.successor(v1)).isEqualTo(v2)
+        assertThat(graph.successor(v2)).isEqualTo(v0)
+        assertThrows<IllegalStateException> { graph.successor(v3) }
+
+        assertThrows<IllegalArgumentException> { graph.successor(Vertex(99)) }
+    }
+
+    @ParameterizedTest(name = "immutable={0}")
+    @ValueSource(booleans = [true, false])
     fun predecessors(immutable: Boolean) {
         constructGraph(immutable)
 
@@ -183,6 +197,20 @@ class DirectedGraphTest {
 
             assertThrows<IllegalArgumentException> { Vertex(99).predecessors() }
         }
+    }
+
+    @ParameterizedTest(name = "immutable={0}")
+    @ValueSource(booleans = [true, false])
+    fun predecessor(immutable: Boolean) {
+        constructGraph(immutable)
+
+        // v0 has two predecessors (itself via e3 and v2 via e2)
+        assertThrows<IllegalStateException> { graph.predecessor(v0) }
+        assertThat(graph.predecessor(v1)).isEqualTo(v0)
+        assertThat(graph.predecessor(v2)).isEqualTo(v1)
+        assertThrows<IllegalStateException> { graph.predecessor(v3) }
+
+        assertThrows<IllegalArgumentException> { graph.predecessor(Vertex(99)) }
     }
 
     @ParameterizedTest(name = "immutable={0}")
@@ -225,6 +253,20 @@ class DirectedGraphTest {
 
     @ParameterizedTest(name = "immutable={0}")
     @ValueSource(booleans = [true, false])
+    fun outgoingEdge(immutable: Boolean) {
+        constructGraph(immutable)
+
+        // v0 has two outgoing edges (e0 and e3)
+        assertThrows<IllegalStateException> { graph.outgoingEdge(v0) }
+        assertThat(graph.outgoingEdge(v1)).isEqualTo(e1)
+        assertThat(graph.outgoingEdge(v2)).isEqualTo(e2)
+        assertThrows<IllegalStateException> { graph.outgoingEdge(v3) }
+
+        assertThrows<IllegalArgumentException> { graph.outgoingEdge(Vertex(99)) }
+    }
+
+    @ParameterizedTest(name = "immutable={0}")
+    @ValueSource(booleans = [true, false])
     fun incomingEdges(immutable: Boolean) {
         constructGraph(immutable)
 
@@ -259,6 +301,20 @@ class DirectedGraphTest {
 
             assertThrows<IllegalArgumentException> { Vertex(99).incomingEdges() }
         }
+    }
+
+    @ParameterizedTest(name = "immutable={0}")
+    @ValueSource(booleans = [true, false])
+    fun incomingEdge(immutable: Boolean) {
+        constructGraph(immutable)
+
+        // v0 has two incoming edges (e2 and e3)
+        assertThrows<IllegalStateException> { graph.incomingEdge(v0) }
+        assertThat(graph.incomingEdge(v1)).isEqualTo(e0)
+        assertThat(graph.incomingEdge(v2)).isEqualTo(e1)
+        assertThrows<IllegalStateException> { graph.incomingEdge(v3) }
+
+        assertThrows<IllegalArgumentException> { graph.incomingEdge(Vertex(99)) }
     }
 
     @ParameterizedTest(name = "immutable={0}")
@@ -330,16 +386,16 @@ class DirectedGraphTest {
         constructGraph(immutable)
 
         assertThat(graph.edge(v0, v1)).isEqualTo(e0)
-        assertThrows<NoSuchElementException> { graph.edge(v1, v0) }
+        assertThrows<IllegalStateException> { graph.edge(v1, v0) }
         assertThat(graph.edge(v1, v2)).isEqualTo(e1)
-        assertThrows<NoSuchElementException> { graph.edge(v2, v1) }
+        assertThrows<IllegalStateException> { graph.edge(v2, v1) }
         assertThat(graph.edge(v2, v0)).isEqualTo(e2)
-        assertThrows<NoSuchElementException> { graph.edge(v0, v2) }
+        assertThrows<IllegalStateException> { graph.edge(v0, v2) }
         assertThat(graph.edge(v0, v0)).isEqualTo(e3)
-        assertThrows<NoSuchElementException> { graph.edge(v0, v3) }
-        assertThrows<NoSuchElementException> { graph.edge(v1, v3) }
-        assertThrows<NoSuchElementException> { graph.edge(v2, v3) }
-        assertThrows<NoSuchElementException> { graph.edge(v3, v3) }
+        assertThrows<IllegalStateException> { graph.edge(v0, v3) }
+        assertThrows<IllegalStateException> { graph.edge(v1, v3) }
+        assertThrows<IllegalStateException> { graph.edge(v2, v3) }
+        assertThrows<IllegalStateException> { graph.edge(v3, v3) }
 
         assertThrows<IllegalArgumentException> { graph.edge(v0, Vertex(99)) }
         assertThrows<IllegalArgumentException> { graph.edge(Vertex(99), v0) }

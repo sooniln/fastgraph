@@ -144,6 +144,20 @@ class UndirectedNetworkTest {
 
     @ParameterizedTest(name = "immutable={0}")
     @ValueSource(booleans = [true, false])
+    fun successor(immutable: Boolean) {
+        constructGraph(immutable)
+
+        // every connected vertex here has more than one neighbour, and v3 has none
+        assertThrows<IllegalStateException> { graph.successor(v0) }
+        assertThrows<IllegalStateException> { graph.successor(v1) }
+        assertThrows<IllegalStateException> { graph.successor(v2) }
+        assertThrows<IllegalStateException> { graph.successor(v3) }
+
+        assertThrows<IllegalArgumentException> { graph.successor(Vertex(99)) }
+    }
+
+    @ParameterizedTest(name = "immutable={0}")
+    @ValueSource(booleans = [true, false])
     fun predecessors(immutable: Boolean) {
         constructGraph(immutable)
 
@@ -178,6 +192,20 @@ class UndirectedNetworkTest {
 
             assertThrows<IllegalArgumentException> { Vertex(99).predecessors() }
         }
+    }
+
+    @ParameterizedTest(name = "immutable={0}")
+    @ValueSource(booleans = [true, false])
+    fun predecessor(immutable: Boolean) {
+        constructGraph(immutable)
+
+        // in an undirected graph predecessors are the same as successors
+        assertThrows<IllegalStateException> { graph.predecessor(v0) }
+        assertThrows<IllegalStateException> { graph.predecessor(v1) }
+        assertThrows<IllegalStateException> { graph.predecessor(v2) }
+        assertThrows<IllegalStateException> { graph.predecessor(v3) }
+
+        assertThrows<IllegalArgumentException> { graph.predecessor(Vertex(99)) }
     }
 
     @ParameterizedTest(name = "immutable={0}")
@@ -224,6 +252,20 @@ class UndirectedNetworkTest {
 
     @ParameterizedTest(name = "immutable={0}")
     @ValueSource(booleans = [true, false])
+    fun outgoingEdge(immutable: Boolean) {
+        constructGraph(immutable)
+
+        // every connected vertex here has more than one incident edge, and v3 has none
+        assertThrows<IllegalStateException> { graph.outgoingEdge(v0) }
+        assertThrows<IllegalStateException> { graph.outgoingEdge(v1) }
+        assertThrows<IllegalStateException> { graph.outgoingEdge(v2) }
+        assertThrows<IllegalStateException> { graph.outgoingEdge(v3) }
+
+        assertThrows<IllegalArgumentException> { graph.outgoingEdge(Vertex(99)) }
+    }
+
+    @ParameterizedTest(name = "immutable={0}")
+    @ValueSource(booleans = [true, false])
     fun incomingEdges(immutable: Boolean) {
         constructGraph(immutable)
 
@@ -262,6 +304,54 @@ class UndirectedNetworkTest {
 
             assertThrows<IllegalArgumentException> { Vertex(99).incomingEdges() }
         }
+    }
+
+    @ParameterizedTest(name = "immutable={0}")
+    @ValueSource(booleans = [true, false])
+    fun incomingEdge(immutable: Boolean) {
+        constructGraph(immutable)
+
+        // in an undirected graph incoming edges are the same as outgoing edges
+        assertThrows<IllegalStateException> { graph.incomingEdge(v0) }
+        assertThrows<IllegalStateException> { graph.incomingEdge(v1) }
+        assertThrows<IllegalStateException> { graph.incomingEdge(v2) }
+        assertThrows<IllegalStateException> { graph.incomingEdge(v3) }
+
+        assertThrows<IllegalArgumentException> { graph.incomingEdge(Vertex(99)) }
+    }
+
+    @ParameterizedTest(name = "immutable={0}")
+    @ValueSource(booleans = [true, false])
+    fun singleNeighborReachedByParallelEdges(immutable: Boolean) {
+        var a = Vertex(-1)
+        var b = Vertex(-1)
+        val parallel = if (immutable) {
+            buildImmutableGraph(false, multiEdge = true) {
+                a = addVertex()
+                b = addVertex()
+                addEdge(a, b)
+                addEdge(a, b)
+            }
+        } else {
+            buildGraph(false, multiEdge = true) {
+                a = addVertex()
+                b = addVertex()
+                addEdge(a, b)
+                addEdge(a, b)
+            }
+        }
+
+        // a single neighbour is still a single successor/predecessor, no matter how many edges reach it
+        assertThat(parallel.successor(a)).isEqualTo(b)
+        assertThat(parallel.predecessor(a)).isEqualTo(b)
+        assertThat(parallel.successor(b)).isEqualTo(a)
+        assertThat(parallel.predecessor(b)).isEqualTo(a)
+
+        // ... but there is no single edge connecting them
+        assertThrows<IllegalStateException> { parallel.outgoingEdge(a) }
+        assertThrows<IllegalStateException> { parallel.incomingEdge(a) }
+        assertThrows<IllegalStateException> { parallel.edge(a, b) }
+        assertThrows<IllegalStateException> { parallel.edge(b, a) }
     }
 
     @ParameterizedTest(name = "immutable={0}")
@@ -352,14 +442,12 @@ class UndirectedNetworkTest {
         assertThat(graph.edge(v2, v1)).isEqualTo(e1)
         assertThat(graph.edge(v2, v0)).isEqualTo(e2)
         assertThat(graph.edge(v0, v2)).isEqualTo(e2)
-        assertThat(graph.edge(v0, v0)).satisfiesAnyOf(
-            { assertThat(it).isEqualTo(e3) },
-            { assertThat(it).isEqualTo(e4) },
-        )
-        assertThrows<NoSuchElementException> { graph.edge(v0, v3) }
-        assertThrows<NoSuchElementException> { graph.edge(v1, v3) }
-        assertThrows<NoSuchElementException> { graph.edge(v2, v3) }
-        assertThrows<NoSuchElementException> { graph.edge(v3, v3) }
+        // e3 and e4 are parallel, so there is no single edge from v0 to v0
+        assertThrows<IllegalStateException> { graph.edge(v0, v0) }
+        assertThrows<IllegalStateException> { graph.edge(v0, v3) }
+        assertThrows<IllegalStateException> { graph.edge(v1, v3) }
+        assertThrows<IllegalStateException> { graph.edge(v2, v3) }
+        assertThrows<IllegalStateException> { graph.edge(v3, v3) }
 
         assertThrows<IllegalArgumentException> { graph.edge(v0, Vertex(99)) }
         assertThrows<IllegalArgumentException> { graph.edge(Vertex(99), v0) }

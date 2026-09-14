@@ -100,9 +100,29 @@ internal class ImmutableAdjacencyListGraph private constructor(
     override fun getOutDegree(vertex: Vertex): Int = successors[vertex].size
     override fun getInDegree(vertex: Vertex): Int = predecessors[vertex].size
     override fun getSuccessors(vertex: Vertex): VertexSet = VertexNeighbors(successors[vertex])
+    override fun getSuccessor(vertex: Vertex): Vertex {
+        val successors = successors[vertex]
+        check(successors.size == 1)
+        return Vertex(successors[0])
+    }
     override fun getPredecessors(vertex: Vertex): VertexSet = VertexNeighbors(predecessors[vertex])
+    override fun getPredecessor(vertex: Vertex): Vertex {
+        val predecessors = predecessors[vertex]
+        check(predecessors.size == 1)
+        return Vertex(predecessors[0])
+    }
     override fun getOutgoingEdges(vertex: Vertex): EdgeSet = OutgoingIncidentEdgeSet(vertex, successors[vertex])
+    override fun getOutgoingEdge(vertex: Vertex): Edge {
+        val successors = successors[vertex]
+        check(successors.size == 1)
+        return canonicalEdge(vertex, Vertex(successors[0]))
+    }
     override fun getIncomingEdges(vertex: Vertex): EdgeSet = IncomingIncidentEdgeSet(vertex, predecessors[vertex])
+    override fun getIncomingEdge(vertex: Vertex): Edge {
+        val predecessors = predecessors[vertex]
+        check(predecessors.size == 1)
+        return canonicalEdge(Vertex(predecessors[0]), vertex)
+    }
 
     override val edges: EdgeSet = object : AbstractEdgeSet() {
         override val size: Int get() = numEdges
@@ -159,7 +179,7 @@ internal class ImmutableAdjacencyListGraph private constructor(
     override fun containsEdge(source: Vertex, target: Vertex): Boolean = successors[source].binarySearch(target) >= 0
 
     override fun getEdge(source: Vertex, target: Vertex): Edge {
-        if (!containsEdge(source, target)) throw NoSuchElementException()
+        check(containsEdge(source, target))
         return canonicalEdge(source, target)
     }
 

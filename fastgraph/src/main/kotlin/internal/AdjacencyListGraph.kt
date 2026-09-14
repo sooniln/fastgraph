@@ -352,7 +352,7 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
     override fun containsEdge(source: Vertex, target: Vertex): Boolean = successors[source].contains(target)
 
     override fun getEdge(source: Vertex, target: Vertex): Edge {
-        if (!containsEdge(source, target)) throw NoSuchElementException()
+        check(containsEdge(source, target))
         return canonicalEdge(source, target)
     }
 

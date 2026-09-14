@@ -1,4 +1,4 @@
-package io.github.sooniln.fastgraph.subgraph
+package io.github.sooniln.fastgraph.filtered
 
 import io.github.sooniln.fastcollect.Long2AnyHashMap
 import io.github.sooniln.fastcollect.getOrPut
@@ -11,17 +11,17 @@ import io.github.sooniln.fastgraph.MutableEdgeProperty
 import io.github.sooniln.fastgraph.PropertyType
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
 
-internal class FilteredEdgeProperty<T>(
+internal class PredicatedEdgeProperty<T>(
     override val graph: Graph,
     override val type: PropertyType<T>,
     private val initializer: EdgeFunction<T>,
-    private val filter: EdgePredicate,
+    private val predicate: EdgePredicate,
 ) : MutableEdgeProperty<T> {
 
     private val property = Long2AnyHashMap<T>()
 
     override fun get(edge: Edge): T {
-        if (!filter.test(edge)) {
+        if (!predicate.test(edge)) {
             property.remove(edge.id)
             throwIllegalEdge(graph, edge)
         }
@@ -30,7 +30,7 @@ internal class FilteredEdgeProperty<T>(
     }
 
     override fun set(edge: Edge, value: T) {
-        if (!filter.test(edge)) {
+        if (!predicate.test(edge)) {
             property.remove(edge.id)
             throwIllegalEdge(graph, edge)
         }
@@ -39,7 +39,7 @@ internal class FilteredEdgeProperty<T>(
     }
 
     override fun put(edge: Edge, value: T): T {
-        if (!filter.test(edge)) {
+        if (!predicate.test(edge)) {
             property.remove(edge.id)
             throwIllegalEdge(graph, edge)
         }

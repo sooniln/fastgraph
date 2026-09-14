@@ -1,4 +1,4 @@
-package io.github.sooniln.fastgraph.subgraph
+package io.github.sooniln.fastgraph.filtered
 
 import io.github.sooniln.fastgraph.AbstractVertexSet
 import io.github.sooniln.fastgraph.Graph
@@ -7,19 +7,18 @@ import io.github.sooniln.fastgraph.MutableVertexProperty
 import io.github.sooniln.fastgraph.PropertyType
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
-import io.github.sooniln.fastgraph.VertexConsumer
 import io.github.sooniln.fastgraph.VertexFunction
 import io.github.sooniln.fastgraph.VertexIterator
 import io.github.sooniln.fastgraph.VertexPredicate
 import io.github.sooniln.fastgraph.VertexReference
 import java.lang.ref.WeakReference
 
-internal class FilteredVertices(
+internal class PredicatedVertices(
     private val parent: Graph,
-    private val filter: VertexPredicate,
-) : SubgraphVertices, AbstractVertexSet() {
+    private val predicate: VertexPredicate,
+) : FilteredVertices, AbstractVertexSet() {
 
-    private val properties = ArrayList<WeakReference<FilteredVertexProperty<*>>>()
+    private val properties = ArrayList<WeakReference<PredicatedVertexProperty<*>>>()
 
     // TODO: figure out a way to avoid lateinit?
     private lateinit var graph: Graph
@@ -31,14 +30,14 @@ internal class FilteredVertices(
     override val size: Int get() {
         var size = 0
         for (vertex in parent.vertices) {
-            if (filter.test(vertex)) {
+            if (predicate.test(vertex)) {
                 ++size
             }
         }
         return size
     }
 
-    override fun contains(element: Vertex): Boolean = parent.vertices.contains(element) && filter.test(element)
+    override fun contains(element: Vertex): Boolean = parent.vertices.contains(element) && predicate.test(element)
 
     override fun iterator(): VertexIterator = object : VertexIterator {
         private val it = parent.vertices.iterator()
@@ -58,7 +57,7 @@ internal class FilteredVertices(
         private fun increment() {
             while (it.hasNext()) {
                 next = it.next()
-                if (filter.test(next!!)) return
+                if (predicate.test(next!!)) return
             }
             next = null
         }
@@ -76,7 +75,7 @@ internal class FilteredVertices(
         type: PropertyType<T>,
         defaultValueFunction: VertexFunction<T>
     ): MutableVertexProperty<T> {
-        val property = FilteredVertexProperty(graph, type, defaultValueFunction, filter)
+        val property = PredicatedVertexProperty(graph, type, defaultValueFunction, predicate)
         properties.add(WeakReference(property))
         return property
     }

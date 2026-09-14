@@ -146,9 +146,9 @@ class KeyPropertyTest {
 
     @ParameterizedTest
     @MethodSource("keyCases")
-    fun <T> vertexKeyPropertyOnInducedSubgraph(case: KeyCase<T>) {
+    fun <T> vertexKeyPropertyOnInducedFilteredGraph(case: KeyCase<T>) {
         val graph = buildGraph(true) { addVertex(); addVertex(); addVertex() }
-        val subgraph = graph.subgraph(vertexSetOf(Vertex(0), Vertex(2)), emptyEdgeSet())
+        val subgraph = graph.filter(vertexSetOf(Vertex(0), Vertex(2)), emptyEdgeSet())
         val property = subgraph.createVertexKeyProperty(case.type)
         property[Vertex(0)] = case.keyAt(0)
         assertThrows<IllegalStateException> { property[Vertex(0)] }
@@ -159,9 +159,9 @@ class KeyPropertyTest {
     }
 
     @Test
-    fun filteredSubgraphDoesNotSupportKeyProperties() {
+    fun filteredFilteredGraphDoesNotSupportKeyProperties() {
         val graph = buildGraph(true) { addVertex() }
-        val subgraph = graph.subgraph({ true }, { true })
+        val subgraph = graph.filter({ true }, { true })
         assertThrows<UnsupportedOperationException> { subgraph.createVertexKeyProperty<String>() }
         assertThrows<UnsupportedOperationException> { subgraph.createEdgeKeyProperty<String>() }
     }

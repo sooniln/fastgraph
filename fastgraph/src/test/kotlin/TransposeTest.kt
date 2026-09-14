@@ -1,6 +1,7 @@
 package io.github.sooniln.fastgraph
 
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 
@@ -70,6 +71,25 @@ class TransposeTest {
             assertThat(v1.successors()).containsExactlyInAnyOrder(v0)
             assertThat(v1.predecessors()).containsExactlyInAnyOrder(v2)
         }
+
+        // the singular accessors must be reversed along with their plural counterparts
+        assertThat(transposed.successor(v1)).isEqualTo(v0)
+        assertThat(transposed.predecessor(v1)).isEqualTo(v2)
+        assertThat(transposed.successor(v2)).isEqualTo(v1)
+        assertThat(transposed.predecessor(v0)).isEqualTo(v1)
+        assertThrows<IllegalStateException> { transposed.successor(v0) }
+        assertThrows<IllegalStateException> { transposed.predecessor(v2) }
+
+        assertThat(transposed.outgoingEdge(v1)).isEqualTo(e0)
+        assertThat(transposed.incomingEdge(v1)).isEqualTo(e1)
+        assertThat(transposed.outgoingEdge(v2)).isEqualTo(e1)
+        assertThat(transposed.incomingEdge(v0)).isEqualTo(e0)
+        assertThrows<IllegalStateException> { transposed.outgoingEdge(v0) }
+        assertThrows<IllegalStateException> { transposed.incomingEdge(v2) }
+
+        assertThat(transposed.edge(v1, v0)).isEqualTo(e0)
+        assertThat(transposed.edge(v2, v1)).isEqualTo(e1)
+        assertThrows<IllegalStateException> { transposed.edge(v0, v1) }
     }
 
     @ParameterizedTest(name = "directed={0}")

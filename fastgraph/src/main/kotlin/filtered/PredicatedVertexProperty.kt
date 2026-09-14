@@ -1,4 +1,4 @@
-package io.github.sooniln.fastgraph.subgraph
+package io.github.sooniln.fastgraph.filtered
 
 import io.github.sooniln.fastcollect.Int2AnyHashMap
 import io.github.sooniln.fastcollect.getOrPut
@@ -11,17 +11,17 @@ import io.github.sooniln.fastgraph.VertexFunction
 import io.github.sooniln.fastgraph.VertexPredicate
 import io.github.sooniln.fastgraph.internal.throwIllegalVertex
 
-internal class FilteredVertexProperty<T>(
+internal class PredicatedVertexProperty<T>(
     override val graph: Graph,
     override val type: PropertyType<T>,
     private val defaultValueFunction: VertexFunction<T>,
-    private val filter: VertexPredicate,
+    private val predicate: VertexPredicate,
 ) : MutableVertexProperty<T> {
 
     private val property = Int2AnyHashMap<T>()
 
     override fun get(vertex: Vertex): T {
-        if (!filter.test(vertex)) {
+        if (!predicate.test(vertex)) {
             property.remove(vertex.id)
             throwIllegalVertex(vertex)
         }
@@ -30,7 +30,7 @@ internal class FilteredVertexProperty<T>(
     }
 
     override fun set(vertex: Vertex, value: T) {
-        if (!filter.test(vertex)) {
+        if (!predicate.test(vertex)) {
             property.remove(vertex.id)
             throwIllegalVertex(vertex)
         }
@@ -39,7 +39,7 @@ internal class FilteredVertexProperty<T>(
     }
 
     override fun put(vertex: Vertex, value: T): T {
-        if (!filter.test(vertex)) {
+        if (!predicate.test(vertex)) {
             property.remove(vertex.id)
             throwIllegalVertex(vertex)
         }

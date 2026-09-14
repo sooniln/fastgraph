@@ -34,7 +34,7 @@ class SubgraphTest {
         val e2 = graph.addEdge(v2, v0)
         graph.addEdge(v0, v3)
 
-        val subgraph = graph.subgraph(vertexSetOf(v0, v1, v2), edgeSetOf(e0, e1, e2))
+        val subgraph = graph.filter(vertexSetOf(v0, v1, v2), edgeSetOf(e0, e1, e2))
 
         assertThat(subgraph.directed).isEqualTo(graph.directed)
         assertThat(subgraph.vertices).containsExactlyInAnyOrder(v0, v1, v2)
@@ -50,6 +50,34 @@ class SubgraphTest {
     }
 
     @Test
+    fun inducingSubgraphWithoutInducingVerticesKeepsAllParentVertices() {
+        val graph = mutableGraph(true)
+        val v0 = graph.addVertex()
+        val v1 = graph.addVertex()
+        val v2 = graph.addVertex()
+        val e0 = graph.addEdge(v0, v1)
+        graph.addEdge(v1, v2)
+
+        val subgraph = graph.filter(null, edgeSetOf(e0))
+
+        assertThat(subgraph.vertices).containsExactlyInAnyOrder(v0, v1, v2)
+        assertThat(subgraph.edges).containsExactlyInAnyOrder(e0)
+
+        // the vertex set tracks every parent vertex, so it compares equal to the parent's
+        assertThat(subgraph.vertices).isEqualTo(graph.vertices)
+
+        // properties created through the subgraph belong to it, not to the parent
+        assertThat(subgraph.createVertexProperty<String>().graph).isSameAs(subgraph)
+        assertThat(subgraph.createVertexKeyProperty<String>().graph).isSameAs(subgraph)
+        assertThat(subgraph.createEdgeProperty<String>().graph).isSameAs(subgraph)
+
+        // adding a vertex to the parent is an ordinary event for a subgraph that induces all vertices
+        val v3 = graph.addVertex()
+        assertThat(subgraph.vertices).containsExactlyInAnyOrder(v0, v1, v2, v3)
+        assertThat(subgraph.edges).containsExactlyInAnyOrder(e0)
+    }
+
+    @Test
     fun inducingSubgraphExcludesEdgeNotInInducingSetEvenWhenBothEndpointsIncluded() {
         val graph = mutableGraph(true)
         val v0 = graph.addVertex()
@@ -59,10 +87,45 @@ class SubgraphTest {
         val e1 = graph.addEdge(v1, v2)
         graph.addEdge(v2, v0)
 
-        val subgraph = graph.subgraph(vertexSetOf(v0, v1, v2), edgeSetOf(e0, e1))
+        val subgraph = graph.filter(vertexSetOf(v0, v1, v2), edgeSetOf(e0, e1))
 
         assertThat(subgraph.edges).containsExactlyInAnyOrder(e0, e1)
         assertThat(subgraph.hasEdge(v2, v0)).isFalse
+    }
+
+    @Test
+    fun inducingSubgraphResolvesSingleEdgeAgainstTheFilteredEdges() {
+        val graph = mutableGraph(true, multiEdge = true)
+        val v0 = graph.addVertex()
+        val v1 = graph.addVertex()
+        val v2 = graph.addVertex()
+        val e0 = graph.addEdge(v0, v1)
+        graph.addEdge(v0, v1)
+        val e2 = graph.addEdge(v1, v2)
+        graph.addEdge(v2, v0)
+
+        val subgraph = graph.filter(vertexSetOf(v0, v1, v2), edgeSetOf(e0, e2))
+
+        // only e0 of the parallel pair survives the filter, so it is the single edge from v0 to v1
+        assertThat(subgraph.edge(v0, v1)).isEqualTo(e0)
+        assertThat(subgraph.edge(v1, v2)).isEqualTo(e2)
+
+        // the v2 -> v0 edge was filtered out, so there is no edge to resolve
+        assertThrows<IllegalStateException> { subgraph.edge(v2, v0) }
+    }
+
+    @Test
+    fun inducingSubgraphHasNoSingleEdgeWhenBothParallelEdgesSurvive() {
+        val graph = mutableGraph(true, multiEdge = true)
+        val v0 = graph.addVertex()
+        val v1 = graph.addVertex()
+        val e0 = graph.addEdge(v0, v1)
+        val e1 = graph.addEdge(v0, v1)
+
+        val subgraph = graph.filter(vertexSetOf(v0, v1), edgeSetOf(e0, e1))
+
+        assertThat(subgraph.edges).containsExactlyInAnyOrder(e0, e1)
+        assertThrows<IllegalStateException> { subgraph.edge(v0, v1) }
     }
 
     @Test
@@ -76,7 +139,7 @@ class SubgraphTest {
         val e1 = graph.addEdge(v1, v2)
         val e2 = graph.addEdge(v2, v0)
 
-        val subgraph = graph.subgraph(vertexSetOf(v0, v1, v2), edgeSetOf(e0, e1, e2))
+        val subgraph = graph.filter(vertexSetOf(v0, v1, v2), edgeSetOf(e0, e1, e2))
 
         // v2 is the highest-indexed vertex, so removing it is a plain removal (no id swap to disturb v0/v1)
         graph.removeVertex(v2)
@@ -96,7 +159,7 @@ class SubgraphTest {
         graph.addEdge(v1, v2)
         graph.addEdge(v2, v0)
 
-        val subgraph = graph.subgraph(vertexSetOf(v0, v1, v2), edgeSetOf<Edge>())
+        val subgraph = graph.filter(vertexSetOf(v0, v1, v2), edgeSetOf<Edge>())
         val listener = RecordingVertexListener()
         subgraph.registerVertexChangeListener(listener)
 
@@ -119,7 +182,7 @@ class SubgraphTest {
         val e2 = graph.addEdge(v2, v0)
 
         val allowedEdges = mutableSetOf(e0, e1)
-        val subgraph = graph.subgraph(vertexSetOf(v0, v1, v2)) { edge -> edge in allowedEdges }
+        val subgraph = graph.filter(vertexSetOf(v0, v1, v2)) { edge -> edge in allowedEdges }
 
         assertThat(subgraph.edges).containsExactlyInAnyOrder(e0, e1)
 
@@ -148,7 +211,7 @@ class SubgraphTest {
         val e0 = graph.addEdge(v0, v1)
         graph.addEdge(v1, v2)
 
-        val subgraph = graph.subgraph({ vertex -> vertex != v2 }, { true })
+        val subgraph = graph.filter({ vertex -> vertex != v2 }, { true })
 
         assertThat(subgraph.vertices).containsExactlyInAnyOrder(v0, v1)
         assertThat(subgraph.edges).containsExactlyInAnyOrder(e0)
@@ -164,7 +227,7 @@ class SubgraphTest {
         val graph = mutableGraph(true)
         graph.addVertex()
 
-        assertThrows<IllegalArgumentException> { graph.subgraph(vertexSetOf(Vertex(999)), edgeSetOf<Edge>()) }
+        assertThrows<IllegalArgumentException> { graph.filter(vertexSetOf(Vertex(999)), edgeSetOf<Edge>()) }
     }
 
     @Test
@@ -177,7 +240,7 @@ class SubgraphTest {
             addEdge(v0, v1)
         }
 
-        val subgraph = immutable.subgraph(vertexSetOf(v0, v1), immutable.edges)
+        val subgraph = immutable.filter(vertexSetOf(v0, v1), immutable.edges)
 
         assertThat(subgraph).isInstanceOf(ImmutableGraph::class.java)
         assertThat(subgraph.vertices).containsExactlyInAnyOrder(v0, v1)

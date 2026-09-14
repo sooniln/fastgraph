@@ -1,9 +1,8 @@
-package io.github.sooniln.fastgraph.subgraph
+package io.github.sooniln.fastgraph.filtered
 
 import io.github.sooniln.fastgraph.AbstractEdgeSet
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeChangeListener
-import io.github.sooniln.fastgraph.EdgeConsumer
 import io.github.sooniln.fastgraph.EdgeFunction
 import io.github.sooniln.fastgraph.EdgeIterator
 import io.github.sooniln.fastgraph.EdgePredicate
@@ -14,13 +13,13 @@ import io.github.sooniln.fastgraph.MutableEdgeProperty
 import io.github.sooniln.fastgraph.PropertyType
 import java.lang.ref.WeakReference
 
-internal class FilteredEdges(
+internal class PredicatedEdges(
     private val parent: Graph,
-    private val vertices: SubgraphVertices,
-    private val filter: EdgePredicate,
-) : SubgraphEdges, AbstractEdgeSet() {
+    private val vertices: FilteredVertices,
+    private val predicate: EdgePredicate,
+) : FilteredEdges, AbstractEdgeSet() {
 
-    private val properties = ArrayList<WeakReference<FilteredEdgeProperty<*>>>()
+    private val properties = ArrayList<WeakReference<PredicatedEdgeProperty<*>>>()
 
     // TODO: figure out a way to avoid lateinit?
     private lateinit var graph: Graph
@@ -31,7 +30,7 @@ internal class FilteredEdges(
 
     private fun test(edge: Edge): Boolean {
         context(parent) {
-            return filter.test(edge) && vertices.contains(edge.source) && vertices.contains(edge.target)
+            return predicate.test(edge) && vertices.contains(edge.source) && vertices.contains(edge.target)
         }
     }
 
@@ -83,7 +82,7 @@ internal class FilteredEdges(
         type: PropertyType<T>,
         defaultValueFunction: EdgeFunction<T>
     ): MutableEdgeProperty<T> {
-        val property = FilteredEdgeProperty(graph, type, defaultValueFunction, filter)
+        val property = PredicatedEdgeProperty(graph, type, defaultValueFunction, predicate)
         properties.add(WeakReference(property))
         return property
     }

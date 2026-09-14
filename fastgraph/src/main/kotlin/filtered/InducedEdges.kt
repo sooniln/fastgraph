@@ -1,10 +1,9 @@
-package io.github.sooniln.fastgraph.subgraph
+package io.github.sooniln.fastgraph.filtered
 
 import io.github.sooniln.fastcollect.*
 import io.github.sooniln.fastgraph.AbstractEdgeSet
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeChangeListener
-import io.github.sooniln.fastgraph.EdgeConsumer
 import io.github.sooniln.fastgraph.EdgeFunction
 import io.github.sooniln.fastgraph.EdgeIterator
 import io.github.sooniln.fastgraph.EdgeReference
@@ -21,11 +20,11 @@ import io.github.sooniln.fastgraph.createEdgeProperty
 import io.github.sooniln.fastgraph.listeners.EdgeChangeListenerManager
 import io.github.sooniln.fastgraph.references.EdgeReferenceManager
 
-internal class InducingEdges(
+internal class InducedEdges(
     private val parent: Graph,
-    private val vertices: InducingVertices,
+    private val vertices: InducedVertices,
     inducers: EdgeSet
-) : SubgraphEdges, AbstractEdgeSet(), VertexChangeListener, EdgeChangeListener {
+) : FilteredEdges, AbstractEdgeSet(), VertexChangeListener, EdgeChangeListener {
 
     private val edges = LongHashSet(inducers.size)
     private val listeners = EdgeChangeListenerManager()
@@ -84,9 +83,7 @@ internal class InducingEdges(
         listeners.notifyTrimToSize()
     }
 
-    override fun onVertexAdded(vertex: Vertex) {
-        throw IllegalStateException()
-    }
+    override fun onVertexAdded(vertex: Vertex) {}
 
     override fun onVertexRemoved(vertex: Vertex) {
         val it = edges.iterator()

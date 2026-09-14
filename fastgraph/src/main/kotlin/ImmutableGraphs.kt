@@ -9,9 +9,6 @@ import io.github.sooniln.fastgraph.internal.AdjacencyListGraph
 import io.github.sooniln.fastgraph.internal.AdjacencyListNetwork
 import io.github.sooniln.fastgraph.internal.ImmutableAdjacencyListGraph
 import io.github.sooniln.fastgraph.internal.ImmutableAdjacencyListNetwork
-import io.github.sooniln.fastgraph.properties.MapEdgeKeyProperty
-import io.github.sooniln.fastgraph.properties.MapVertexKeyProperty
-import io.github.sooniln.fastgraph.subgraph.Subgraphs
 
 /**
  * A [Graph] whose topology will never change. This class offers similar guarantees to most immutable collections:
@@ -180,14 +177,6 @@ public inline fun <reified V, reified E> buildImmutableValueGraph(
     builder: ValueGraphBuilder<V?, E?>.() -> Unit
 ): ImmutableValueGraph<V?, E?> {
     return buildImmutableValueGraph(directed, { null }, { null }, multiEdge, indexEdges, builder)
-}
-
-/**
- * Returns a view of the immutable graph with filtered vertices and edges. See [subgraph] for more
- * information on options.
- */
-public fun ImmutableGraph.subgraph(inducingVertices: VertexSet, inducingEdges: EdgeSet): ImmutableGraph {
-    return Subgraphs.subgraph(this, inducingVertices, inducingEdges)
 }
 
 private class EmptyGraph(override val directed: Boolean) : ImmutableGraph, IndexedVertexGraph, IndexedEdgeGraph {

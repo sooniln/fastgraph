@@ -80,9 +80,13 @@ internal class ImmutableAdjacencyListNetwork private constructor(
     override fun getOutDegree(vertex: Vertex): Int = successors[vertex].size
     override fun getInDegree(vertex: Vertex): Int = predecessors[vertex].size
     override fun getSuccessors(vertex: Vertex): VertexSet = successors[vertex].vertices
+    override fun getSuccessor(vertex: Vertex): Vertex = successors[vertex].vertex
     override fun getPredecessors(vertex: Vertex): VertexSet = predecessors[vertex].vertices
+    override fun getPredecessor(vertex: Vertex): Vertex = predecessors[vertex].vertex
     override fun getOutgoingEdges(vertex: Vertex): EdgeSet = IncidentEdgeSet(true, vertex, successors[vertex])
+    override fun getOutgoingEdge(vertex: Vertex): Edge = successors[vertex].edge
     override fun getIncomingEdges(vertex: Vertex): EdgeSet = IncidentEdgeSet(false, vertex, predecessors[vertex])
+    override fun getIncomingEdge(vertex: Vertex): Edge = predecessors[vertex].edge
 
     override val edges: IndexedEdgeSet = object : AbstractIndexedEdgeSet() {
         override val size: Int get() = edgeValues.size
@@ -112,11 +116,7 @@ internal class ImmutableAdjacencyListNetwork private constructor(
         return successors[source].contains(target)
     }
 
-    override fun getEdge(source: Vertex, target: Vertex): Edge {
-        val edgeIt = successors[source].edgesTo(target).edgeIterator()
-        if (!edgeIt.hasNext()) throw NoSuchElementException()
-        return edgeIt.next()
-    }
+    override fun getEdge(source: Vertex, target: Vertex): Edge = successors[source].edgeTo(target)
 
     override fun getEdges(source: Vertex, target: Vertex): EdgeSet {
         return IncidentEdgeSet(true, source, successors[source].edgesTo(target))
@@ -215,6 +215,18 @@ internal class ImmutableAdjacencyListNetwork private constructor(
                         return Vertex(arr[i++])
                     }
                 }
+            }
+
+        val vertex: Vertex
+            get() {
+                check(numVertices == 1)
+                return Vertex(arr[2])
+            }
+
+        val edge: Edge
+            get() {
+                check(numEdges == 1)
+                return canonicalEdge(arr[4])
             }
 
         override fun contains(element: EdgeAdjacency): Boolean {
@@ -327,6 +339,14 @@ internal class ImmutableAdjacencyListNetwork private constructor(
                     return canonicalEdge(arr[index++])
                 }
             }
+        }
+
+        fun edgeTo(target: Vertex): Edge {
+            val vertexIdx = findVertex(target)
+            check(vertexIdx >= 0)
+            val edgeId = arr[arr[vertexDataIdx(vertexIdx)]]
+            check(edgeId >= 0)
+            return canonicalEdge(edgeId)
         }
 
         companion object {

@@ -8,7 +8,6 @@ package io.github.sooniln.fastgraph
 import io.github.sooniln.fastgraph.internal.AdjacencyListGraph
 import io.github.sooniln.fastgraph.internal.AdjacencyListNetwork
 import io.github.sooniln.fastgraph.internal.TransposedGraph
-import io.github.sooniln.fastgraph.subgraph.Subgraphs
 
 /**
  * An interface for read-only graph topology. A graph topology is composed of a set of vertices and a set of edges
@@ -83,7 +82,7 @@ public interface Graph {
     public fun inDegree(vertex: Vertex): Int
 
     /**
-     * Returns the set of vertices that can be reached from the given node by traversing outgoing edges. In an
+     * Returns the set of vertices that can be reached from the given vertex by traversing outgoing edges. In an
      * undirected graph all edges connected to this vertex are considered outgoing. The returned value is a live view
      * that reflects changes to the underlying topology. If the vertex the collection is based on is removed from the
      * graph the behavior of the collection is undefined (and may throw exceptions). Throws [IllegalArgumentException]
@@ -93,7 +92,19 @@ public interface Graph {
     public fun successors(vertex: Vertex): VertexSet
 
     /**
-     * Returns the set of vertices that can be reached from the given node by traversing incoming edges. In an
+     * Returns the single vertex that can be reached from the given vertex by traversing the single outgoing edge. If
+     * there are no outgoing edges or more than one outgoing edge, then [IllegalStateException] is thrown. Throws
+     * [IllegalArgumentException] if passed a vertex that is not in this graph.
+     */
+    @JvmName("successor")
+    public fun successor(vertex: Vertex): Vertex {
+        val successors = successors(vertex)
+        check (successors.size == 1)
+        return successors.iterator().next()
+    }
+
+    /**
+     * Returns the set of vertices that can be reached from the given vertex by traversing incoming edges. In an
      * undirected graph all edges connected to this vertex are considered incoming. The returned value is a live view
      * that reflects changes to the underlying topology. If the vertex the collection is based on is removed from the
      * graph the behavior of the collection is undefined (and may throw exceptions). Throws [IllegalArgumentException]
@@ -101,6 +112,18 @@ public interface Graph {
      */
     @JvmName("predecessors")
     public fun predecessors(vertex: Vertex): VertexSet
+
+    /**
+     * Returns the single vertex that can be reached from the given vertex by traversing the single incoming edge. If
+     * there are no incoming edges or more than one incoming edge, then [IllegalStateException] is thrown. Throws
+     * [IllegalArgumentException] if passed a vertex that is not in this graph.
+     */
+    @JvmName("predecessor")
+    public fun predecessor(vertex: Vertex): Vertex {
+        val predecessors = predecessors(vertex)
+        check (predecessors.size == 1)
+        return predecessors.iterator().next()
+    }
 
     /**
      * Returns the set of edges that are outgoing from this vertex. In an undirected graph all edges connected to this
@@ -113,6 +136,18 @@ public interface Graph {
     public fun outgoingEdges(vertex: Vertex): EdgeSet
 
     /**
+     * Returns the single outgoing edge from this vertex. If there are no outgoing edges or more than one outgoing edge,
+     * then [IllegalStateException] is thrown. Throws [IllegalArgumentException] if passed a vertex that is not in this
+     * graph.
+     */
+    @JvmName("outgoingEdge")
+    public fun outgoingEdge(vertex: Vertex): Edge {
+        val outgoingEdges = outgoingEdges(vertex)
+        check (outgoingEdges.size == 1)
+        return outgoingEdges.iterator().next()
+    }
+
+    /**
      * Returns the set of edges that are incoming to this vertex. In an undirected graph all edges connected to this
      * vertex are considered incoming. The returned value is a live view that reflects changes to the underlying
      * topology. If the vertex the collection is based on is removed from the graph the behavior of the collection is
@@ -121,6 +156,18 @@ public interface Graph {
      */
     @JvmName("incomingEdges")
     public fun incomingEdges(vertex: Vertex): EdgeSet
+
+    /**
+     * Returns the single incoming edge from this vertex. If there are no incoming edges or more than one incoming edge,
+     * then [IllegalStateException] is thrown. Throws [IllegalArgumentException] if passed a vertex that is not in this
+     * graph.
+     */
+    @JvmName("incomingEdge")
+    public fun incomingEdge(vertex: Vertex): Edge {
+        val incomingEdges = incomingEdges(vertex)
+        check (incomingEdges.size == 1)
+        return incomingEdges.iterator().next()
+    }
 
     /**
      * Returns the set of all edges in this graph. The returned value is a live view that reflects changes to the
@@ -158,26 +205,25 @@ public interface Graph {
     public fun hasEdge(source: Vertex, target: Vertex): Boolean
 
     /**
-     * Returns an edge with the given source and target (see undirected edge caveats discussed in [hasEdge]), or
-     * throws [NoSuchElementException] if there is no such edge. If there are multiple edges with the given source and
-     * target, there are no guarantees on which will be returned. Throws [IllegalArgumentException] if passed a source
-     * or target vertex that is not in this graph.
+     * Returns the set of edges from the given source to the given target. Will return an empty set if there are no such
+     * edges. The returned value is a live view that reflects changes to the underlying topology. If a vertex the
+     * collection is based on is removed from the graph the behavior of the collection is undefined (and may throw
+     * exceptions). Throws [IllegalArgumentException] if passed a vertex that is not in this graph.
+     */
+    @JvmName("edges")
+    public fun edges(source: Vertex, target: Vertex): EdgeSet
+
+    /**
+     * Returns the single edge with the given source and target (see undirected edge caveats discussed in [hasEdge]). If
+     * there are no edges or multiple edges with the given source and target, then [IllegalStateException] is thrown.
+     * Throws [IllegalArgumentException] if passed a vertex that is not in this graph.
      */
     @JvmName("edge")
     public fun edge(source: Vertex, target: Vertex): Edge {
         val edges = edges(source, target)
-        if (edges.isEmpty()) throw NoSuchElementException()
+        check (edges.size == 1)
         return edges.iterator().next()
     }
-
-    /**
-     * Returns the set of edges from the given source to the given target. Will return an empty set if there are no such
-     * edges. The returned value is a live view that reflects changes to the underlying topology. If a vertex the
-     * collection is based on is removed from the graph the behavior of the collection is undefined (and may throw
-     * exceptions).
-     */
-    @JvmName("edges")
-    public fun edges(source: Vertex, target: Vertex): EdgeSet
 
     /**
      * Adds a [VertexChangeListener] which is invoked when changes are made to the vertex topology of this graph (when
@@ -911,102 +957,6 @@ public fun Graph.transpose(): Graph {
     }
 }
 
-/**
- * Returns a view of the graph with filtered vertices and edges. There are two methods of filtering, with
- * differing trade-offs:
- *
- * If you provide inducing vertices/edges (an explicit set of vertices/edges that defines the subgraph), this
- * results in:
- *   1. Better subgraph performance (operations generally run in linear time w.r.t the inducing vertices/edges, and
- *   some values can be cached internally so that constant recalculation is not necessary).
- *   2. Less flexibility in defining the sub-graph (the subgraph cannot adapt as vertices/edges change in some
- *   fashion).
- *   3. Vertex/edge listeners function normally on the subgraph.
- *   4. Vertex/edge references function normally on the subgraph.
- *   5. If an inducing vertex/edge is removed from the parent graph it is also removed from the subgraph.
- *   6. If the parent graph is immutable the returned subgraph is also immutable.
- *
- * If you filter vertices/edges (by providing an arbitrary filtering predicate which will be invoked any time a
- * graph operation is invoked), this results in:
- *   1. Worse subgraph performance (calculating sizes and iteration generally run in linear time w.r.t all the
- *   parent graph's vertices/edges, and values cannot be cached internally - recalculation is always necessary).
- *   2. More flexibility in defining the sub-graph (the filtering predicates can take into account any arbitrary
- *   information needed).
- *   3. Since the filter may depend on arbitrary information that can change at any time it is impossible to
- *   guarantee a consistent view of which vertices/edges are in the subgraph. This further implies:
- *     a. Vertex/edge listeners are unsupported on the subgraph and will throw [UnsupportedOperationException].
- *     b. Vertex/edge references are unsupported on the subgraph and will throw [UnsupportedOperationException].
- *     c. The returned subgraph is not immutable regardless of whether the parent is immutable.
- */
-public fun Graph.subgraph(vertices: VertexSet, edges: EdgeSet): Graph {
-    return Subgraphs.subgraph(this, vertices, edges)
-}
-
-/**
- * Returns a view of the graph with filtered vertices and edges. There are two methods of filtering, with
- * differing trade-offs:
- *
- * If you provide inducing vertices/edges (an explicit set of vertices/edges that defines the subgraph), this
- * results in:
- *   1. Better subgraph performance (operations generally run in linear time w.r.t the inducing vertices/edges, and
- *   some values can be cached internally so that constant recalculation is not necessary).
- *   2. Less flexibility in defining the sub-graph (the subgraph cannot adapt as vertices/edges change in some
- *   fashion).
- *   3. Vertex/edge listeners function normally on the subgraph.
- *   4. Vertex/edge references function normally on the subgraph.
- *   5. If an inducing vertex/edge is removed from the parent graph it is also removed from the subgraph.
- *   6. If the parent graph is immutable the returned subgraph is also immutable.
- *
- * If you filter vertices/edges (by providing an arbitrary filtering predicate which will be invoked any time a
- * graph operation is invoked), this results in:
- *   1. Worse subgraph performance (calculating sizes and iteration generally run in linear time w.r.t all the
- *   parent graph's vertices/edges, and values cannot be cached internally - recalculation is always necessary).
- *   2. More flexibility in defining the sub-graph (the filtering predicates can take into account any arbitrary
- *   information needed).
- *   3. Since the filter may depend on arbitrary information that can change at any time it is impossible to
- *   guarantee a consistent view of which vertices/edges are in the subgraph. This further implies:
- *     a. Vertex/edge listeners are unsupported on the subgraph and will throw [UnsupportedOperationException].
- *     b. Vertex/edge references are unsupported on the subgraph and will throw [UnsupportedOperationException].
- *     c. The returned subgraph is not immutable regardless of whether the parent is immutable.
- */
-public fun Graph.subgraph(vertices: VertexSet, edgeFilter: EdgePredicate): Graph {
-    return Subgraphs.subgraph(this, vertices, edgeFilter)
-}
-
-/**
- * Returns a view of the graph with filtered vertices and edges. There are two methods of filtering, with
- * differing trade-offs:
- *
- * If you provide inducing vertices/edges (an explicit set of vertices/edges that defines the subgraph), this
- * results in:
- *   1. Better subgraph performance (operations generally run in linear time w.r.t the inducing vertices/edges, and
- *   some values can be cached internally so that constant recalculation is not necessary).
- *   2. Less flexibility in defining the sub-graph (the subgraph cannot adapt as vertices/edges change in some
- *   fashion).
- *   3. Vertex/edge listeners function normally on the subgraph.
- *   4. Vertex/edge references function normally on the subgraph.
- *   5. If an inducing vertex/edge is removed from the parent graph it is also removed from the subgraph.
- *   6. If the parent graph is immutable the returned subgraph is also immutable.
- *
- * If you filter vertices/edges (by providing an arbitrary filtering predicate which will be invoked any time a
- * graph operation is invoked), this results in:
- *   1. Worse subgraph performance (calculating sizes and iteration generally run in linear time w.r.t all the
- *   parent graph's vertices/edges, and values cannot be cached internally - recalculation is always necessary).
- *   2. More flexibility in defining the sub-graph (the filtering predicates can take into account any arbitrary
- *   information needed).
- *   3. Since the filter may depend on arbitrary information that can change at any time it is impossible to
- *   guarantee a consistent view of which vertices/edges are in the subgraph. This further implies:
- *     a. Vertex/edge listeners are unsupported on the subgraph and will throw [UnsupportedOperationException].
- *     b. Vertex/edge references are unsupported on the subgraph and will throw [UnsupportedOperationException].
- *     c. The returned subgraph is not immutable regardless of whether the parent is immutable.
- */
-public fun Graph.subgraph(vertexFilter: VertexPredicate, edgeFilter: EdgePredicate = { true}): Graph {
-    return Subgraphs.subgraph(this, vertexFilter, edgeFilter)
-}
-
-/** See [subgraph]. */
-public fun Graph.filterEdges(edgeFilter: EdgePredicate): Graph = subgraph(vertices, edgeFilter)
-
 /** An integer property that simply returns the [Vertex.id] for every vertex. */
 public val Graph.vertexIdProperty: VertexKeyProperty<Int> get() = object : VertexKeyProperty<Int> {
     override val graph: Graph get() = this@vertexIdProperty
@@ -1060,6 +1010,17 @@ public abstract class AbstractGraph : Graph {
     @JvmName("getSuccessors")
     protected abstract fun getSuccessors(vertex: Vertex): VertexSet
 
+    @JvmName("successor")
+    override fun successor(vertex: Vertex): Vertex = getSuccessor(validateVertex(vertex))
+
+    /** Will only ever be invoked if `vertex` is valid. */
+    @JvmName("getSuccessor")
+    protected open fun getSuccessor(vertex: Vertex): Vertex {
+        val successors = getSuccessors(vertex)
+        check (successors.size == 1)
+        return successors.iterator().next()
+    }
+
     @JvmName("predecessors")
     override fun predecessors(vertex: Vertex): VertexSet {
         return if (!directed) successors(vertex) else getPredecessors(validateVertex(vertex))
@@ -1069,12 +1030,38 @@ public abstract class AbstractGraph : Graph {
     @JvmName("getPredecessors")
     protected abstract fun getPredecessors(vertex: Vertex): VertexSet
 
+    @JvmName("predecessor")
+    override fun predecessor(vertex: Vertex): Vertex {
+        return if (!directed) successor(vertex) else getPredecessor(validateVertex(vertex))
+    }
+
+    /** Will only ever be invoked if `vertex` is valid. */
+    @JvmName("getPredecessor")
+    protected open fun getPredecessor(vertex: Vertex): Vertex {
+        val predecessors = getPredecessors(vertex)
+        check (predecessors.size == 1)
+        return predecessors.iterator().next()
+    }
+
     @JvmName("outgoingEdges")
     override fun outgoingEdges(vertex: Vertex): EdgeSet = getOutgoingEdges(validateVertex(vertex))
 
     /** Will only ever be invoked if `vertex` is valid. */
     @JvmName("getOutgoingEdges")
     protected abstract fun getOutgoingEdges(vertex: Vertex): EdgeSet
+
+    @JvmName("outgoingEdge")
+    override fun outgoingEdge(vertex: Vertex): Edge {
+        return getOutgoingEdge(validateVertex(vertex))
+    }
+
+    /** Will only ever be invoked if `vertex` is valid. */
+    @JvmName("getOutgoingEdge")
+    protected open fun getOutgoingEdge(vertex: Vertex): Edge {
+        val outgoingEdges = getOutgoingEdges(vertex)
+        check (outgoingEdges.size == 1)
+        return outgoingEdges.iterator().next()
+    }
 
     @JvmName("incomingEdges")
     override fun incomingEdges(vertex: Vertex): EdgeSet {
@@ -1085,6 +1072,19 @@ public abstract class AbstractGraph : Graph {
     @JvmName("getIncomingEdges")
     protected abstract fun getIncomingEdges(vertex: Vertex): EdgeSet
 
+    @JvmName("incomingEdge")
+    override fun incomingEdge(vertex: Vertex): Edge {
+        return if (!directed) outgoingEdge(vertex) else getIncomingEdge(validateVertex(vertex))
+    }
+
+    /** Will only ever be invoked if `vertex` is valid. */
+    @JvmName("getIncomingEdge")
+    protected open fun getIncomingEdge(vertex: Vertex): Edge {
+        val incomingEdges = getIncomingEdges(vertex)
+        check (incomingEdges.size == 1)
+        return incomingEdges.iterator().next()
+    }
+
     @JvmName("hasEdge")
     override fun hasEdge(source: Vertex, target: Vertex): Boolean {
         return containsEdge(validateVertex(source), validateVertex(target))
@@ -1094,17 +1094,6 @@ public abstract class AbstractGraph : Graph {
     @JvmName("containsEdge")
     protected abstract fun containsEdge(source: Vertex, target: Vertex): Boolean
 
-    @JvmName("edge")
-    override fun edge(source: Vertex, target: Vertex): Edge {
-        return getEdge(validateVertex(source), validateVertex(target))
-    }
-
-    /** Will only ever be invoked if `source` and `target` are valid. */
-    @JvmName("getEdge")
-    protected open fun getEdge(source: Vertex, target: Vertex): Edge {
-        return getEdges(source, target).iterator().next()
-    }
-
     @JvmName("edges")
     override fun edges(source: Vertex, target: Vertex): EdgeSet {
         return getEdges(validateVertex(source), validateVertex(target))
@@ -1113,4 +1102,17 @@ public abstract class AbstractGraph : Graph {
     /** Will only ever be invoked if `source` and `target` are valid. */
     @JvmName("getEdges")
     protected abstract fun getEdges(source: Vertex, target: Vertex): EdgeSet
+
+    @JvmName("edge")
+    override fun edge(source: Vertex, target: Vertex): Edge {
+        return getEdge(validateVertex(source), validateVertex(target))
+    }
+
+    /** Will only ever be invoked if `source` and `target` are valid. */
+    @JvmName("getEdge")
+    protected open fun getEdge(source: Vertex, target: Vertex): Edge {
+        val edges = getEdges(source, target)
+        check (edges.size == 1)
+        return edges.iterator().next()
+    }
 }
