@@ -38,7 +38,7 @@ java {
 }
 
 dependencies {
-    api(libs.fastcollect)
+    implementation(libs.fastcollect)
 
     testImplementation(libs.assertJ)
     testImplementation(libs.junitCore)
