@@ -57,6 +57,7 @@ tasks.register<Sync>("GenerateMain") {
                 "EdgeProperties.kte",
                 listOf(
                     mapOf("Type" to "Boolean", "StorageType" to "Byte", "ReadLambda" to "{ return it != 0.toByte() }", "WriteLambda" to "{ return if (it) 1 else 0 }"),
+                    mapOf("Type" to "Byte"),
                     mapOf("Type" to "Int"),
                     mapOf("Type" to "Long"),
                     mapOf("Type" to "Float"),
@@ -66,11 +67,24 @@ tasks.register<Sync>("GenerateMain") {
                 "VertexProperties.kte",
                 listOf(
                     mapOf("Type" to "Boolean", "StorageType" to "Byte", "ReadLambda" to "{ return it != 0.toByte() }", "WriteLambda" to "{ return if (it) 1 else 0 }"),
+                    mapOf("Type" to "Byte"),
                     mapOf("Type" to "Int"),
                     mapOf("Type" to "Long"),
                     mapOf("Type" to "Float"),
                     mapOf("Type" to "Double"),
                 )) { expansion -> "properties/${expansion["Type"]}VertexProperties.kt" },
+            TemplateInstantiation(
+                "EdgeKeyProperties.kte",
+                listOf(
+                    mapOf("Type" to "Int"),
+                    mapOf("Type" to "Long"),
+                )) { expansion -> "properties/${expansion["Type"]}EdgeKeyProperties.kt" },
+            TemplateInstantiation(
+                "VertexKeyProperties.kte",
+                listOf(
+                    mapOf("Type" to "Int"),
+                    mapOf("Type" to "Long"),
+                )) { expansion -> "properties/${expansion["Type"]}VertexKeyProperties.kt" },
         ))
 }
 

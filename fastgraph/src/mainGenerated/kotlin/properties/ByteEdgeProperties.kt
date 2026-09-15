@@ -1,7 +1,7 @@
 package io.github.sooniln.fastgraph.properties
 
-import io.github.sooniln.fastcollect.${StorageType}ArrayList
-import io.github.sooniln.fastcollect.Long2${StorageType}HashMap
+import io.github.sooniln.fastcollect.ByteArrayList
+import io.github.sooniln.fastcollect.Long2ByteHashMap
 import io.github.sooniln.fastcollect.getOrPut
 import io.github.sooniln.fastcollect.lastIndex
 import io.github.sooniln.fastcollect.removeOrElse
@@ -16,19 +16,14 @@ import io.github.sooniln.fastgraph.MutableEdgeProperty
 import io.github.sooniln.fastgraph.PropertyType
 import io.github.sooniln.fastgraph.propertyTypeOf
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
-<% if (Type == "Int" || Type == "Long") { %>
-<% if (Type != "Long" && StorageType != "Long") { %>
-import io.github.sooniln.fastcollect.${Type}2LongHashMap
-<% } %>
-import io.github.sooniln.fastgraph.MutableEdgeKeyProperty
-<% } %>
 
-internal class ${Type}ArrayEdgeProperty(
+
+internal class ByteArrayEdgeProperty(
     override val graph: IndexedEdgeGraph,
-    defaultValueFunction: EdgeFunction<${Type}>,
-) : MutableEdgeProperty<${Type}>, EdgeChangeListener {
+    defaultValueFunction: EdgeFunction<Byte>,
+) : MutableEdgeProperty<Byte>, EdgeChangeListener {
 
-    private val property = ${StorageType}ArrayList()
+    private val property = ByteArrayList()
     private val initializer = defaultValueFunction
 
     init {
@@ -37,9 +32,9 @@ internal class ${Type}ArrayEdgeProperty(
         graph.registerEdgeChangeListener(this)
     }
 
-    override val type: PropertyType<${Type}> get() = propertyTypeOf()
+    override val type: PropertyType<Byte> get() = propertyTypeOf()
 
-    override fun get(edge: Edge): ${Type} {
+    override fun get(edge: Edge): Byte {
         try {
             return read(property[edge.lowBits])
         } catch (e: IndexOutOfBoundsException) {
@@ -47,7 +42,7 @@ internal class ${Type}ArrayEdgeProperty(
         }
     }
 
-    override fun set(edge: Edge, value: ${Type}) {
+    override fun set(edge: Edge, value: Byte) {
         try {
             property[edge.lowBits] = write(value)
         } catch (e: IndexOutOfBoundsException) {
@@ -55,7 +50,7 @@ internal class ${Type}ArrayEdgeProperty(
         }
     }
 
-    override fun put(edge: Edge, value: ${Type}): ${Type} {
+    override fun put(edge: Edge, value: Byte): Byte {
         try {
             return read(property.replace(edge.lowBits, write(value)))
         } catch (e: IndexOutOfBoundsException) {
@@ -81,22 +76,22 @@ internal class ${Type}ArrayEdgeProperty(
     override fun ensureEdgeCapacity(edgeCapacity: Int) = property.ensureCapacity(edgeCapacity)
     override fun trimToSize() = property.trimToSize()
 
-    private fun read(it: ${StorageType}): ${Type} ${ReadLambda}
-    private fun write(it: ${Type}): ${StorageType} ${WriteLambda}
+    private fun read(it: Byte): Byte { return it }
+    private fun write(it: Byte): Byte { return it }
 }
 
-internal class Immutable${Type}ArrayEdgeProperty<G>(
+internal class ImmutableByteArrayEdgeProperty<G>(
     override val graph: G,
-    defaultValueFunction: EdgeFunction<${Type}>,
-) : MutableEdgeProperty<${Type}> where G : ImmutableGraph, G : IndexedEdgeGraph {
+    defaultValueFunction: EdgeFunction<Byte>,
+) : MutableEdgeProperty<Byte> where G : ImmutableGraph, G : IndexedEdgeGraph {
 
-    private val property = ${StorageType}Array(graph.edges.size) { edgeId ->
+    private val property = ByteArray(graph.edges.size) { edgeId ->
         write(defaultValueFunction.apply(graph.edges[edgeId]))
     }
 
-    override val type: PropertyType<${Type}> get() = propertyTypeOf()
+    override val type: PropertyType<Byte> get() = propertyTypeOf()
 
-    override fun get(edge: Edge): ${Type} {
+    override fun get(edge: Edge): Byte {
         try {
             return read(property[edge.lowBits])
         } catch (e: IndexOutOfBoundsException) {
@@ -104,7 +99,7 @@ internal class Immutable${Type}ArrayEdgeProperty<G>(
         }
     }
 
-    override fun set(edge: Edge, value: ${Type}) {
+    override fun set(edge: Edge, value: Byte) {
         try {
             property[edge.lowBits] = write(value)
         } catch (e: IndexOutOfBoundsException) {
@@ -112,7 +107,7 @@ internal class Immutable${Type}ArrayEdgeProperty<G>(
         }
     }
 
-    override fun put(edge: Edge, value: ${Type}): ${Type} {
+    override fun put(edge: Edge, value: Byte): Byte {
         try {
             val oldValue = read(property[edge.lowBits])
             property[edge.lowBits] = write(value)
@@ -122,33 +117,33 @@ internal class Immutable${Type}ArrayEdgeProperty<G>(
         }
     }
 
-    private fun read(it: ${StorageType}): ${Type} ${ReadLambda}
-    private fun write(it: ${Type}): ${StorageType} ${WriteLambda}
+    private fun read(it: Byte): Byte { return it }
+    private fun write(it: Byte): Byte { return it }
 }
 
-internal class ${Type}MapEdgeProperty(
+internal class ByteMapEdgeProperty(
     override val graph: Graph,
-    defaultValueFunction: EdgeFunction<${Type}>
-) : MutableEdgeProperty<${Type}>, EdgeChangeListener {
+    defaultValueFunction: EdgeFunction<Byte>
+) : MutableEdgeProperty<Byte>, EdgeChangeListener {
 
-    private val property = Long2${StorageType}HashMap()
+    private val property = Long2ByteHashMap()
     private val initializer = defaultValueFunction
 
     init {
         graph.registerEdgeChangeListener(this)
     }
 
-    override val type: PropertyType<${Type}> get() = propertyTypeOf()
+    override val type: PropertyType<Byte> get() = propertyTypeOf()
 
-    override fun get(edge: Edge): ${Type} {
+    override fun get(edge: Edge): Byte {
         return read(property.getOrPut(edge.id) { write(initializer.apply(edge)) })
     }
 
-    override fun set(edge: Edge, value: ${Type}) {
+    override fun set(edge: Edge, value: Byte) {
         property[edge.id] = write(value)
     }
 
-    override fun put(edge: Edge, value: ${Type}): ${Type} {
+    override fun put(edge: Edge, value: Byte): Byte {
         return read(property.replaceOrSet(edge.id, write(value)) { write(initializer.apply(edge)) })
     }
 
@@ -166,16 +161,16 @@ internal class ${Type}MapEdgeProperty(
     override fun ensureEdgeCapacity(edgeCapacity: Int) = property.ensureCapacity(edgeCapacity)
     override fun trimToSize() = property.trimToSize()
 
-    private fun read(it: ${StorageType}): ${Type} ${ReadLambda}
-    private fun write(it: ${Type}): ${StorageType} ${WriteLambda}
+    private fun read(it: Byte): Byte { return it }
+    private fun write(it: Byte): Byte { return it }
 }
 
-internal class Immutable${Type}MapEdgeProperty(
+internal class ImmutableByteMapEdgeProperty(
     override val graph: ImmutableGraph,
-    defaultValueFunction: EdgeFunction<${Type}>
-) : MutableEdgeProperty<${Type}> {
+    defaultValueFunction: EdgeFunction<Byte>
+) : MutableEdgeProperty<Byte> {
 
-    private val property = Long2${StorageType}HashMap()
+    private val property = Long2ByteHashMap()
 
     init {
         property.ensureCapacity(graph.edges.size)
@@ -184,9 +179,9 @@ internal class Immutable${Type}MapEdgeProperty(
         }
     }
 
-    override val type: PropertyType<${Type}> get() = propertyTypeOf()
+    override val type: PropertyType<Byte> get() = propertyTypeOf()
 
-    override fun get(edge: Edge): ${Type} {
+    override fun get(edge: Edge): Byte {
         try {
             return read(property.getValue(edge.id))
         } catch (e: NoSuchElementException) {
@@ -194,11 +189,11 @@ internal class Immutable${Type}MapEdgeProperty(
         }
     }
 
-    override fun set(edge: Edge, value: ${Type}) {
+    override fun set(edge: Edge, value: Byte) {
         property[edge.id] = write(value)
     }
 
-    override fun put(edge: Edge, value: ${Type}): ${Type} {
+    override fun put(edge: Edge, value: Byte): Byte {
         try {
             return read(property.replace(edge.id, write(value)))
         } catch (e: NoSuchElementException) {
@@ -206,6 +201,6 @@ internal class Immutable${Type}MapEdgeProperty(
         }
     }
 
-    private fun read(it: ${StorageType}): ${Type} ${ReadLambda}
-    private fun write(it: ${Type}): ${StorageType} ${WriteLambda}
+    private fun read(it: Byte): Byte { return it }
+    private fun write(it: Byte): Byte { return it }
 }

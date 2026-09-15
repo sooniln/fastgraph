@@ -9,6 +9,8 @@ import io.github.sooniln.fastgraph.properties.ArrayVertexKeyProperty
 import io.github.sooniln.fastgraph.properties.ArrayVertexProperty
 import io.github.sooniln.fastgraph.properties.BooleanArrayVertexProperty
 import io.github.sooniln.fastgraph.properties.BooleanMapVertexProperty
+import io.github.sooniln.fastgraph.properties.ByteArrayVertexProperty
+import io.github.sooniln.fastgraph.properties.ByteMapVertexProperty
 import io.github.sooniln.fastgraph.properties.DoubleArrayVertexProperty
 import io.github.sooniln.fastgraph.properties.DoubleMapVertexProperty
 import io.github.sooniln.fastgraph.properties.FloatArrayVertexProperty
@@ -16,6 +18,8 @@ import io.github.sooniln.fastgraph.properties.FloatMapVertexProperty
 import io.github.sooniln.fastgraph.properties.ImmutableArrayVertexProperty
 import io.github.sooniln.fastgraph.properties.ImmutableBooleanArrayVertexProperty
 import io.github.sooniln.fastgraph.properties.ImmutableBooleanMapVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableByteArrayVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableByteMapVertexProperty
 import io.github.sooniln.fastgraph.properties.ImmutableDoubleArrayVertexProperty
 import io.github.sooniln.fastgraph.properties.ImmutableDoubleMapVertexProperty
 import io.github.sooniln.fastgraph.properties.ImmutableFloatArrayVertexProperty
@@ -150,6 +154,12 @@ public fun <T> createVertexProperty(
                         defaultValueFunction as VertexFunction<Boolean>
                     ) as MutableVertexProperty<T>
 
+                typeOf<Byte>() ->
+                    ImmutableByteArrayVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Byte>
+                    ) as MutableVertexProperty<T>
+
                 typeOf<Int>() ->
                     ImmutableIntArrayVertexProperty(
                         graph,
@@ -182,6 +192,12 @@ public fun <T> createVertexProperty(
                     ImmutableBooleanMapVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Boolean>
+                    ) as MutableVertexProperty<T>
+
+                typeOf<Byte>() ->
+                    ImmutableByteMapVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Byte>
                     ) as MutableVertexProperty<T>
 
                 typeOf<Int>() ->
@@ -220,6 +236,12 @@ public fun <T> createVertexProperty(
                         defaultValueFunction as VertexFunction<Boolean>
                     ) as MutableVertexProperty<T>
 
+                typeOf<Byte>() ->
+                    ByteArrayVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Byte>
+                    ) as MutableVertexProperty<T>
+
                 typeOf<Int>() ->
                     IntArrayVertexProperty(
                         graph,
@@ -252,6 +274,12 @@ public fun <T> createVertexProperty(
                     BooleanMapVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Boolean>
+                    ) as MutableVertexProperty<T>
+
+                typeOf<Byte>() ->
+                    ByteMapVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Byte>
                     ) as MutableVertexProperty<T>
 
                 typeOf<Int>() ->

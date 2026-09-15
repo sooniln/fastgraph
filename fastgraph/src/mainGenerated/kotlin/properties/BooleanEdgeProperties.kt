@@ -204,5 +204,3 @@ internal class ImmutableBooleanMapEdgeProperty(
     private fun read(it: Byte): Boolean { return it != 0.toByte() }
     private fun write(it: Boolean): Byte { return if (it) 1 else 0 }
 }
-
-

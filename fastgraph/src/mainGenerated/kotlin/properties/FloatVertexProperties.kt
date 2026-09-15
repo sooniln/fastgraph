@@ -204,5 +204,3 @@ internal class ImmutableFloatMapVertexProperty(
     private fun read(it: Float): Float { return it }
     private fun write(it: Float): Float { return it }
 }
-
-

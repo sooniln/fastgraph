@@ -4,6 +4,7 @@ import io.github.sooniln.fastcollect.*
 import io.github.sooniln.fastgraph.AbstractEdgeSet
 import io.github.sooniln.fastgraph.AbstractGraph
 import io.github.sooniln.fastgraph.AbstractIndexedEdgeSet
+import io.github.sooniln.fastgraph.AbstractIndexedVertexSet
 import io.github.sooniln.fastgraph.AbstractVertexSet
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeChangeListener
@@ -70,7 +71,7 @@ internal class ImmutableAdjacencyListNetwork private constructor(
         return edge
     }
 
-    override val vertices: IndexedVertexSet = object : IndexedVertexSet {
+    override val vertices: IndexedVertexSet = object : AbstractIndexedVertexSet() {
         override val size: Int get() = successors.size
     }
 

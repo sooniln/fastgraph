@@ -204,5 +204,3 @@ internal class ImmutableDoubleMapVertexProperty(
     private fun read(it: Double): Double { return it }
     private fun write(it: Double): Double { return it }
 }
-
-

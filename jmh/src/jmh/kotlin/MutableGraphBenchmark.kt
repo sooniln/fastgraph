@@ -104,7 +104,7 @@ open class MutableGraphBenchmark {
     @Benchmark
     fun bfs(): Int {
         var n = 0
-        for (vertex in Traversal.breadthFirst(graph, graph.vertices.first())) {
+        for (vertex in graph.breadthFirstVertexIterator(graph.vertices.first())) {
             n += graph.vertexProperty[vertex]
         }
         return n

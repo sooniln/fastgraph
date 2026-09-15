@@ -18,10 +18,10 @@ import io.github.sooniln.fastgraph.propertyTypeOf
 import io.github.sooniln.fastgraph.internal.throwIllegalVertex
 
 
-internal class BooleanArrayVertexProperty(
+internal class ByteArrayVertexProperty(
     override val graph: IndexedVertexGraph,
-    defaultValueFunction: VertexFunction<Boolean>,
-) : MutableVertexProperty<Boolean>, VertexChangeListener {
+    defaultValueFunction: VertexFunction<Byte>,
+) : MutableVertexProperty<Byte>, VertexChangeListener {
 
     private val property = ByteArrayList()
     private val initializer = defaultValueFunction
@@ -32,9 +32,9 @@ internal class BooleanArrayVertexProperty(
         graph.registerVertexChangeListener(this)
     }
 
-    override val type: PropertyType<Boolean> get() = propertyTypeOf()
+    override val type: PropertyType<Byte> get() = propertyTypeOf()
 
-    override fun get(vertex: Vertex): Boolean {
+    override fun get(vertex: Vertex): Byte {
         try {
             return read(property[vertex.id])
         } catch (e: IndexOutOfBoundsException) {
@@ -42,7 +42,7 @@ internal class BooleanArrayVertexProperty(
         }
     }
 
-    override fun set(vertex: Vertex, value: Boolean) {
+    override fun set(vertex: Vertex, value: Byte) {
         try {
             property[vertex.id] = write(value)
         } catch (e: IndexOutOfBoundsException) {
@@ -50,7 +50,7 @@ internal class BooleanArrayVertexProperty(
         }
     }
 
-    override fun put(vertex: Vertex, value: Boolean): Boolean {
+    override fun put(vertex: Vertex, value: Byte): Byte {
         try {
             return read(property.replace(vertex.id, write(value)))
         } catch (e: IndexOutOfBoundsException) {
@@ -76,22 +76,22 @@ internal class BooleanArrayVertexProperty(
     override fun ensureVertexCapacity(vertexCapacity: Int) = property.ensureCapacity(vertexCapacity)
     override fun trimToSize() = property.trimToSize()
 
-    private fun read(it: Byte): Boolean { return it != 0.toByte() }
-    private fun write(it: Boolean): Byte { return if (it) 1 else 0 }
+    private fun read(it: Byte): Byte { return it }
+    private fun write(it: Byte): Byte { return it }
 }
 
-internal class ImmutableBooleanArrayVertexProperty<G>(
+internal class ImmutableByteArrayVertexProperty<G>(
     override val graph: G,
-    defaultValueFunction: VertexFunction<Boolean>,
-) : MutableVertexProperty<Boolean> where G : ImmutableGraph, G : IndexedVertexGraph {
+    defaultValueFunction: VertexFunction<Byte>,
+) : MutableVertexProperty<Byte> where G : ImmutableGraph, G : IndexedVertexGraph {
 
     private val property = ByteArray(graph.vertices.size) { vertexId ->
         write(defaultValueFunction.apply(Vertex(vertexId)))
     }
 
-    override val type: PropertyType<Boolean> get() = propertyTypeOf()
+    override val type: PropertyType<Byte> get() = propertyTypeOf()
 
-    override fun get(vertex: Vertex): Boolean {
+    override fun get(vertex: Vertex): Byte {
         try {
             return read(property[vertex.id])
         } catch (e: IndexOutOfBoundsException) {
@@ -99,7 +99,7 @@ internal class ImmutableBooleanArrayVertexProperty<G>(
         }
     }
 
-    override fun set(vertex: Vertex, value: Boolean) {
+    override fun set(vertex: Vertex, value: Byte) {
         try {
             property[vertex.id] = write(value)
         } catch (e: IndexOutOfBoundsException) {
@@ -107,7 +107,7 @@ internal class ImmutableBooleanArrayVertexProperty<G>(
         }
     }
 
-    override fun put(vertex: Vertex, value: Boolean): Boolean {
+    override fun put(vertex: Vertex, value: Byte): Byte {
         try {
             val oldValue = read(property[vertex.id])
             property[vertex.id] = write(value)
@@ -117,14 +117,14 @@ internal class ImmutableBooleanArrayVertexProperty<G>(
         }
     }
 
-    private fun read(it: Byte): Boolean { return it != 0.toByte() }
-    private fun write(it: Boolean): Byte { return if (it) 1 else 0 }
+    private fun read(it: Byte): Byte { return it }
+    private fun write(it: Byte): Byte { return it }
 }
 
-internal class BooleanMapVertexProperty(
+internal class ByteMapVertexProperty(
     override val graph: Graph,
-    defaultValueFunction: VertexFunction<Boolean>
-) : MutableVertexProperty<Boolean>, VertexChangeListener {
+    defaultValueFunction: VertexFunction<Byte>
+) : MutableVertexProperty<Byte>, VertexChangeListener {
 
     private val property = Int2ByteHashMap()
     private val initializer = defaultValueFunction
@@ -133,17 +133,17 @@ internal class BooleanMapVertexProperty(
         graph.registerVertexChangeListener(this)
     }
 
-    override val type: PropertyType<Boolean> get() = propertyTypeOf()
+    override val type: PropertyType<Byte> get() = propertyTypeOf()
 
-    override fun get(vertex: Vertex): Boolean {
+    override fun get(vertex: Vertex): Byte {
         return read(property.getOrPut(vertex.id) { write(initializer.apply(vertex)) })
     }
 
-    override fun set(vertex: Vertex, value: Boolean) {
+    override fun set(vertex: Vertex, value: Byte) {
         property[vertex.id] = write(value)
     }
 
-    override fun put(vertex: Vertex, value: Boolean): Boolean {
+    override fun put(vertex: Vertex, value: Byte): Byte {
         return read(property.replaceOrSet(vertex.id, write(value)) { write(initializer.apply(vertex)) })
     }
 
@@ -161,14 +161,14 @@ internal class BooleanMapVertexProperty(
     override fun ensureVertexCapacity(vertexCapacity: Int) = property.ensureCapacity(vertexCapacity)
     override fun trimToSize() = property.trimToSize()
 
-    private fun read(it: Byte): Boolean { return it != 0.toByte() }
-    private fun write(it: Boolean): Byte { return if (it) 1 else 0 }
+    private fun read(it: Byte): Byte { return it }
+    private fun write(it: Byte): Byte { return it }
 }
 
-internal class ImmutableBooleanMapVertexProperty(
+internal class ImmutableByteMapVertexProperty(
     override val graph: ImmutableGraph,
-    defaultValueFunction: VertexFunction<Boolean>
-) : MutableVertexProperty<Boolean> {
+    defaultValueFunction: VertexFunction<Byte>
+) : MutableVertexProperty<Byte> {
 
     private val property = Int2ByteHashMap()
 
@@ -179,9 +179,9 @@ internal class ImmutableBooleanMapVertexProperty(
         }
     }
 
-    override val type: PropertyType<Boolean> get() = propertyTypeOf()
+    override val type: PropertyType<Byte> get() = propertyTypeOf()
 
-    override fun get(vertex: Vertex): Boolean {
+    override fun get(vertex: Vertex): Byte {
         try {
             return read(property.getValue(vertex.id))
         } catch (e: NoSuchElementException) {
@@ -189,11 +189,11 @@ internal class ImmutableBooleanMapVertexProperty(
         }
     }
 
-    override fun set(vertex: Vertex, value: Boolean) {
+    override fun set(vertex: Vertex, value: Byte) {
         property[vertex.id] = write(value)
     }
 
-    override fun put(vertex: Vertex, value: Boolean): Boolean {
+    override fun put(vertex: Vertex, value: Byte): Byte {
         try {
             return read(property.replace(vertex.id, write(value)))
         } catch (e: NoSuchElementException) {
@@ -201,6 +201,6 @@ internal class ImmutableBooleanMapVertexProperty(
         }
     }
 
-    private fun read(it: Byte): Boolean { return it != 0.toByte() }
-    private fun write(it: Boolean): Byte { return if (it) 1 else 0 }
+    private fun read(it: Byte): Byte { return it }
+    private fun write(it: Byte): Byte { return it }
 }

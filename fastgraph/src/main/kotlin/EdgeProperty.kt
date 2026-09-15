@@ -9,6 +9,8 @@ import io.github.sooniln.fastgraph.properties.ArrayEdgeKeyProperty
 import io.github.sooniln.fastgraph.properties.ArrayEdgeProperty
 import io.github.sooniln.fastgraph.properties.BooleanArrayEdgeProperty
 import io.github.sooniln.fastgraph.properties.BooleanMapEdgeProperty
+import io.github.sooniln.fastgraph.properties.ByteArrayEdgeProperty
+import io.github.sooniln.fastgraph.properties.ByteMapEdgeProperty
 import io.github.sooniln.fastgraph.properties.DoubleArrayEdgeProperty
 import io.github.sooniln.fastgraph.properties.DoubleMapEdgeProperty
 import io.github.sooniln.fastgraph.properties.FloatArrayEdgeProperty
@@ -16,6 +18,8 @@ import io.github.sooniln.fastgraph.properties.FloatMapEdgeProperty
 import io.github.sooniln.fastgraph.properties.ImmutableArrayEdgeProperty
 import io.github.sooniln.fastgraph.properties.ImmutableBooleanArrayEdgeProperty
 import io.github.sooniln.fastgraph.properties.ImmutableBooleanMapEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableByteArrayEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableByteMapEdgeProperty
 import io.github.sooniln.fastgraph.properties.ImmutableDoubleArrayEdgeProperty
 import io.github.sooniln.fastgraph.properties.ImmutableDoubleMapEdgeProperty
 import io.github.sooniln.fastgraph.properties.ImmutableFloatArrayEdgeProperty
@@ -149,6 +153,12 @@ public fun <T> createEdgeProperty(
                         defaultValueFunction as EdgeFunction<Boolean>
                     ) as MutableEdgeProperty<T>
 
+                typeOf<Byte>() ->
+                    ImmutableByteArrayEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Byte>
+                    ) as MutableEdgeProperty<T>
+
                 typeOf<Int>() ->
                     ImmutableIntArrayEdgeProperty(
                         graph,
@@ -181,6 +191,12 @@ public fun <T> createEdgeProperty(
                     ImmutableBooleanMapEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Boolean>
+                    ) as MutableEdgeProperty<T>
+
+                typeOf<Byte>() ->
+                    ImmutableByteMapEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Byte>
                     ) as MutableEdgeProperty<T>
 
                 typeOf<Int>() ->
@@ -219,6 +235,12 @@ public fun <T> createEdgeProperty(
                         defaultValueFunction as EdgeFunction<Boolean>
                     ) as MutableEdgeProperty<T>
 
+                typeOf<Byte>() ->
+                    ByteArrayEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Byte>
+                    ) as MutableEdgeProperty<T>
+
                 typeOf<Int>() ->
                     IntArrayEdgeProperty(
                         graph,
@@ -251,6 +273,12 @@ public fun <T> createEdgeProperty(
                     BooleanMapEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Boolean>
+                    ) as MutableEdgeProperty<T>
+
+                typeOf<Byte>() ->
+                    ByteMapEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Byte>
                     ) as MutableEdgeProperty<T>
 
                 typeOf<Int>() ->
