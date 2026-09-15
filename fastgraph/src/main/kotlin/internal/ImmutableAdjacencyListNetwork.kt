@@ -4,7 +4,6 @@ import io.github.sooniln.fastcollect.*
 import io.github.sooniln.fastgraph.AbstractEdgeSet
 import io.github.sooniln.fastgraph.AbstractGraph
 import io.github.sooniln.fastgraph.AbstractIndexedEdgeSet
-import io.github.sooniln.fastgraph.AbstractIndexedVertexSet
 import io.github.sooniln.fastgraph.AbstractVertexSet
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeChangeListener
@@ -26,7 +25,6 @@ import io.github.sooniln.fastgraph.MutableVertexProperty
 import io.github.sooniln.fastgraph.PropertyType
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
-import io.github.sooniln.fastgraph.VertexConsumer
 import io.github.sooniln.fastgraph.VertexFunction
 import io.github.sooniln.fastgraph.VertexIterator
 import io.github.sooniln.fastgraph.VertexReference
@@ -35,7 +33,6 @@ import io.github.sooniln.fastgraph.createEdgeKeyProperty
 import io.github.sooniln.fastgraph.createEdgeProperty
 import io.github.sooniln.fastgraph.createVertexKeyProperty
 import io.github.sooniln.fastgraph.createVertexProperty
-import io.github.sooniln.fastgraph.indices
 import io.github.sooniln.fastgraph.vertexSetOf
 
 internal class ImmutableAdjacencyListNetwork private constructor(
@@ -73,7 +70,7 @@ internal class ImmutableAdjacencyListNetwork private constructor(
         return edge
     }
 
-    override val vertices: IndexedVertexSet = object : AbstractIndexedVertexSet() {
+    override val vertices: IndexedVertexSet = object : IndexedVertexSet {
         override val size: Int get() = successors.size
     }
 
@@ -90,21 +87,9 @@ internal class ImmutableAdjacencyListNetwork private constructor(
 
     override val edges: IndexedEdgeSet = object : AbstractIndexedEdgeSet() {
         override val size: Int get() = edgeValues.size
-        override fun get(index: Int): Edge {
-            if (index !in indices) throw IndexOutOfBoundsException()
-            return canonicalEdge(index)
-        }
-        override fun indexOf(element: Edge): Int {
-            return if (element.id in indices) element.edgeId else -1
-        }
-
-        override fun iterator(): EdgeIterator {
-            return super.iterator()
-        }
     }
 
     override fun edgeSource(edge: Edge): Vertex = edgeValues[validateEdge(edge).edgeId].source
-
     override fun edgeTarget(edge: Edge): Vertex = edgeValues[validateEdge(edge).edgeId].target
 
     override fun registerVertexChangeListener(listener: VertexChangeListener) {}
@@ -203,9 +188,7 @@ internal class ImmutableAdjacencyListNetwork private constructor(
         override val vertices: VertexSet
             get() = object : AbstractVertexSet() {
                 override val size: Int get() = numVertices
-
                 override fun contains(element: Vertex): Boolean = findVertex(element) >= 0
-
                 override fun iterator(): VertexIterator = object : VertexIterator {
                     private var i = 2
                     private val end = 2 + numVertices

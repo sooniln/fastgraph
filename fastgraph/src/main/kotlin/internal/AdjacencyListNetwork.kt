@@ -7,7 +7,6 @@ import io.github.sooniln.fastgraph.AbstractMutableIndexedEdgeSet
 import io.github.sooniln.fastgraph.AbstractMutableIndexedVertexSet
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeChangeListener
-import io.github.sooniln.fastgraph.EdgeConsumer
 import io.github.sooniln.fastgraph.EdgeFunction
 import io.github.sooniln.fastgraph.EdgeIterator
 import io.github.sooniln.fastgraph.EdgeReference
@@ -32,7 +31,6 @@ import io.github.sooniln.fastgraph.createEdgeKeyProperty
 import io.github.sooniln.fastgraph.createEdgeProperty
 import io.github.sooniln.fastgraph.createVertexKeyProperty
 import io.github.sooniln.fastgraph.createVertexProperty
-import io.github.sooniln.fastgraph.indices
 import io.github.sooniln.fastgraph.listeners.EdgeChangeListenerManager
 import io.github.sooniln.fastgraph.listeners.VertexChangeListenerManager
 import io.github.sooniln.fastgraph.references.EdgeReferenceManager

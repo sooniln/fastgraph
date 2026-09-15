@@ -139,7 +139,6 @@ class IndexedGraphTest {
 
         val vertices = graph.vertices as IndexedVertexSet
 
-        assertThat(vertices.indices).isEqualTo(0..<3)
         assertThat(vertices.lastIndex).isEqualTo(2)
     }
 }

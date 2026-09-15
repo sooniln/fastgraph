@@ -9,7 +9,7 @@ public object Traversal {
      */
     @JvmStatic
     @JvmName("breadthFirst")
-    public fun breadthFirst(graph: Graph, initialVertex: Vertex): VertexIterable {
+    public fun breadthFirst(graph: Graph, initialVertex: Vertex): VertexIterator {
         return breadthFirst(graph, vertexSetOf(initialVertex))
     }
 
@@ -18,10 +18,8 @@ public object Traversal {
      * from the given vertices.
      */
     @JvmStatic
-    public fun breadthFirst(graph: Graph, initialVertices: VertexSet): VertexIterable {
-        return object : VertexIterable {
-            override fun iterator(): VertexIterator = BFIterator(graph, initialVertices)
-        }
+    public fun breadthFirst(graph: Graph, initialVertices: VertexSet): VertexIterator {
+        return BFIterator(graph, initialVertices)
     }
 
     /**
@@ -30,7 +28,7 @@ public object Traversal {
      */
     @JvmStatic
     @JvmName("depthFirstPreOrder")
-    public fun depthFirstPreOrder(graph: Graph, initialVertex: Vertex): VertexIterable {
+    public fun depthFirstPreOrder(graph: Graph, initialVertex: Vertex): VertexIterator {
         return depthFirstPreOrder(graph, vertexSetOf(initialVertex))
     }
 
@@ -40,10 +38,8 @@ public object Traversal {
      * beginning from the given vertices.
      */
     @JvmStatic
-    public fun depthFirstPreOrder(graph: Graph, initialVertices: VertexSet): VertexIterable {
-        return object : VertexIterable {
-            override fun iterator(): VertexIterator = DFPreOrderIterator(graph, initialVertices)
-        }
+    public fun depthFirstPreOrder(graph: Graph, initialVertices: VertexSet): VertexIterator {
+        return DFPreOrderIterator(graph, initialVertices)
     }
 
     /**
@@ -52,7 +48,7 @@ public object Traversal {
      */
     @JvmStatic
     @JvmName("depthFirstPostOrder")
-    public fun depthFirstPostOrder(graph: Graph, initialVertex: Vertex): VertexIterable {
+    public fun depthFirstPostOrder(graph: Graph, initialVertex: Vertex): VertexIterator {
         return depthFirstPostOrder(graph, vertexSetOf(initialVertex))
     }
 
@@ -61,10 +57,8 @@ public object Traversal {
      * beginning from the given vertices.
      */
     @JvmStatic
-    public fun depthFirstPostOrder(graph: Graph, initialVertices: VertexSet): VertexIterable {
-        return object : VertexIterable {
-            override fun iterator(): VertexIterator = DFPostOrderIterator(graph, initialVertices)
-        }
+    public fun depthFirstPostOrder(graph: Graph, initialVertices: VertexSet): VertexIterator {
+        return DFPostOrderIterator(graph, initialVertices)
     }
 
     private class BFIterator(private val graph: Graph, startVertices: VertexSet) : VertexIterator {

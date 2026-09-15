@@ -158,26 +158,15 @@ public interface VertexIterator : Iterator<Vertex> {
 public interface MutableVertexIterator : VertexIterator, MutableIterator<Vertex>
 
 /**
- * An iterable of vertices. Note that this interface is distinct from [Iterable<Vertex>][Iterable] in order to avoid
- * Vertex boxing/unboxing, and associated performance penalties. Prefer to use this interface whenever possible for
- * those reasons.
- */
-public interface VertexIterable : Iterable<Vertex> {
-    override fun iterator(): VertexIterator
-}
-
-/**
- * A read-only collection of vertices. Note that this interface is distinct from [Collection<Vertex>][Collection] in
- * order to avoid Vertex boxing/unboxing, and associated performance penalties. Prefer to use this interface whenever
- * possible for those reasons. A [VertexCollection] is not re-entrancy safe for writing - attempting to modify the
- * collection while any other method is ongoing leads to undefined behavior.
+ * A read-only set of vertices. Note that this interface is distinct from [Set<Vertex>][Set] in order to avoid Vertex
+ * boxing/unboxing, and associated performance penalties. Prefer to use this interface whenever possible for those
+ * reasons.
  */
 @Suppress("INAPPLICABLE_JVM_NAME")
-public interface VertexCollection : Collection<Vertex>, VertexIterable {
+public interface VertexSet : Set<Vertex> {
+    override fun isEmpty(): Boolean = size == 0
 
-    override fun isEmpty(): Boolean {
-        return size == 0
-    }
+    override fun iterator(): VertexIterator
 
     @JvmName("contains")
     override fun contains(element: Vertex): Boolean {
@@ -187,7 +176,7 @@ public interface VertexCollection : Collection<Vertex>, VertexIterable {
         return false
     }
 
-    public fun containsAll(elements: VertexCollection): Boolean {
+    public fun containsAll(elements: VertexSet): Boolean {
         for (e in elements) {
             if (!contains(e)) return false
         }
@@ -195,11 +184,11 @@ public interface VertexCollection : Collection<Vertex>, VertexIterable {
     }
 
     override fun containsAll(elements: Collection<Vertex>): Boolean {
-        if (elements is VertexCollection) {
+        if (elements is VertexSet) {
             return containsAll(elements)
         }
 
-        for (e in this) {
+        for (e in elements) {
             if (!contains(e)) return false
         }
         return true
@@ -216,74 +205,44 @@ public interface VertexCollection : Collection<Vertex>, VertexIterable {
 }
 
 /**
- * A collection of vertices with an iterator that allows for removal.
+ * A set of vertices with an iterator that allows for removal.
  */
-public interface MutableVertexCollection : VertexCollection {
+public interface MutableVertexSet : VertexSet {
     override fun iterator(): MutableVertexIterator
 }
 
 /**
- * A read-only set of vertices. Note that this interface is distinct from [Set<Vertex>][Set] in order to avoid Vertex
- * boxing/unboxing, and associated performance penalties. Prefer to use this interface whenever possible for those
- * reasons.
- */
-@Suppress("INAPPLICABLE_JVM_NAME")
-public interface VertexSet : VertexCollection, Set<Vertex> {
-    override fun isEmpty(): Boolean = super.isEmpty()
-
-    @JvmName("contains")
-    override fun contains(element: Vertex): Boolean = super.contains(element)
-
-    override fun containsAll(elements: Collection<Vertex>): Boolean = super.containsAll(elements)
-}
-
-/**
- * A set of vertices with an iterator that allows for removal.
- */
-public interface MutableVertexSet : VertexSet, MutableVertexCollection
-
-/**
- * A read-only set of vertices where each vertex is associated with an index from `0` to `size() - 1`. This makes
- * vertices accessible by index, and an index can be retrieved for each vertex (via `indexOf(vertex)`). The `indexOf()`
- * call is guaranteed to take amortized constant time or better. This collection MUST iterate vertices in index order.
+ * A set of vertices where the [Vertex.id] of each vertex is in [0, size).
  */
 @Suppress("INAPPLICABLE_JVM_NAME")
 public interface IndexedVertexSet : VertexSet {
 
     @JvmName("contains")
-    override fun contains(element: Vertex): Boolean
-
-    override fun containsAll(elements: Collection<Vertex>): Boolean = super.containsAll(elements)
+    override fun contains(element: Vertex): Boolean = element.id in 0..<size
 
     @JvmName("get")
-    public operator fun get(index: Int): Vertex
+    public operator fun get(index: Int): Vertex {
+        if (index !in 0..<size) throw IndexOutOfBoundsException()
+        return Vertex(index)
+    }
 
-    /**
-     * Returns the index of the given vertex in this collection, or -1 if the vertex is not in this set.
-     */
     @JvmName("indexOf")
-    public fun indexOf(element: Vertex): Int
+    public fun indexOf(element: Vertex): Int {
+        return if (element.id in 0..<size) element.id else -1
+    }
 
     override fun iterator(): VertexIterator = object : VertexIterator {
         private var index = 0
         override fun hasNext(): Boolean = index < size
         override fun next(): Vertex {
-            if (index >= size) throw NoSuchElementException()
+            if (!hasNext()) throw NoSuchElementException()
             return get(index++)
         }
     }
 }
 
-public val IndexedVertexSet.lastIndex: Int @JvmSynthetic get() = size - 1
+public val IndexedVertexSet.lastIndex: Int get() = size - 1
 
-@Suppress("ReplaceManualRangeWithIndicesCalls")
-public val IndexedVertexSet.indices: IntRange @JvmSynthetic get() = 0..<size
-
-/**
- * A set of vertices where each vertex is associated with an index from `0` to `size() - 1`. This makes vertices
- * accessible by index, and an index can be retrieved for each vertex (via `indexOf(vertex)`). The `indexOf()` call is
- * guaranteed to take amortized constant time or better. This collection MUST iterate vertices in index order.
- */
 public interface MutableIndexedVertexSet : IndexedVertexSet, MutableVertexSet {
     override fun iterator(): MutableVertexIterator
 }
@@ -297,47 +256,39 @@ public fun <T : Vertex> vertexSetOf(vararg vertices: T): VertexSet {
     return if (vertices.isEmpty()) {
         emptyVertexSet()
     } else if (vertices.size == 1) {
-        SingletonVertexSet(vertices[0])
+        SingletonVertexSet(vertices[0].id)
     } else {
-        val set = IntHashSet(vertices.size)
-        for (vertex in vertices) {
-            set.add(vertex.id)
-        }
-        VertexSetWrapper(set)
+        IntHashSet(vertices.size).apply {
+            for (vertex in vertices) {
+                add(vertex.id)
+            }
+        }.asVertexSet()
     }
 }
 
-public fun emptyVertexIterator(): VertexIterator = EmptyVertexIterator
+public fun emptyVertexIterator(): MutableVertexIterator = EmptyVertexIterator
 
-private val EmptyVertexIterator = emptyIntIterator().asVertexIterator()
+private object EmptyVertexIterator : MutableVertexIterator {
+    override fun hasNext(): Boolean = false
+    override fun next(): Vertex = throw NoSuchElementException()
+    override fun remove() = throw IllegalStateException()
+}
 
 /**
  * Returns a read-only empty set/list of vertices.
  */
-public fun emptyVertexSet(): IndexedVertexSet = EmptyVertexSetList
+public fun emptyVertexSet(): IndexedVertexSet = EmptyVertexSet
 
-private object EmptyVertexSetList : IndexedVertexSet {
+private object EmptyVertexSet : MutableIndexedVertexSet {
     override val size: Int get() = 0
+    override fun iterator(): MutableVertexIterator = emptyVertexIterator()
 
     override fun contains(element: Vertex): Boolean = false
-
+    override fun containsAll(elements: VertexSet): Boolean = elements.isEmpty()
     override fun containsAll(elements: Collection<Vertex>): Boolean = elements.isEmpty()
-    override fun iterator(): VertexIterator = emptyVertexIterator()
 
     override fun get(index: Int): Vertex = throw IndexOutOfBoundsException()
     override fun indexOf(element: Vertex): Int = -1
-}
-
-/**
- * Provides a skeletal implementation of the read-only [VertexCollection] interface.
- */
-@Suppress("INAPPLICABLE_JVM_NAME")
-public abstract class AbstractVertexCollection : VertexCollection, AbstractCollection<Vertex>() {
-    override fun isEmpty(): Boolean = super<VertexCollection>.isEmpty()
-
-    @JvmName("contains")
-    override fun contains(element: Vertex): Boolean = super<VertexCollection>.contains(element)
-    override fun containsAll(elements: Collection<Vertex>): Boolean = super<VertexCollection>.containsAll(elements)
 }
 
 /**
@@ -346,7 +297,6 @@ public abstract class AbstractVertexCollection : VertexCollection, AbstractColle
 @Suppress("INAPPLICABLE_JVM_NAME")
 public abstract class AbstractVertexSet : VertexSet, AbstractSet<Vertex>() {
     override fun isEmpty(): Boolean = super<VertexSet>.isEmpty()
-
     @JvmName("contains")
     override fun contains(element: Vertex): Boolean = super<VertexSet>.contains(element)
     override fun containsAll(elements: Collection<Vertex>): Boolean = super<VertexSet>.containsAll(elements)
@@ -358,38 +308,21 @@ public abstract class AbstractVertexSet : VertexSet, AbstractSet<Vertex>() {
 @Suppress("INAPPLICABLE_JVM_NAME")
 public abstract class AbstractIndexedVertexSet : IndexedVertexSet, AbstractVertexSet() {
     override fun iterator(): VertexIterator = super.iterator()
-    override fun containsAll(elements: Collection<Vertex>): Boolean = super<IndexedVertexSet>.containsAll(elements)
-
     @JvmName("contains")
-    override fun contains(element: Vertex): Boolean {
-        return element.id in indices
-    }
-
-    @JvmName("get")
-    override fun get(index: Int): Vertex {
-        if (index !in indices) throw IndexOutOfBoundsException()
-        return Vertex(index)
-    }
-
-    @JvmName("indexOf")
-    override fun indexOf(element: Vertex): Int {
-        return if (element.id in indices) element.id else -1
-    }
+    override fun contains(element: Vertex): Boolean = super<IndexedVertexSet>.contains(element)
 }
 
 /**
  * Provides a skeletal implementation of the [MutableIndexedVertexSet] interface.
  */
-public abstract class AbstractMutableIndexedVertexSet(private val graph: MutableGraph) :
-    AbstractIndexedVertexSet(), MutableIndexedVertexSet {
-
+public abstract class AbstractMutableIndexedVertexSet(private val graph: MutableGraph) : MutableIndexedVertexSet, AbstractIndexedVertexSet() {
     override fun iterator(): MutableVertexIterator = object : MutableVertexIterator {
         private var index = 0
         private var previous = -1
 
         override fun hasNext(): Boolean = index < size
         override fun next(): Vertex {
-            if (index >= size) throw NoSuchElementException()
+            if (!hasNext()) throw NoSuchElementException()
             previous = index++
             return Vertex(previous)
         }
@@ -403,10 +336,11 @@ public abstract class AbstractMutableIndexedVertexSet(private val graph: Mutable
     }
 }
 
-private class SingletonVertexSet(private val vertex: Vertex) : AbstractVertexSet() {
+private class SingletonVertexSet(private val vertexId: Int) : VertexSet {
     override val size: Int get() = 1
-    override fun contains(element: Vertex): Boolean = element == vertex
-    override fun iterator(): VertexIterator = intIteratorOf(vertex.id).asVertexIterator()
+    override fun contains(element: Vertex): Boolean = element.id == vertexId
+    override fun iterator(): VertexIterator = intIteratorOf(vertexId).asVertexIterator()
+    override fun toIntArray(): IntArray = IntArray(1) { vertexId }
 }
 
 internal fun IntIterator.asVertexIterator(): VertexIterator = VertexIteratorWrapper(this)
@@ -418,11 +352,9 @@ private class VertexIteratorWrapper(private val it: IntIterator) : VertexIterato
 
 internal fun IntSet.asVertexSet(): VertexSet = VertexSetWrapper(this)
 
-private class VertexSetWrapper(private val vertices: IntSet) : AbstractVertexSet() {
+private class VertexSetWrapper(private val vertices: IntSet) : VertexSet {
     override val size: Int get() = vertices.size
-
     override fun contains(element: Vertex): Boolean = vertices.contains(element.id)
     override fun iterator(): VertexIterator = vertices.iterator().asVertexIterator()
-
     override fun toIntArray(): IntArray = vertices.copyInto(IntArray(vertices.size))
 }

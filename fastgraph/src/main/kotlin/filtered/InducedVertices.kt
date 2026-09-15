@@ -8,7 +8,6 @@ import io.github.sooniln.fastgraph.MutableVertexProperty
 import io.github.sooniln.fastgraph.PropertyType
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
-import io.github.sooniln.fastgraph.VertexCollection
 import io.github.sooniln.fastgraph.VertexFunction
 import io.github.sooniln.fastgraph.VertexIterator
 import io.github.sooniln.fastgraph.VertexReference
@@ -107,7 +106,7 @@ private class InducedAllVertices(private val parent: Graph) : InducedVertices, A
 
     override fun isEmpty(): Boolean = parent.vertices.isEmpty()
     override fun contains(element: Vertex): Boolean = parent.vertices.contains(element)
-    override fun containsAll(elements: VertexCollection): Boolean = parent.vertices.containsAll(elements)
+    override fun containsAll(elements: VertexSet): Boolean = parent.vertices.containsAll(elements)
     override fun containsAll(elements: Collection<Vertex>): Boolean = parent.vertices.containsAll(elements)
 
     override fun registerVertexChangeListener(listener: VertexChangeListener) {
