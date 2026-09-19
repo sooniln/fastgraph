@@ -29,6 +29,8 @@ import io.github.sooniln.fastgraph.properties.ImmutableIntMapVertexProperty
 import io.github.sooniln.fastgraph.properties.ImmutableLongArrayVertexProperty
 import io.github.sooniln.fastgraph.properties.ImmutableLongMapVertexProperty
 import io.github.sooniln.fastgraph.properties.ImmutableMapVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableVertexArrayVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableVertexMapVertexProperty
 import io.github.sooniln.fastgraph.properties.IntArrayVertexKeyProperty
 import io.github.sooniln.fastgraph.properties.IntArrayVertexProperty
 import io.github.sooniln.fastgraph.properties.IntMapVertexKeyProperty
@@ -39,6 +41,8 @@ import io.github.sooniln.fastgraph.properties.LongMapVertexKeyProperty
 import io.github.sooniln.fastgraph.properties.LongMapVertexProperty
 import io.github.sooniln.fastgraph.properties.MapVertexKeyProperty
 import io.github.sooniln.fastgraph.properties.MapVertexProperty
+import io.github.sooniln.fastgraph.properties.VertexArrayVertexProperty
+import io.github.sooniln.fastgraph.properties.VertexMapVertexProperty
 import kotlin.reflect.typeOf
 
 /**
@@ -184,6 +188,12 @@ public fun <T> createVertexProperty(
                         defaultValueFunction as VertexFunction<Double>
                     ) as MutableVertexProperty<T>
 
+                typeOf<Vertex>() ->
+                    ImmutableVertexArrayVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Vertex>
+                    ) as MutableVertexProperty<T>
+
                 else -> ImmutableArrayVertexProperty(graph, type, defaultValueFunction)
             }
         } else {
@@ -222,6 +232,12 @@ public fun <T> createVertexProperty(
                     ImmutableDoubleMapVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Double>
+                    ) as MutableVertexProperty<T>
+
+                typeOf<Vertex>() ->
+                    ImmutableVertexMapVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Vertex>
                     ) as MutableVertexProperty<T>
 
                 else -> ImmutableMapVertexProperty(graph, type, defaultValueFunction)
@@ -266,6 +282,12 @@ public fun <T> createVertexProperty(
                         defaultValueFunction as VertexFunction<Double>
                     ) as MutableVertexProperty<T>
 
+                typeOf<Vertex>() ->
+                    VertexArrayVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Vertex>
+                    ) as MutableVertexProperty<T>
+
                 else -> ArrayVertexProperty(graph, type, defaultValueFunction)
             }
         } else {
@@ -304,6 +326,12 @@ public fun <T> createVertexProperty(
                     DoubleMapVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Double>
+                    ) as MutableVertexProperty<T>
+
+                typeOf<Vertex>() ->
+                    VertexMapVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Vertex>
                     ) as MutableVertexProperty<T>
 
                 else -> MapVertexProperty(graph, type, defaultValueFunction)

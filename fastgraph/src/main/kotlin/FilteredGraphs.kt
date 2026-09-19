@@ -149,22 +149,7 @@ private class ImmutableFilteringGraph(
     parent: ImmutableGraph,
     vertices: InducedVertices,
     edges: InducedEdges
-) : AbstractFilteredGraph<ImmutableGraph>(parent, vertices, edges), ImmutableFilteredGraph {
-    override fun registerVertexChangeListener(listener: VertexChangeListener) {}
-    override fun unregisterVertexChangeListener(listener: VertexChangeListener) {}
-    override fun registerEdgeChangeListener(listener: EdgeChangeListener) {}
-    override fun unregisterEdgeChangeListener(listener: EdgeChangeListener) {}
-
-    override fun createVertexReference(vertex: Vertex): VertexReference {
-        if (!vertices.contains(vertex)) throwIllegalVertex(vertex)
-        return ImmutableVertexReference(vertex)
-    }
-
-    override fun createEdgeReference(edge: Edge): EdgeReference {
-        if (!edges.contains(edge)) throwIllegalEdge(this, edge)
-        return ImmutableEdgeReference(edge)
-    }
-}
+) : AbstractFilteredGraph<ImmutableGraph>(parent, vertices, edges), ImmutableFilteredGraph
 
 private abstract class AbstractFilteredGraph<G : Graph>(
     override val parent: G,

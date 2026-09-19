@@ -13,6 +13,8 @@ import io.github.sooniln.fastgraph.properties.ByteArrayEdgeProperty
 import io.github.sooniln.fastgraph.properties.ByteMapEdgeProperty
 import io.github.sooniln.fastgraph.properties.DoubleArrayEdgeProperty
 import io.github.sooniln.fastgraph.properties.DoubleMapEdgeProperty
+import io.github.sooniln.fastgraph.properties.EdgeArrayEdgeProperty
+import io.github.sooniln.fastgraph.properties.EdgeMapEdgeProperty
 import io.github.sooniln.fastgraph.properties.FloatArrayEdgeProperty
 import io.github.sooniln.fastgraph.properties.FloatMapEdgeProperty
 import io.github.sooniln.fastgraph.properties.ImmutableArrayEdgeProperty
@@ -22,6 +24,8 @@ import io.github.sooniln.fastgraph.properties.ImmutableByteArrayEdgeProperty
 import io.github.sooniln.fastgraph.properties.ImmutableByteMapEdgeProperty
 import io.github.sooniln.fastgraph.properties.ImmutableDoubleArrayEdgeProperty
 import io.github.sooniln.fastgraph.properties.ImmutableDoubleMapEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableEdgeArrayEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableEdgeMapEdgeProperty
 import io.github.sooniln.fastgraph.properties.ImmutableFloatArrayEdgeProperty
 import io.github.sooniln.fastgraph.properties.ImmutableFloatMapEdgeProperty
 import io.github.sooniln.fastgraph.properties.ImmutableIntArrayEdgeProperty
@@ -183,6 +187,12 @@ public fun <T> createEdgeProperty(
                         defaultValueFunction as EdgeFunction<Double>
                     ) as MutableEdgeProperty<T>
 
+                typeOf<Edge>() ->
+                    ImmutableEdgeArrayEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Edge>
+                    ) as MutableEdgeProperty<T>
+
                 else -> ImmutableArrayEdgeProperty(graph, type, defaultValueFunction)
             }
         } else {
@@ -221,6 +231,12 @@ public fun <T> createEdgeProperty(
                     ImmutableDoubleMapEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Double>
+                    ) as MutableEdgeProperty<T>
+
+                typeOf<Edge>() ->
+                    ImmutableEdgeMapEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Edge>
                     ) as MutableEdgeProperty<T>
 
                 else -> ImmutableMapEdgeProperty(graph, type, defaultValueFunction)
@@ -265,6 +281,12 @@ public fun <T> createEdgeProperty(
                         defaultValueFunction as EdgeFunction<Double>
                     ) as MutableEdgeProperty<T>
 
+                typeOf<Edge>() ->
+                    EdgeArrayEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Edge>
+                    ) as MutableEdgeProperty<T>
+
                 else -> ArrayEdgeProperty(graph, type, defaultValueFunction)
             }
         } else {
@@ -303,6 +325,12 @@ public fun <T> createEdgeProperty(
                     DoubleMapEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Double>
+                    ) as MutableEdgeProperty<T>
+
+                typeOf<Edge>() ->
+                    EdgeMapEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Edge>
                     ) as MutableEdgeProperty<T>
 
                 else -> MapEdgeProperty(graph, type, defaultValueFunction)

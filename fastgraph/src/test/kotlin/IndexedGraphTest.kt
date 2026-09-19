@@ -141,4 +141,39 @@ class IndexedGraphTest {
 
         assertThat(vertices.lastIndex).isEqualTo(2)
     }
+
+    @ParameterizedTest
+    @ValueSource(booleans = [true, false])
+    fun setEqualityIsSymmetric(immutable: Boolean) {
+        constructGraph(immutable, indexEdges = true)
+
+        val vertices = vertexSetOf(v2, v0, v1)
+        assertThat(graph.vertices).isEqualTo(vertices)
+        assertThat(vertices).isEqualTo(graph.vertices)
+        assertThat(graph.vertices.hashCode()).isEqualTo(vertices.hashCode())
+
+        val edges = edgeSetOf(e1, e0)
+        assertThat(graph.edges).isEqualTo(edges)
+        assertThat(edges).isEqualTo(graph.edges)
+        assertThat(graph.edges.hashCode()).isEqualTo(edges.hashCode())
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = [true, false])
+    fun firstAndLast(immutable: Boolean) {
+        constructGraph(immutable, indexEdges = true)
+
+        val vertices = graph.vertices as IndexedVertexSet
+        assertThat(vertices.first()).isEqualTo(v0)
+        assertThat(vertices.last()).isEqualTo(v2)
+
+        val edges = graph.edges as IndexedEdgeSet
+        assertThat(edges.first()).isEqualTo(e0)
+        assertThat(edges.last()).isEqualTo(e1)
+
+        assertThrows<NoSuchElementException> { emptyVertexSet().first() }
+        assertThrows<NoSuchElementException> { emptyVertexSet().last() }
+        assertThrows<NoSuchElementException> { emptyEdgeSet().first() }
+        assertThrows<NoSuchElementException> { emptyEdgeSet().last() }
+    }
 }

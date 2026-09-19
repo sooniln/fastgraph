@@ -4,6 +4,8 @@ import io.github.sooniln.fastcollect.*
 import io.github.sooniln.fastgraph.AbstractEdgeSet
 import io.github.sooniln.fastgraph.AbstractGraph
 import io.github.sooniln.fastgraph.AbstractMutableIndexedVertexSet
+import io.github.sooniln.fastgraph.CanonicalEdge
+import io.github.sooniln.fastgraph.CanonicalEdgeGraph
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeChangeListener
 import io.github.sooniln.fastgraph.EdgeFunction
@@ -38,10 +40,9 @@ import io.github.sooniln.fastgraph.listeners.EdgeChangeListenerManager
 import io.github.sooniln.fastgraph.listeners.VertexChangeListenerManager
 import io.github.sooniln.fastgraph.references.EdgeReferenceManager
 import io.github.sooniln.fastgraph.references.VertexReferenceManager
-import kotlin.math.max
-import kotlin.math.min
 
-internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGraph(), IndexedVertexGraph, MutableGraph {
+internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGraph(), IndexedVertexGraph,
+    CanonicalEdgeGraph, MutableGraph {
 
     private val _predecessors = lazy {
         check(directed)
@@ -66,9 +67,6 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
 
     private val vertexRefs = VertexReferenceManager(this)
     private val edgeRefs = EdgeReferenceManager(this)
-
-    override val multiEdge: Boolean
-        get() = false
 
     override fun validateVertex(vertex: Vertex): Vertex {
         if (vertex.id !in successors.indices) throwIllegalVertex(vertex)
@@ -282,7 +280,8 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
         override val size: Int get() = edgeCount
 
         override fun contains(element: Edge): Boolean {
-            return hasEdge(edgeSource(element), edgeTarget(element))
+            val source = edgeSource(element)
+            return source.id in successors.indices && successors[source].contains(edgeTarget(element))
         }
 
         override fun iterator(): MutableEdgeIterator = object : MutableEdgeIterator {
@@ -340,10 +339,6 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
         }
     }
 
-    override fun edgeSource(edge: Edge): Vertex = Vertex(edge.highBits)
-
-    override fun edgeTarget(edge: Edge): Vertex = Vertex(edge.lowBits)
-
     override fun registerVertexChangeListener(listener: VertexChangeListener) { vertexListeners.register(listener) }
     override fun unregisterVertexChangeListener(listener: VertexChangeListener) { vertexListeners.unregister(listener) }
     override fun registerEdgeChangeListener(listener: EdgeChangeListener) { edgeListeners.register(listener) }
@@ -359,22 +354,6 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
     override fun getEdges(source: Vertex, target: Vertex): EdgeSet {
         return if (!containsEdge(source, target)) emptyEdgeSet() else edgeSetOf(canonicalEdge(source, target))
     }
-
-    override fun <T> createVertexProperty(
-        type: PropertyType<T>,
-        defaultValueFunction: VertexFunction<T>
-    ): MutableVertexProperty<T> = createVertexProperty(this, type, defaultValueFunction)
-
-    override fun <T> createEdgeProperty(
-        type: PropertyType<T>,
-        defaultValueFunction: EdgeFunction<T>
-    ): MutableEdgeProperty<T> = createEdgeProperty(this, type, defaultValueFunction)
-
-    override fun <T> createVertexKeyProperty(type: PropertyType<T>): MutableVertexKeyProperty<T> =
-        createVertexKeyProperty(this, type)
-
-    override fun <T> createEdgeKeyProperty(type: PropertyType<T>): MutableEdgeKeyProperty<T> =
-        createEdgeKeyProperty(this, type)
 
     override fun createVertexReference(vertex: Vertex): VertexReference =
         vertexRefs.getReference(validateVertex(vertex))
@@ -455,17 +434,12 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
     private inline fun IntHashSet.foreachVertex(crossinline action: (Vertex) -> Unit) = forEach { action(Vertex(it)) }
 
     private fun canonicalEdge(source: Vertex, target: Vertex): Edge {
-        return if (!directed) {
-            Edge(highBits = min(source.id, target.id), lowBits = max(source.id, target.id))
-        } else {
-            Edge(highBits = source.id, lowBits = target.id)
-        }
+        return CanonicalEdge.from(directed, source, target).toEdge()
     }
 
     // only use if you know directed || source <= target
     private fun canonicalSortedEdge(source: Vertex, target: Vertex): Edge {
-        assert(directed || source <= target)
-        return Edge(highBits = source.id, lowBits = target.id)
+        return CanonicalEdge.fromSorted(directed, source, target).toEdge()
     }
 
     private companion object {

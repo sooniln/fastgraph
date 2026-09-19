@@ -7,10 +7,12 @@ import io.github.sooniln.fastcollect.removeOrElse
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeChangeListener
 import io.github.sooniln.fastgraph.Graph
+import io.github.sooniln.fastgraph.IndexedEdge
 import io.github.sooniln.fastgraph.IndexedEdgeGraph
 import io.github.sooniln.fastgraph.PropertyType
 import io.github.sooniln.fastgraph.propertyTypeOf
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
+import io.github.sooniln.fastcollect.Long2IntHashMap
 
 import io.github.sooniln.fastgraph.MutableEdgeKeyProperty
 
@@ -19,7 +21,7 @@ internal class LongArrayEdgeKeyProperty(
 ) : MutableEdgeKeyProperty<Long>, EdgeChangeListener {
 
     private val keys = LongArrayList()
-    private val index = Long2LongHashMap()
+    private val index = Long2IntHashMap()
 
     init {
         keys.ensureCapacity(graph.edges.size)
@@ -30,30 +32,33 @@ internal class LongArrayEdgeKeyProperty(
     override val type: PropertyType<Long> get() = propertyTypeOf()
 
     private fun checkComplete() {
+
         check(index.size == keys.size) {
-            "edges have no key: ${graph.edges.filter { index.getOrDefault(keys[it.lowBits], -1L) != it.id }}"
+            "edges have no key: ${graph.edges.filter { edge ->                val edge = IndexedEdge.from(edge);                index.getOrDefault(keys[edge.id], -1) != edge.id            }}"
         }
     }
 
     override fun get(edge: Edge): Long {
         checkComplete()
+        val edge = IndexedEdge.from(edge)
         try {
-            return keys[edge.lowBits]
+            return keys[edge.id]
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
     }
 
     override fun set(edge: Edge, value: Long) {
+        val edge = IndexedEdge.from(edge)
         val existingId = index[value]
         if (!index.isDefaultValue(existingId) || index.containsKey(value)) {
             if (existingId == edge.id) return
-            val existingEdge = Edge(existingId)
+            val existingEdge = IndexedEdge(existingId)
             throw IllegalArgumentException("\"$value\" is already associated with $existingEdge (${graph.edgeSource(existingEdge)} -> ${graph.edgeTarget(existingEdge)})")
         }
 
         val oldValue = try {
-            keys.replace(edge.lowBits, value)
+            keys.replace(edge.id, value)
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
@@ -74,24 +79,27 @@ internal class LongArrayEdgeKeyProperty(
 
     override fun getEdge(key: Long): Edge {
         checkComplete()
-        return Edge(index.getValue(key))
+        return IndexedEdge(index.getValue(key)).toEdge()
     }
 
     override fun onEdgeAdded(edge: Edge) {
-        check(edge.lowBits == keys.size)
+        check(IndexedEdge.from(edge).id == keys.size)
         keys.add(0)
     }
 
     override fun onEdgeRemoved(edge: Edge) {
-        check(edge.lowBits == keys.lastIndex)
-        index.remove(keys.removeAt(edge.lowBits), edge.id)
+        val edge = IndexedEdge.from(edge)
+        check(edge.id == keys.lastIndex)
+        index.remove(keys.removeAt(edge.id), edge.id)
     }
 
     override fun onEdgeReassigned(oldEdge: Edge, newEdge: Edge) {
-        check(oldEdge.lowBits == keys.lastIndex)
-        index.remove(keys[newEdge.lowBits], newEdge.id)
-        val moved = keys.removeAt(oldEdge.lowBits)
-        keys[newEdge.lowBits] = moved
+        val oldEdge = IndexedEdge.from(oldEdge)
+        val newEdge = IndexedEdge.from(newEdge)
+        check(oldEdge.id == keys.lastIndex)
+        index.remove(keys[newEdge.id], newEdge.id)
+        val moved = keys.removeAt(oldEdge.id)
+        keys[newEdge.id] = moved
         if (index.remove(moved, oldEdge.id)) index[moved] = newEdge.id
     }
 

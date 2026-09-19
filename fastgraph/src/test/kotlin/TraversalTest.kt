@@ -159,7 +159,7 @@ class TraversalTest {
 
     @ParameterizedTest(name = "{0}, directed={1}")
     @MethodSource("treeEdgeIterators")
-    fun treeEdgesFormSpanningForest(iterator: (Graph, VertexSet) -> Iterator<PathStep>, directed: Boolean) {
+    fun treeEdgesFormSpanningForest(iterator: (Graph, VertexSet) -> Iterator<Step>, directed: Boolean) {
         constructDiamond(directed)
 
         val steps = iterator(graph, vertexSetOf(v0, v4)).asSequence().toList()
@@ -354,7 +354,7 @@ class TraversalTest {
         ))
 
         @JvmStatic
-        fun treeEdgeIterators(): List<Arguments> = withDirectedness<(Graph, VertexSet) -> Iterator<PathStep>>(listOf(
+        fun treeEdgeIterators(): List<Arguments> = withDirectedness<(Graph, VertexSet) -> Iterator<Step>>(listOf(
             "breadthFirstTreeEdgeIterator" to { g, s -> g.breadthFirstTreeEdgeIterator(s) },
             "depthFirstTreeEdgeIterator" to { g, s -> g.depthFirstTreeEdgeIterator(s) },
         ))

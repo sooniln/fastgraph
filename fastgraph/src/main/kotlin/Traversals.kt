@@ -6,6 +6,8 @@
 package io.github.sooniln.fastgraph
 
 import io.github.sooniln.fastcollect.*
+import io.github.sooniln.fastgraph.paths.ParentCanonicalEdgePathTree
+import io.github.sooniln.fastgraph.paths.ParentPathTree
 import io.github.sooniln.fastgraph.util.VertexArrayDeque
 import kotlin.collections.isNotEmpty
 
@@ -197,7 +199,7 @@ public fun Graph.depthFirstPostOrderVertexIterator(initialVertices: VertexSet): 
  * a tree edge and the vertex discovered through it; the initial vertices have no tree edge and are not included.
  */
 @JvmName("breadthFirstTreeEdgeIterator")
-public fun Graph.breadthFirstTreeEdgeIterator(vertex: Vertex): Iterator<PathStep> {
+public fun Graph.breadthFirstTreeEdgeIterator(vertex: Vertex): Iterator<Step> {
     return breadthFirstTreeEdgeIterator(vertexSetOf(vertex))
 }
 
@@ -205,7 +207,7 @@ public fun Graph.breadthFirstTreeEdgeIterator(vertex: Vertex): Iterator<PathStep
  * Returns an iterator over the tree edges of a breadth-first search beginning from the given vertices. Each step holds
  * a tree edge and the vertex discovered through it; the initial vertices have no tree edge and are not included.
  */
-public fun Graph.breadthFirstTreeEdgeIterator(initialVertices: VertexSet): Iterator<PathStep> {
+public fun Graph.breadthFirstTreeEdgeIterator(initialVertices: VertexSet): Iterator<Step> {
     return BFTreeEdgeIterator(this, initialVertices)
 }
 
@@ -215,7 +217,7 @@ public fun Graph.breadthFirstTreeEdgeIterator(initialVertices: VertexSet): Itera
  * included.
  */
 @JvmName("depthFirstTreeEdgeIterator")
-public fun Graph.depthFirstTreeEdgeIterator(vertex: Vertex): Iterator<PathStep> {
+public fun Graph.depthFirstTreeEdgeIterator(vertex: Vertex): Iterator<Step> {
     return depthFirstTreeEdgeIterator(vertexSetOf(vertex))
 }
 
@@ -224,8 +226,58 @@ public fun Graph.depthFirstTreeEdgeIterator(vertex: Vertex): Iterator<PathStep> 
  * Each step holds a tree edge and the vertex discovered through it; the initial vertices have no tree edge and are not
  * included.
  */
-public fun Graph.depthFirstTreeEdgeIterator(initialVertices: VertexSet): Iterator<PathStep> {
+public fun Graph.depthFirstTreeEdgeIterator(initialVertices: VertexSet): Iterator<Step> {
     return DFTreeEdgeIterator(this, initialVertices)
+}
+
+/**
+ * Runs a breadth-first search from [source] and returns the resulting tree of shortest paths (by edge count). The
+ * targets of the returned tree are every vertex reachable from [source], including [source] itself (whose path is the
+ * trivial single-vertex path).
+ */
+@JvmName("breadthFirstPathTree")
+public fun Graph.breadthFirstPathTree(source: Vertex): PathTree {
+    val vertexIds = IntArrayList()
+    val parentIndices = IntArrayList()
+    val parentEdgeIds = LongArrayList()
+    val depths = IntArrayList()
+    val indices = Int2IntHashMap(defaultValue = -1)
+    // BFS examines vertices in discovery order, so the index of the vertex being examined just counts up.
+    var examinedIndex = -1
+    var treeEdge = Edge(0)
+    visitBreadthFirst(
+        vertexSetOf(source),
+        onVertexExamined = { examinedIndex++ },
+        onTreeEdge = { treeEdge = it },
+        onVertexDiscovered = { vertex ->
+            indices[vertex.id] = vertexIds.size
+            vertexIds.add(vertex.id)
+            parentIndices.add(examinedIndex)
+            parentEdgeIds.add(treeEdge.id)
+            depths.add(if (examinedIndex < 0) 0 else depths[examinedIndex] + 1)
+        },
+    )
+
+    return if (this is CanonicalEdgeGraph) {
+        ParentCanonicalEdgePathTree(
+            directed,
+            source,
+            vertexIds.toArray(),
+            parentIndices.toArray(),
+            parentEdgeIds.toArray(),
+            depths.toArray(),
+            indices,
+        )
+    } else {
+        ParentPathTree(
+            source,
+            vertexIds.toArray(),
+            parentIndices.toArray(),
+            parentEdgeIds.toArray(),
+            depths.toArray(),
+            indices,
+        )
+    }
 }
 
 private class BFIterator(private val graph: Graph, startVertices: VertexSet) : VertexIterator {
@@ -335,7 +387,7 @@ private class DFPostOrderIterator(private val graph: Graph, startVertices: Verte
     }
 }
 
-private class BFTreeEdgeIterator(private val graph: Graph, startVertices: VertexSet) : Iterator<PathStep> {
+private class BFTreeEdgeIterator(private val graph: Graph, startVertices: VertexSet) : Iterator<Step> {
 
     private val visited = graph.createVertexProperty { false }
     private val queue = IntArrayDeque(startVertices.size)
@@ -356,9 +408,9 @@ private class BFTreeEdgeIterator(private val graph: Graph, startVertices: Vertex
 
     override fun hasNext(): Boolean = !queue.isEmpty()
 
-    override fun next(): PathStep {
+    override fun next(): Step {
         if (queue.isEmpty()) throw NoSuchElementException()
-        val step = SimplePathStep(pendingEdge, Vertex(queue.last()))
+        val step = SimpleStep(pendingEdge, Vertex(queue.last()))
         advance()
         return step
     }
@@ -382,7 +434,7 @@ private class BFTreeEdgeIterator(private val graph: Graph, startVertices: Vertex
     }
 }
 
-private class DFTreeEdgeIterator(private val graph: Graph, startVertices: VertexSet) : Iterator<PathStep> {
+private class DFTreeEdgeIterator(private val graph: Graph, startVertices: VertexSet) : Iterator<Step> {
 
     private val visited = graph.createVertexProperty { false }
     private val roots = IntArrayDeque(startVertices.size)
@@ -402,7 +454,7 @@ private class DFTreeEdgeIterator(private val graph: Graph, startVertices: Vertex
 
     override fun hasNext(): Boolean = !edges.isEmpty()
 
-    override fun next(): PathStep {
+    override fun next(): Step {
         if (!hasNext()) throw NoSuchElementException()
 
         val edge = Edge(edges.removeLast())
@@ -410,7 +462,7 @@ private class DFTreeEdgeIterator(private val graph: Graph, startVertices: Vertex
         visited[target] = true
         expand(target)
         advance()
-        return SimplePathStep(edge, target)
+        return SimpleStep(edge, target)
     }
 
     private fun advance() {

@@ -1,12 +1,12 @@
 package io.github.sooniln.fastgraph.util
 
 import io.github.sooniln.fastcollect.IntArrayDeque
-import io.github.sooniln.fastgraph.AbstractVertexList
+import io.github.sooniln.fastgraph.AbstractVertexSequencedCollection
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexCollection
 
 @Suppress("INAPPLICABLE_JVM_NAME")
-public class VertexArrayDeque(capacity: Int) : AbstractVertexList() {
+public class VertexArrayDeque(capacity: Int) : AbstractVertexSequencedCollection() {
 
     public constructor(elements: VertexCollection) : this(elements.size) {
         addAll(elements)
@@ -23,11 +23,6 @@ public class VertexArrayDeque(capacity: Int) : AbstractVertexList() {
     override fun get(index: Int): Vertex = Vertex(deque[index])
     @JvmName("set")
     public fun set(index: Int, element: Vertex) { deque[index] = element.id }
-
-    @JvmName("first")
-    public fun first(): Vertex = Vertex(deque.first())
-    @JvmName("last")
-    public fun last(): Vertex = Vertex(deque.last())
 
     @JvmName("addFirst")
     public fun addFirst(element: Vertex): Unit = deque.addFirst(element.id)

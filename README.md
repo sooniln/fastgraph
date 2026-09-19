@@ -170,7 +170,7 @@ docs.
 
 ## Dependencies
 
-* JDK 17+
+* JDK 21+
 * [fastcollect](https://github.com/sooniln/fastcollect/) is used to support memory and CPU efficient primitive
   collections.
 

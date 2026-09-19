@@ -41,6 +41,12 @@ class ApiTest {
     // no source-level declaration to attach @JvmName to. `equals-impl0` is deliberately NOT included here -
     // see jvmNameMatchesKotlinName().
     private val valueClassBoilerplateSuffixes = setOf("-impl", "-impl0")
+    private val jreMutableBoilerplateExceptions = mapOf(
+        "io/github/sooniln/fastgraph/AbstractEdgeSequencedCollection" to "add-",
+        "io/github/sooniln/fastgraph/AbstractEdgeSet" to "add-",
+        "io/github/sooniln/fastgraph/AbstractVertexSequencedCollection" to "add-",
+        "io/github/sooniln/fastgraph/AbstractVertexSet" to "add-",
+    )
 
     /**
      * Publicly visible APIs (any API in the API file) should never contain mangled names.
@@ -52,6 +58,7 @@ class ApiTest {
         for ((className, modifiers, name) in parseAbiFunctions()) {
             if ("synthetic" in modifiers) continue
             if (valueClassBoilerplateSuffixes.any { name.endsWith(it) }) continue
+            if (jreMutableBoilerplateExceptions.any { (cls, prefix) -> className == cls && name.startsWith(prefix) }) continue
             if ('-' !in name) continue
 
             violations += "$className.$name"

@@ -329,8 +329,7 @@ class DirectedGraphTest {
             assertThat(graph.edges.contains(e1)).isTrue
             assertThat(graph.edges.contains(e2)).isTrue
             assertThat(graph.edges.contains(e3)).isTrue
-
-            assertThrows<IllegalArgumentException> { graph.edges.contains(Edge(99L)) }
+            assertThat(graph.edges.contains(Edge(99L))).isFalse
 
             assertThat(e0.value).isEqualTo(1.5f)
             assertThat(e1.value).isEqualTo(2.0f)

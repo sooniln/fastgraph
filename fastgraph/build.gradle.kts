@@ -19,9 +19,8 @@ group = "io.github.sooniln"
 version = "1.0.0"
 
 kotlin {
-    jvmToolchain(17)
     compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_17)
+        jvmTarget.set(JvmTarget.JVM_21)
         jvmDefault.set(JvmDefaultMode.NO_COMPATIBILITY)
     }
     explicitApi()
@@ -32,8 +31,8 @@ kotlin {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 dependencies {
@@ -62,6 +61,7 @@ tasks.register<Sync>("GenerateMain") {
                     mapOf("Type" to "Long"),
                     mapOf("Type" to "Float"),
                     mapOf("Type" to "Double"),
+                    mapOf("Type" to "Edge", "StorageType" to "Long", "ReadLambda" to "{ return Edge(it) }", "WriteLambda" to "{ return it.id }"),
                 )) { expansion -> "properties/${expansion["Type"]}EdgeProperties.kt" },
             TemplateInstantiation(
                 "VertexProperties.kte",
@@ -72,6 +72,7 @@ tasks.register<Sync>("GenerateMain") {
                     mapOf("Type" to "Long"),
                     mapOf("Type" to "Float"),
                     mapOf("Type" to "Double"),
+                    mapOf("Type" to "Vertex", "StorageType" to "Int", "ReadLambda" to "{ return Vertex(it) }", "WriteLambda" to "{ return it.id }"),
                 )) { expansion -> "properties/${expansion["Type"]}VertexProperties.kt" },
             TemplateInstantiation(
                 "EdgeKeyProperties.kte",

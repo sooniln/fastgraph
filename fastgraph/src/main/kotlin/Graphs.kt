@@ -202,7 +202,7 @@ public interface Graph {
      * passed a source or target vertex that is not in this graph.
      */
     @JvmName("hasEdge")
-    public fun hasEdge(source: Vertex, target: Vertex): Boolean
+    public fun hasEdge(source: Vertex, target: Vertex): Boolean = !edges(source, target).isEmpty()
 
     /**
      * Returns the set of edges from the given source to the given target. Will return an empty set if there are no such
@@ -267,7 +267,7 @@ public interface Graph {
     public fun <T> createVertexProperty(
         type: PropertyType<T>,
         defaultValueFunction: VertexFunction<T>
-    ): MutableVertexProperty<T>
+    ): MutableVertexProperty<T> = createVertexProperty(this, type, defaultValueFunction)
 
     /**
      * [Graph] represents only a topology, not any data associated with the vertices and edges of the topology. In order
@@ -289,7 +289,7 @@ public interface Graph {
     public fun <T> createEdgeProperty(
         type: PropertyType<T>,
         defaultValueFunction: EdgeFunction<T>
-    ): MutableEdgeProperty<T>
+    ): MutableEdgeProperty<T> = createEdgeProperty(this, type, defaultValueFunction)
 
     /**
      * Returns a new [MutableVertexKeyProperty] associated with this graph. Key properties have no default value -
@@ -300,7 +300,9 @@ public interface Graph {
      * should be simpler to use where possible.
      */
     @JvmName("createVertexKeyProperty")
-    public fun <T> createVertexKeyProperty(type: PropertyType<T>): MutableVertexKeyProperty<T>
+    public fun <T> createVertexKeyProperty(type: PropertyType<T>): MutableVertexKeyProperty<T> {
+        return createVertexKeyProperty(this, type)
+    }
 
     /**
      * Returns a new [MutableEdgeKeyProperty] associated with this graph. Key properties have no default value - see
@@ -310,7 +312,9 @@ public interface Graph {
      * should be simpler to use where possible.
      */
     @JvmName("createEdgeKeyProperty")
-    public fun <T> createEdgeKeyProperty(type: PropertyType<T>): MutableEdgeKeyProperty<T>
+    public fun <T> createEdgeKeyProperty(type: PropertyType<T>): MutableEdgeKeyProperty<T> {
+        return createEdgeKeyProperty(this, type)
+    }
 
     /**
      * Returns a stable reference to the given vertex. For more information about vertices and stable references to
@@ -625,12 +629,179 @@ public interface IndexedVertexGraph : Graph {
  * implies that when an edge is added or removed the graph must re-order edges in order to ensure the invariants are
  * met.
  *
- * Note that you CANNOT reconstruct an Edge directly from its index - i.e. `Edge(index.toLong())` MAY NOT yield the
- * correct edge - you must use `edges[index]`.
+ * This interface is incompatible with [CanonicalEdgeGraph].
  */
+@Suppress("INAPPLICABLE_JVM_NAME")
 public interface IndexedEdgeGraph : Graph {
     override val edges: IndexedEdgeSet
+
+    @JvmName("edgeSource")
+    override fun edgeSource(edge: Edge): Vertex = edgeSource(IndexedEdge.from(edge))
+    @JvmName("edgeTarget")
+    override fun edgeTarget(edge: Edge): Vertex = edgeTarget(IndexedEdge.from(edge))
+    @JvmName("createEdgeReference")
+    override fun createEdgeReference(edge: Edge): EdgeReference = createEdgeReference(IndexedEdge.from(edge))
+
+    @JvmName("edgeSource")
+    public fun edgeSource(edge: IndexedEdge): Vertex
+    @JvmName("edgeTarget")
+    public fun edgeTarget(edge: IndexedEdge): Vertex
+    @JvmName("createEdgeReference")
+    public fun createEdgeReference(edge: IndexedEdge): EdgeReference
 }
+
+/**
+ * For a directed graph, this is equivalent to [Graph.edgeSource]. For an undirected graph this returns the vertex
+ * opposite the given [target] vertex. Behavior is undefined if [target] does not belong to [edge]. This method is
+ * faster than [edgeOpposite] for directed graphs.
+ */
+@JvmName("edgeSource")
+public fun IndexedEdgeGraph.edgeSource(edge: IndexedEdge, target: Vertex): Vertex {
+    if (directed) {
+        val source = edgeSource(edge)
+        assert(source != target)
+        return target
+    } else {
+        return edgeOpposite(edge, target)
+    }
+}
+
+/**
+ * For a directed graph, this is equivalent to [Graph.edgeSource]. For an undirected graph this returns the vertex
+ * opposite the given [target] vertex. Behavior is undefined if [target] does not belong to [edge]. This method is
+ * faster than [edgeOpposite].
+ */
+@JvmSynthetic
+public fun IndexedEdgeGraph.edgeSource(edge: IndexedEdge, target: VertexReference): Vertex = edgeSource(edge, target.unstable)
+
+/**
+ * For a directed graph, this is equivalent to [Graph.edgeTarget]. For an undirected graph this returns the vertex
+ * opposite the given [source] vertex. Behavior is undefined if [source] does not belong to [edge]. This method is
+ * faster than [edgeOpposite] for directed graphs.
+ */
+@JvmName("edgeTarget")
+public fun IndexedEdgeGraph.edgeTarget(edge: IndexedEdge, source: Vertex): Vertex {
+    if (directed) {
+        val target = edgeTarget(edge)
+        assert(source != target)
+        return target
+    } else {
+        return edgeOpposite(edge, source)
+    }
+}
+
+/**
+ * For a directed graph, this is equivalent to [Graph.edgeTarget]. For an undirected graph this returns the vertex
+ * opposite the given [source] vertex. Behavior is undefined if [source] does not belong to [edge]. This method is
+ * faster than [edgeOpposite].
+ */
+@JvmSynthetic
+public fun IndexedEdgeGraph.edgeTarget(edge: IndexedEdge, source: VertexReference): Vertex = edgeTarget(edge, source.unstable)
+
+/**
+ * Returns the vertex of the given edge that is opposite the given vertex. I.e., the source vertex is returned if the
+ * target vertex is provided, and vice versa. Throws [IllegalArgumentException] if the given vertex is neither the
+ * source nor target of the given edge. This method is often useful when working with undirected edges where the
+ * source/target distinction does not exist. If viable, the [edgeSource] and [edgeTarget] extension methods are faster
+ * than this method.
+ */
+@JvmName("edgeOpposite")
+public fun IndexedEdgeGraph.edgeOpposite(edge: IndexedEdge, other: Vertex): Vertex {
+    val target = edgeTarget(edge)
+    val source = edgeSource(edge)
+    if (other == target) {
+        return source
+    } else {
+        if (other != source) {
+            throw IllegalArgumentException("vertex $other is not in edge $source -> $target")
+        }
+
+        return target
+    }
+}
+
+/**
+ * Returns the vertex of the given edge that is opposite the given vertex reference. I.e., the source vertex is returned
+ * if the target vertex is provided, and vice versa. Throws [IllegalArgumentException] if the given vertex reference is
+ * neither the source nor target of the given edge. This method is often useful when working with undirected edges where
+ * the source/target distinction does not exist.
+ */
+@JvmSynthetic
+public fun IndexedEdgeGraph.edgeOpposite(edge: IndexedEdge, other: VertexReference): Vertex = edgeOpposite(edge, other.unstable)
+
+/**
+ * A graph which guarantees that all edges in the graph encode their vertex endpoints directly into the edge id in the
+ * following manner:
+ *
+ *   * If the graph is directed, the source vertex id is encoded in the upper 32 bits and the target vertex id is
+ *     encoded in the lower 32 bits.
+ *   * If the
+ *
+ * can be associated with an index from `0` to `edges.size - 1`,
+ * and [Edge.id].toInt() is the same as the index. This makes edges accessible by index, and an index can be
+ * retrieved for each edge. In addition, [edges] must iterate edges in index order. If applied to a [MutableGraph] this
+ * implies that when an edge is added or removed the graph must re-order edges in order to ensure the invariants are
+ * met.
+ *
+ * This interface is incompatible with [CanonicalEdgeGraph].
+ */
+@Suppress("INAPPLICABLE_JVM_NAME")
+public interface CanonicalEdgeGraph : Graph {
+    override val multiEdge: Boolean get() = false
+
+    @JvmName("edgeSource")
+    override fun edgeSource(edge: Edge): Vertex = CanonicalEdge.from(edge).source
+    @JvmName("edgeTarget")
+    override fun edgeTarget(edge: Edge): Vertex = CanonicalEdge.from(edge).target
+}
+
+/**
+ * For a directed graph, this is equivalent to [Graph.edgeSource]. For an undirected graph this returns the vertex
+ * opposite the given [target] vertex. Behavior is undefined if [target] does not belong to [edge]. This method is
+ * faster than [edgeOpposite] for directed graphs.
+ */
+@JvmName("edgeSource")
+public fun CanonicalEdgeGraph.edgeSource(edge: Edge, target: Vertex): Vertex {
+    if (directed) {
+        val source = edge.source
+        assert(source != target)
+        return target
+    } else {
+        return edge.opposite(target)
+    }
+}
+
+/**
+ * For a directed graph, this is equivalent to [Graph.edgeSource]. For an undirected graph this returns the vertex
+ * opposite the given [target] vertex. Behavior is undefined if [target] does not belong to [edge]. This method is
+ * faster than [edgeOpposite].
+ */
+@JvmSynthetic
+public fun CanonicalEdgeGraph.edgeSource(edge: Edge, target: VertexReference): Vertex = edgeSource(edge, target.unstable)
+
+/**
+ * For a directed graph, this is equivalent to [Graph.edgeTarget]. For an undirected graph this returns the vertex
+ * opposite the given [source] vertex. Behavior is undefined if [source] does not belong to [edge]. This method is
+ * faster than [edgeOpposite] for directed graphs.
+ */
+@JvmName("edgeTarget")
+public fun CanonicalEdgeGraph.edgeTarget(edge: Edge, source: Vertex): Vertex {
+    if (directed) {
+        val target = edge.target
+        assert(source != target)
+        return target
+    } else {
+        return edge.opposite(source)
+    }
+}
+
+/**
+ * For a directed graph, this is equivalent to [Graph.edgeTarget]. For an undirected graph this returns the vertex
+ * opposite the given [source] vertex. Behavior is undefined if [source] does not belong to [edge]. This method is
+ * faster than [edgeOpposite].
+ */
+@JvmSynthetic
+public fun CanonicalEdgeGraph.edgeTarget(edge: Edge, source: VertexReference): Vertex = edgeTarget(edge, source.unstable)
 
 /**
  * An interface for building graphs. While there are some similarities to [MutableGraph], this builder only allows for

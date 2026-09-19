@@ -1,12 +1,14 @@
 package io.github.sooniln.fastgraph.internal
 
 import io.github.sooniln.fastcollect.*
+import io.github.sooniln.fastgraph.CanonicalEdge
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeConsumer
 import io.github.sooniln.fastgraph.EdgeIterator
 import io.github.sooniln.fastgraph.EdgeReference
 import io.github.sooniln.fastgraph.EdgeSet
 import io.github.sooniln.fastgraph.Graph
+import io.github.sooniln.fastgraph.IndexedEdge
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexReference
 import io.github.sooniln.fastgraph.VertexSet
@@ -21,13 +23,21 @@ internal fun throwIllegalVertex(vertex: Vertex, cause: Throwable? = null): Nothi
 context(graph: Graph)
 internal fun throwIllegalEdge(edge: Edge, cause: Throwable? = null): Nothing {
     throw IllegalArgumentException(
-        "$edge (${graph.edgeSource(edge)} -> ${graph.edgeTarget(edge)}) not found in graph",
+        "$edge (${graph.edgeSource(edge).id} -> ${graph.edgeTarget(edge).id}) not found in graph",
         cause
     )
 }
 
 internal fun throwIllegalEdge(graph: Graph, edge: Edge, cause: Throwable? = null): Nothing {
     context(graph) { throwIllegalEdge(edge, cause) }
+}
+
+internal fun throwIllegalEdge(graph: Graph, edge: IndexedEdge, cause: Throwable? = null): Nothing {
+    context(graph) { throwIllegalEdge(edge.toEdge(), cause) }
+}
+
+internal fun throwIllegalEdge(edge: CanonicalEdge, cause: Throwable? = null): Nothing {
+    throw IllegalArgumentException("$edge not found in graph", cause)
 }
 
 internal class ImmutableVertexReference(override val unstable: Vertex) : VertexReference
@@ -115,20 +125,12 @@ internal value class EdgeAdjacency(val longValue: Long) {
 
 internal interface EdgeAdjacencySet {
     val size: Int
-
     val vertices: VertexSet
 
     fun isEmpty(): Boolean = size == 0
     fun contains(element: EdgeAdjacency): Boolean
     fun contains(vertex: Vertex): Boolean = vertices.contains(vertex)
-
     fun edgeIterator(): EdgeIterator
-    fun foreachEdge(action: EdgeConsumer) {
-        val it = edgeIterator()
-        while (it.hasNext()) {
-            action.accept(it.next())
-        }
-    }
 }
 
 internal class TransposedGraph(val graph: Graph) : Graph by graph {

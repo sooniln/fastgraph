@@ -11,6 +11,7 @@ import io.github.sooniln.fastgraph.EdgeChangeListener
 import io.github.sooniln.fastgraph.EdgeFunction
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
+import io.github.sooniln.fastgraph.IndexedEdge
 import io.github.sooniln.fastgraph.IndexedEdgeGraph
 import io.github.sooniln.fastgraph.MutableEdgeProperty
 import io.github.sooniln.fastgraph.PropertyType
@@ -35,42 +36,48 @@ internal class DoubleArrayEdgeProperty(
     override val type: PropertyType<Double> get() = propertyTypeOf()
 
     override fun get(edge: Edge): Double {
+        val edge = IndexedEdge.from(edge)
         try {
-            return read(property[edge.lowBits])
+            return read(property[edge.id])
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
     }
 
     override fun set(edge: Edge, value: Double) {
+        val edge = IndexedEdge.from(edge)
         try {
-            property[edge.lowBits] = write(value)
+            property[edge.id] = write(value)
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
     }
 
     override fun put(edge: Edge, value: Double): Double {
+        val edge = IndexedEdge.from(edge)
         try {
-            return read(property.replace(edge.lowBits, write(value)))
+            return read(property.replace(edge.id, write(value)))
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
     }
 
     override fun onEdgeAdded(edge: Edge) {
-        check(edge.lowBits == property.size)
+        check(IndexedEdge.from(edge).id == property.size)
         property.add(write(initializer.apply(edge)))
     }
 
     override fun onEdgeRemoved(edge: Edge) {
-        check(edge.lowBits == property.lastIndex)
-        property.removeAt(edge.lowBits)
+        val edge = IndexedEdge.from(edge)
+        check(edge.id == property.lastIndex)
+        property.removeAt(edge.id)
     }
 
     override fun onEdgeReassigned(oldEdge: Edge, newEdge: Edge) {
-        check(oldEdge.lowBits == property.lastIndex)
-        property[newEdge.lowBits] = property.removeAt(oldEdge.lowBits)
+        val oldEdge = IndexedEdge.from(oldEdge)
+        val newEdge = IndexedEdge.from(newEdge)
+        check(oldEdge.id == property.lastIndex)
+        property[newEdge.id] = property.removeAt(oldEdge.id)
     }
 
     override fun ensureEdgeCapacity(edgeCapacity: Int) = property.ensureCapacity(edgeCapacity)
@@ -92,25 +99,28 @@ internal class ImmutableDoubleArrayEdgeProperty<G>(
     override val type: PropertyType<Double> get() = propertyTypeOf()
 
     override fun get(edge: Edge): Double {
+        val edge = IndexedEdge.from(edge)
         try {
-            return read(property[edge.lowBits])
+            return read(property[edge.id])
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
     }
 
     override fun set(edge: Edge, value: Double) {
+        val edge = IndexedEdge.from(edge)
         try {
-            property[edge.lowBits] = write(value)
+            property[edge.id] = write(value)
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
     }
 
     override fun put(edge: Edge, value: Double): Double {
+        val edge = IndexedEdge.from(edge)
         try {
-            val oldValue = read(property[edge.lowBits])
-            property[edge.lowBits] = write(value)
+            val oldValue = read(property[edge.id])
+            property[edge.id] = write(value)
             return oldValue
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)

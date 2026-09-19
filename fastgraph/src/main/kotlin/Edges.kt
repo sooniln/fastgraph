@@ -6,14 +6,8 @@
 package io.github.sooniln.fastgraph
 
 import io.github.sooniln.fastcollect.*
-import java.util.Spliterator
-
-private val EDGE_HEX_FORMAT = HexFormat {
-    number {
-        removeLeadingZeros = true
-        prefix = "0x"
-    }
-}
+import kotlin.math.max
+import kotlin.math.min
 
 /**
  * A unique opaque edge identifier. No meaning should be ascribed to the id value visible here, as it may be
@@ -36,23 +30,6 @@ private val EDGE_HEX_FORMAT = HexFormat {
 @Suppress("INAPPLICABLE_JVM_NAME")
 @JvmInline
 public value class Edge(public val id: Long) {
-
-    internal constructor(highBits: Int, lowBits: Int) : this(
-        highBits.toLong().shl(32).or(lowBits.toLong().and(0xFFFFFFFF))
-    )
-
-    internal val highBits: Int
-        inline get() = id.ushr(32).toInt()
-
-    internal val lowBits: Int
-        inline get() = id.toInt()
-
-    /**
-     * See [Graph.createEdgeReference].
-     */
-    @JvmSynthetic
-    context(graph: Graph)
-    public fun reference(): EdgeReference = graph.createEdgeReference(this)
 
     /**
      * See [Graph.edgeSource].
@@ -89,6 +66,13 @@ public value class Edge(public val id: Long) {
     context(graph: Graph)
     public fun opposite(other: Vertex): Vertex = graph.edgeOpposite(this, other)
 
+    /**
+     * See [Graph.createEdgeReference].
+     */
+    @JvmSynthetic
+    context(graph: Graph)
+    public fun reference(): EdgeReference = graph.createEdgeReference(this)
+
     @get:JvmSynthetic
     context(graph: ValueGraph<*, E>)
     public val <E> value: E inline get() = graph.edgeProperty[this]
@@ -102,8 +86,174 @@ public value class Edge(public val id: Long) {
     public operator fun component2(): Vertex = target
 
     @JvmName("toString")
+    override fun toString(): String = "Edge($id)"
+}
+
+/**
+ * A unique indexed edge identifier. Every edge in a graph is assigned a consecutive integer [id] in [0,
+ * graph.edges.size). An [Edge] may only be converted to a [IndexedEdge] if it belongs to a [Graph] that implements
+ * [IndexedEdgeGraph].
+ *
+ * This class is primarily intended for internal usage while implementing a graph, but may find other uses occasionally.
+ */
+@Suppress("INAPPLICABLE_JVM_NAME")
+@JvmInline
+public value class IndexedEdge(public val id: Int) {
+
+    @JvmName("toEdge")
+    public fun toEdge(): Edge = Edge(id.toLong())
+
+    /**
+     * See [Graph.edgeSource].
+     */
+    @get:JvmSynthetic
+    context(graph: IndexedEdgeGraph)
+    public val source: Vertex inline get() = graph.edgeSource(this)
+
+    /**
+     * See [Graph.edgeTarget].
+     */
+    @get:JvmSynthetic
+    context(graph: IndexedEdgeGraph)
+    public val target: Vertex inline get() = graph.edgeTarget(this)
+
+    /**
+     * See [edgeSource].
+     */
+    @JvmSynthetic
+    context(graph: IndexedEdgeGraph)
+    public fun source(target: Vertex): Vertex = graph.edgeSource(this, target)
+
+    /**
+     * See [edgeSource].
+     */
+    @JvmSynthetic
+    context(graph: IndexedEdgeGraph)
+    public fun target(source: Vertex): Vertex = graph.edgeTarget(this, source)
+
+    /**
+     * See [Graph.edgeOpposite].
+     */
+    @JvmSynthetic
+    context(graph: IndexedEdgeGraph)
+    public fun opposite(other: Vertex): Vertex = graph.edgeOpposite(this, other)
+
+    /**
+     * See [Graph.createEdgeReference].
+     */
+    @JvmSynthetic
+    context(graph: IndexedEdgeGraph)
+    public fun reference(): EdgeReference = graph.createEdgeReference(this)
+
+    @JvmSynthetic
+    context(graph: IndexedEdgeGraph)
+    public operator fun component1(): Vertex = source
+
+    @JvmSynthetic
+    context(graph: IndexedEdgeGraph)
+    public operator fun component2(): Vertex = target
+
+    @JvmName("toString")
+    override fun toString(): String = "Edge($id)"
+
+    public companion object {
+        @JvmSynthetic
+        public fun from(edge: Edge) : IndexedEdge = IndexedEdge(edge.id.toInt())
+    }
+}
+
+/**
+ * A unique canonical edge identifier. The source and target vertex of the edge are encoded directly into the edge [id]
+ * itself, so that it is possible to retrieve them without referencing the owning graph. A CanonicalEdge cannot be used
+ * with multi-edge graphs, since the edge is defined only by its source and target vertex. An [Edge] may only be
+ * converted to a [CanonicalEdge] if it belongs to a [Graph] that implements [CanonicalEdgeGraph].
+ *
+ * This class is primarily intended for internal usage while implementing a graph, but may find other uses occasionally.
+ */
+@Suppress("INAPPLICABLE_JVM_NAME")
+@JvmInline
+public value class CanonicalEdge(public val id: Long) {
+
+    private constructor(highBits: Int, lowBits: Int) : this(
+        highBits.toLong().shl(32).or(lowBits.toLong().and(0xFFFFFFFF))
+    )
+
+    @JvmName("toEdge")
+    public fun toEdge(): Edge = Edge(id)
+
+    @get:JvmName("source")
+    public val source: Vertex inline get() = Vertex(id.ushr(32).toInt())
+
+    @get:JvmName("target")
+    public val target: Vertex inline get() = Vertex(id.toInt())
+
+    /**
+     * See [edgeSource].
+     */
+    @JvmSynthetic
+    context(graph: CanonicalEdgeGraph)
+    public fun source(target: Vertex): Vertex = graph.edgeSource(Edge(id), target)
+
+    /**
+     * See [edgeSource].
+     */
+    @JvmSynthetic
+    context(graph: CanonicalEdgeGraph)
+    public fun target(source: Vertex): Vertex = graph.edgeTarget(Edge(id), source)
+
+    /**
+     * See [Graph.edgeOpposite].
+     */
+    @JvmSynthetic
+    public fun opposite(other: Vertex): Vertex {
+        val source = source
+        val target = target
+        if (other == target) {
+            return source
+        } else {
+            if (other != source) {
+                throw IllegalArgumentException("vertex $other is not in edge $source -> $target")
+            }
+
+            return target
+        }
+    }
+
+    /**
+     * See [Graph.createEdgeReference].
+     */
+    @JvmSynthetic
+    context(graph: CanonicalEdgeGraph)
+    public fun reference(): EdgeReference = graph.createEdgeReference(Edge(id))
+
+    @JvmSynthetic
+    public operator fun component1(): Vertex = source
+
+    @JvmSynthetic
+    public operator fun component2(): Vertex = target
+
+    @JvmName("toString")
     override fun toString(): String =
-        "Edge(${highBits.toHexString(EDGE_HEX_FORMAT)}, ${lowBits.toHexString(EDGE_HEX_FORMAT)})"
+        "Edge(${source.id} -> ${target.id})"
+
+    public companion object {
+        @JvmSynthetic
+        public fun from(edge: Edge) : CanonicalEdge = CanonicalEdge(edge.id)
+
+        @JvmSynthetic
+        public fun from(directed: Boolean, source: Vertex, target: Vertex) : CanonicalEdge {
+            return if (!directed) {
+                CanonicalEdge(highBits = min(source.id, target.id), lowBits = max(source.id, target.id))
+            } else {
+                CanonicalEdge(highBits = source.id, lowBits = target.id)
+            }
+        }
+
+        internal fun fromSorted(directed: Boolean, source: Vertex, target: Vertex): CanonicalEdge {
+            assert(directed || source <= target)
+            return CanonicalEdge(highBits = source.id, lowBits = target.id)
+        }
+    }
 }
 
 /**
@@ -149,17 +299,10 @@ public interface EdgeIterator : Iterator<Edge> {
  */
 public interface MutableEdgeIterator : EdgeIterator, MutableIterator<Edge>
 
-
-/**
- * A read-only collection of edges. Note that this interface is distinct from [Set<Edge>][Set] in order to avoid Edge
- * boxing/unboxing, and associated performance penalties. Prefer to use this interface whenever possible for those
- * reasons.
- */
+/** A read-only collection of edges. */
 @Suppress("INAPPLICABLE_JVM_NAME")
 public interface EdgeCollection : Collection<Edge> {
     override fun isEmpty(): Boolean = size == 0
-
-    override fun iterator(): EdgeIterator
 
     @JvmName("contains")
     override fun contains(element: Edge): Boolean {
@@ -170,22 +313,24 @@ public interface EdgeCollection : Collection<Edge> {
     }
 
     public fun containsAll(elements: EdgeCollection): Boolean {
-        for (e in this) {
+        for (e in elements) {
             if (!contains(e)) return false
         }
         return true
     }
 
     override fun containsAll(elements: Collection<Edge>): Boolean {
-        if (elements is EdgeSet) {
+        if (elements is EdgeCollection) {
             return containsAll(elements)
         }
 
-        for (e in this) {
+        for (e in elements) {
             if (!contains(e)) return false
         }
         return true
     }
+
+    override fun iterator(): EdgeIterator
 
     public fun toLongArray(): LongArray {
         val array = LongArray(size)
@@ -197,12 +342,42 @@ public interface EdgeCollection : Collection<Edge> {
     }
 }
 
+/** A read-only ordered collection of edges. */
 @Suppress("INAPPLICABLE_JVM_NAME")
-public interface EdgeList : EdgeCollection, List<Edge> {
-    override fun isEmpty(): Boolean = super.isEmpty()
+public interface EdgeSequencedCollection : EdgeCollection, RandomAccess {
+    @JvmName("get")
+    public operator fun get(index: Int): Edge
+
+    @JvmName("first")
+    public fun first(): Edge {
+        if (isEmpty()) throw NoSuchElementException()
+        return get(0)
+    }
+
+    @JvmName("last")
+    public fun last(): Edge {
+        if (isEmpty()) throw NoSuchElementException()
+        return get(size - 1)
+    }
+
     @JvmName("contains")
-    override fun contains(element: Edge): Boolean = super.contains(element)
-    override fun containsAll(elements: Collection<Edge>): Boolean = super.containsAll(elements)
+    override fun contains(element: Edge): Boolean = indexOf(element) != -1
+
+    @JvmName("indexOf")
+    public fun indexOf(element: Edge): Int {
+        for (index in 0..<size) {
+            if (get(index) == element) return index
+        }
+        return -1
+    }
+
+    @JvmName("lastIndexOf")
+    public fun lastIndexOf(element: Edge): Int {
+        for (index in size - 1 downTo 0) {
+            if (get(index) == element) return index
+        }
+        return -1
+    }
 
     override fun iterator(): EdgeIterator = object : EdgeIterator {
         private var index = 0
@@ -213,17 +388,16 @@ public interface EdgeList : EdgeCollection, List<Edge> {
         }
     }
 
-    @JvmName("indexOf")
-    override fun indexOf(element: Edge): Int
-    @JvmName("lastIndexOf")
-    override fun lastIndexOf(element: Edge): Int
+    override fun toLongArray(): LongArray {
+        val array = LongArray(size)
+        for (index in 0..<size) {
+            array[index] = get(index).id
+        }
+        return array
+    }
 }
 
-/**
- * A read-only set of edges. Note that this interface is distinct from [Set<Edge>][Set] in order to avoid Edge
- * boxing/unboxing, and associated performance penalties. Prefer to use this interface whenever possible for those
- * reasons.
- */
+/** A read-only set of edges. */
 @Suppress("INAPPLICABLE_JVM_NAME")
 public interface EdgeSet : EdgeCollection, Set<Edge> {
     override fun isEmpty(): Boolean = super.isEmpty()
@@ -232,59 +406,63 @@ public interface EdgeSet : EdgeCollection, Set<Edge> {
     override fun containsAll(elements: Collection<Edge>): Boolean = super.containsAll(elements)
 }
 
-/**
- * A set of edges with an iterator that allows for removal.
- */
+/** A set of edges with an iterator that allows for removal. */
 public interface MutableEdgeSet : EdgeSet {
     override fun iterator(): MutableEdgeIterator
 }
 
-/**
- * A set of edges where the [Edge.id] of each edge is in [0, size).
- */
+/** A read-only ordered set of edges. */
 @Suppress("INAPPLICABLE_JVM_NAME")
-public interface IndexedEdgeSet : EdgeSet, EdgeList {
-    override fun isEmpty(): Boolean = super<EdgeSet>.isEmpty()
-
+public interface EdgeSequencedSet : EdgeSequencedCollection, EdgeSet {
+    override fun isEmpty(): Boolean = super<EdgeSequencedCollection>.isEmpty()
     @JvmName("contains")
-    override fun contains(element: Edge): Boolean = element.id in 0..<size
-    override fun containsAll(elements: Collection<Edge>): Boolean = super<EdgeSet>.containsAll(elements)
+    override fun contains(element: Edge): Boolean = super<EdgeSequencedCollection>.contains(element)
+    override fun containsAll(elements: Collection<Edge>): Boolean = super<EdgeSequencedCollection>.containsAll(elements)
+    override fun iterator(): EdgeIterator = super.iterator()
 
+    public fun equalsSequenced(other: EdgeSequencedSet): Boolean {
+        if (size != other.size) return false
+
+        var i = size - 1
+        while (i >= 0) {
+            if (get(i) != other[i]) return false
+            i--
+        }
+        return true
+    }
+}
+
+/** An ordered set of edges with an iterator that allows for removal. */
+public interface MutableEdgeSequencedSet : EdgeSequencedSet, MutableEdgeSet {
+    override fun iterator(): MutableEdgeIterator
+}
+
+/** An ordered set of edges where the [Edge.id] of each edge is in [0, size). */
+@Suppress("INAPPLICABLE_JVM_NAME")
+public interface IndexedEdgeSet : EdgeSequencedSet {
     @JvmName("get")
     override fun get(index: Int): Edge {
         if (index !in 0..<size) throw IndexOutOfBoundsException()
         return Edge(index.toLong())
     }
 
+    @JvmName("contains")
+    override fun contains(element: Edge): Boolean = element.id in 0..<size
+
     @JvmName("indexOf")
-    override fun indexOf(element: Edge): Int {
-        return if (element.id in 0..<size) element.lowBits else -1
-    }
+    override fun indexOf(element: Edge): Int = if (element.id in 0..<size) element.id.toInt() else -1
 
     @JvmName("lastIndexOf")
     override fun lastIndexOf(element: Edge): Int = indexOf(element)
-
-    override fun iterator(): EdgeIterator = object : EdgeIterator {
-        private var index = 0
-        override fun hasNext(): Boolean = index < size
-        override fun next(): Edge {
-            if (!hasNext()) throw NoSuchElementException()
-            return get(index++)
-        }
-    }
-
-    override fun spliterator(): Spliterator<Edge> = super<EdgeList>.spliterator()
-}
-
-public val IndexedEdgeSet.lastIndex: Int @JvmSynthetic get() = size - 1
-
-public interface MutableIndexedEdgeSet : IndexedEdgeSet, MutableEdgeSet {
-    override fun iterator(): MutableEdgeIterator
 }
 
 /**
- * Returns a new read-only set of the given edges.
+ * An ordered set of edges where the [Edge.id] of each edge is in [0, size) with an iterator that allows for removal.
  */
+public interface MutableIndexedEdgeSet : IndexedEdgeSet, MutableEdgeSequencedSet {
+    override fun iterator(): MutableEdgeIterator
+}
+
 // KT-33565: suppression and generics can be removed once fixed
 @Suppress("FINAL_UPPER_BOUND")
 public fun <T : Edge> edgeSetOf(vararg edges: T): EdgeSet {
@@ -301,9 +479,6 @@ public fun <T : Edge> edgeSetOf(vararg edges: T): EdgeSet {
     }
 }
 
-/**
- * Returns an empty [EdgeIterator].
- */
 public fun emptyEdgeIterator(): MutableEdgeIterator = EmptyEdgeIterator
 
 private object EmptyEdgeIterator : MutableEdgeIterator {
@@ -312,68 +487,70 @@ private object EmptyEdgeIterator : MutableEdgeIterator {
     override fun remove() = throw IllegalStateException()
 }
 
-/**
- * Returns a read-only empty set/list of edges.
- */
 public fun emptyEdgeSet(): IndexedEdgeSet = EmptyEdgeSet
 
-private object EmptyEdgeSet : MutableIndexedEdgeSet, AbstractIndexedEdgeSet() {
+private object EmptyEdgeSet : MutableIndexedEdgeSet, AbstractEdgeSet() {
     override val size: Int get() = 0
-    override fun iterator(): MutableEdgeIterator = emptyEdgeIterator()
-
-    override fun contains(element: Edge): Boolean = false
-    override fun containsAll(elements: EdgeCollection): Boolean = elements.isEmpty()
-    override fun containsAll(elements: Collection<Edge>): Boolean = elements.isEmpty()
-
     override fun get(index: Int): Edge = throw IndexOutOfBoundsException()
+    override fun contains(element: Edge): Boolean = false
     override fun indexOf(element: Edge): Int = -1
+    override fun iterator(): MutableEdgeIterator = emptyEdgeIterator()
 }
 
-/**
- * Provides a skeletal implementation of the read-only [EdgeList] interface.
- */
-@Suppress("INAPPLICABLE_JVM_NAME")
-public abstract class AbstractEdgeList : EdgeList, AbstractList<Edge>() {
-    override fun iterator(): EdgeIterator = super<EdgeList>.iterator()
-    override fun isEmpty(): Boolean = super<EdgeList>.isEmpty()
-    @JvmName("contains")
-    override fun contains(element: Edge): Boolean = super<EdgeList>.contains(element)
-    override fun containsAll(elements: Collection<Edge>): Boolean = super<EdgeList>.containsAll(elements)
+/** Provides a skeletal implementation of the [EdgeSequencedCollection] interface. */
+public abstract class AbstractEdgeSequencedCollection : EdgeSequencedCollection {
+    override fun equals(other: Any?): Boolean {
+        if (other !is EdgeSequencedCollection) return false
+        if (size != other.size) return false
+
+        var i = size - 1
+        while (i >= 0) {
+            if (get(i) != other[i]) return false
+            i--
+        }
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var hashCode = 1
+        var i = size - 1
+        while (i >= 0) {
+            hashCode = 31 * hashCode + get(i--).hashCode()
+        }
+        return hashCode
+    }
+
+    override fun toString(): String = joinToString(prefix = "[", postfix = "]", separator = ", ")
 }
 
-/**
- * Provides a skeletal implementation of the read-only [EdgeSet] interface.
- */
-@Suppress("INAPPLICABLE_JVM_NAME")
-public abstract class AbstractEdgeSet : EdgeSet, AbstractSet<Edge>() {
-    override fun isEmpty(): Boolean = super<EdgeSet>.isEmpty()
-    @JvmName("contains")
-    override fun contains(element: Edge): Boolean = super<EdgeSet>.contains(element)
-    override fun containsAll(elements: Collection<Edge>): Boolean = super<EdgeSet>.containsAll(elements)
+/** Provides a skeletal implementation of the [EdgeSet] interface. */
+public abstract class AbstractEdgeSet : EdgeSet {
+    abstract override fun iterator(): EdgeIterator
+
+    override fun equals(other: Any?): Boolean {
+        if (other !is Set<*>) return false
+        if (size != other.size) return false
+        return (this as Set<*>).containsAll(other)
+    }
+
+    override fun hashCode(): Int {
+        var hashCode = 0
+        for (element in this) {
+            hashCode += element.hashCode()
+        }
+        return hashCode
+    }
+
+    override fun toString(): String = joinToString(prefix = "{", postfix = "}", separator = ", ")
 }
 
-/**
- * Provides a skeletal implementation of the read-only [IndexedEdgeSet] interface.
- */
-@Suppress("INAPPLICABLE_JVM_NAME")
-public abstract class AbstractIndexedEdgeSet : IndexedEdgeSet, AbstractEdgeList() {
-    override fun iterator(): EdgeIterator = super<IndexedEdgeSet>.iterator()
-    override fun isEmpty(): Boolean = super<IndexedEdgeSet>.isEmpty()
-
-    @JvmName("get")
-    override fun get(index: Int): Edge = super.get(index)
-
-    @JvmName("contains")
-    override fun contains(element: Edge): Boolean = super<IndexedEdgeSet>.contains(element)
-    override fun containsAll(elements: Collection<Edge>): Boolean = super<IndexedEdgeSet>.containsAll(elements)
-
-    @JvmName("indexOf")
-    override fun indexOf(element: Edge): Int = super<IndexedEdgeSet>.indexOf(element)
-    @JvmName("lastIndexOf")
-    override fun lastIndexOf(element: Edge): Int = super<IndexedEdgeSet>.lastIndexOf(element)
+/** Provides a skeletal implementation of the [EdgeSequencedSet] interface. */
+public abstract class AbstractEdgeSequencedSet : EdgeSequencedSet, AbstractEdgeSet() {
+    override fun iterator(): EdgeIterator = super.iterator()
 }
 
-internal abstract class AbstractMutableIndexedEdgeSet(private val graph: MutableGraph) : MutableIndexedEdgeSet, AbstractIndexedEdgeSet() {
+/** Provides a skeletal implementation of the [MutableIndexedEdgeSet] interface. */
+internal abstract class AbstractMutableIndexedEdgeSet(private val graph: MutableGraph) : MutableIndexedEdgeSet, AbstractEdgeSet() {
     override fun iterator(): MutableEdgeIterator = object : MutableEdgeIterator {
         private var index = 0
         private var previous = -1
@@ -392,6 +569,14 @@ internal abstract class AbstractMutableIndexedEdgeSet(private val graph: Mutable
             previous = -1
         }
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (other is IndexedEdgeSet) {
+            return equalsSequenced(other)
+        }
+
+        return super.equals(other)
+    }
 }
 
 private class SingletonEdgeSet(private val edgeId: Long) : AbstractEdgeSet() {
@@ -405,18 +590,16 @@ internal fun LongIterator.asEdgeIterator(): EdgeIterator = EdgeIteratorWrapper(t
 
 private class EdgeIteratorWrapper(private val it: LongIterator) : EdgeIterator {
     override fun hasNext(): Boolean = it.hasNext()
-    override fun next(): Edge {
-        return Edge(it.nextLong())
-    }
+    override fun next(): Edge = Edge(it.nextLong())
 }
 
-internal fun LongArray.asEdgeList(): EdgeList = EdgeListWrapper(this)
+internal fun LongArray.asSequencedEdgeSet(): EdgeSequencedSet = ArrayEdgeSequencedSet(this)
 
-private class EdgeListWrapper(private val edges: LongArray) : AbstractEdgeList() {
+private class ArrayEdgeSequencedSet(private val edges: LongArray) : EdgeSequencedSet, AbstractEdgeSet() {
     override val size: Int get() = edges.size
-    override fun iterator(): EdgeIterator = edges.iterator().asEdgeIterator()
-    override fun contains(element: Edge): Boolean = edges.contains(element.id)
     override fun get(index: Int): Edge = Edge(edges[index])
+    override fun contains(element: Edge): Boolean = edges.contains(element.id)
+    override fun iterator(): EdgeIterator = edges.iterator().asEdgeIterator()
     override fun toLongArray(): LongArray = edges.copyOf()
 }
 
@@ -425,6 +608,6 @@ internal fun LongSet.asEdgeSet(): EdgeSet = EdgeSetWrapper(this)
 private class EdgeSetWrapper(private val edges: LongSet) : AbstractEdgeSet() {
     override val size: Int get() = edges.size
     override fun contains(element: Edge): Boolean = edges.contains(element.id)
-    override fun iterator(): EdgeIterator = EdgeIteratorWrapper(edges.iterator())
+    override fun iterator(): EdgeIterator = edges.iterator().asEdgeIterator()
     override fun toLongArray(): LongArray = edges.copyInto(LongArray(edges.size))
 }

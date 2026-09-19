@@ -5,10 +5,12 @@
 
 package io.github.sooniln.fastgraph
 
-import io.github.sooniln.fastgraph.internal.AdjacencyListGraph
-import io.github.sooniln.fastgraph.internal.AdjacencyListNetwork
 import io.github.sooniln.fastgraph.internal.ImmutableAdjacencyListGraph
 import io.github.sooniln.fastgraph.internal.ImmutableAdjacencyListNetwork
+import io.github.sooniln.fastgraph.internal.ImmutableEdgeReference
+import io.github.sooniln.fastgraph.internal.ImmutableVertexReference
+import io.github.sooniln.fastgraph.internal.throwIllegalEdge
+import io.github.sooniln.fastgraph.internal.throwIllegalVertex
 
 /**
  * A [Graph] whose topology will never change. This class offers similar guarantees to most immutable collections:
@@ -26,7 +28,24 @@ import io.github.sooniln.fastgraph.internal.ImmutableAdjacencyListNetwork
  *
  * To create immutable graphs, see the [buildImmutableGraph]/[toImmutableGraph]/etc methods.
  */
-public sealed interface ImmutableGraph : Graph
+@Suppress("INAPPLICABLE_JVM_NAME")
+public sealed interface ImmutableGraph : Graph {
+    override fun registerVertexChangeListener(listener: VertexChangeListener) {}
+    override fun unregisterVertexChangeListener(listener: VertexChangeListener) {}
+    override fun registerEdgeChangeListener(listener: EdgeChangeListener) {}
+    override fun unregisterEdgeChangeListener(listener: EdgeChangeListener) {}
+
+    @JvmName("createVertexReference")
+    override fun createVertexReference(vertex: Vertex): VertexReference {
+        if (!vertices.contains(vertex)) throwIllegalVertex(vertex)
+        return ImmutableVertexReference(vertex)
+    }
+    @JvmName("createEdgeReference")
+    override fun createEdgeReference(edge: Edge): EdgeReference {
+        if (!edges.contains(edge)) throwIllegalEdge(this, edge)
+        return ImmutableEdgeReference(edge)
+    }
+}
 
 // what is the point of this Kotlin stupidity - who thought limiting a sealed interface to the same package was a good
 // idea when Kotlin doesn't even have package-private?? instead we have to use this moronic workaround.
@@ -89,14 +108,13 @@ public fun Graph.toImmutableGraph(): ImmutableGraph {
         return emptyImmutableGraph(directed)
     }
 
-    return when (this) {
-        is AdjacencyListGraph -> ImmutableAdjacencyListGraph.copy(this)
-        is AdjacencyListNetwork -> ImmutableAdjacencyListNetwork.copy(this)
-        else -> {
-            if (this is IndexedVertexGraph && this is IndexedEdgeGraph) ImmutableAdjacencyListNetwork.copy(this)
-            else throw UnsupportedOperationException("Creating immutable copies of third-party graphs that do not implement both IndexedVertexGraph and IndexedEdgeGraph is currently unsupported")
-        }
+    if (this is IndexedVertexGraph) {
+        if (this is CanonicalEdgeGraph) return ImmutableAdjacencyListGraph.copy(this)
+        if (this is IndexedEdgeGraph) return ImmutableAdjacencyListNetwork.copy(this)
+        throw UnsupportedOperationException("Creating immutable copies of graphs with opaque edge identifiers is currently unsupported")
     }
+
+    throw UnsupportedOperationException("Creating immutable copies of graphs with opaque vertex identifiers is currently unsupported")
 }
 
 /**
@@ -206,20 +224,14 @@ private class EmptyGraph(override val directed: Boolean) : ImmutableGraph, Index
     override val edges: IndexedEdgeSet
         get() = emptyEdgeSet()
 
-    override fun edgeSource(edge: Edge): Vertex = throw IllegalArgumentException()
-
-    override fun edgeTarget(edge: Edge): Vertex = throw IllegalArgumentException()
+    override fun edgeSource(edge: IndexedEdge): Vertex = throw IllegalArgumentException()
+    override fun edgeTarget(edge: IndexedEdge): Vertex = throw IllegalArgumentException()
 
     override fun hasEdge(source: Vertex, target: Vertex): Boolean = throw IllegalArgumentException()
 
     override fun edge(source: Vertex, target: Vertex): Edge = throw IllegalArgumentException()
 
     override fun edges(source: Vertex, target: Vertex): EdgeSet = throw IllegalArgumentException()
-
-    override fun registerVertexChangeListener(listener: VertexChangeListener) {}
-    override fun unregisterVertexChangeListener(listener: VertexChangeListener) {}
-    override fun registerEdgeChangeListener(listener: EdgeChangeListener) {}
-    override fun unregisterEdgeChangeListener(listener: EdgeChangeListener) {}
 
     override fun <T> createVertexProperty(
         type: PropertyType<T>,
@@ -244,6 +256,6 @@ private class EmptyGraph(override val directed: Boolean) : ImmutableGraph, Index
     }
 
     override fun createVertexReference(vertex: Vertex): VertexReference = throw IllegalArgumentException()
-
     override fun createEdgeReference(edge: Edge): EdgeReference = throw IllegalArgumentException()
+    override fun createEdgeReference(edge: IndexedEdge): EdgeReference = throw IllegalArgumentException()
 }

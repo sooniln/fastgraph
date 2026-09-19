@@ -11,6 +11,7 @@ import io.github.sooniln.fastgraph.EdgeFunction
 import io.github.sooniln.fastgraph.EdgeIterator
 import io.github.sooniln.fastgraph.EdgeReference
 import io.github.sooniln.fastgraph.EdgeSet
+import io.github.sooniln.fastgraph.IndexedEdge
 import io.github.sooniln.fastgraph.IndexedEdgeGraph
 import io.github.sooniln.fastgraph.IndexedVertexGraph
 import io.github.sooniln.fastgraph.MutableEdgeKeyProperty
@@ -295,9 +296,8 @@ internal class AdjacencyListNetwork(
         }
     }
 
-    override fun edgeSource(edge: Edge): Vertex = edgeValues[edge.edgeId].source
-
-    override fun edgeTarget(edge: Edge): Vertex = edgeValues[edge.edgeId].target
+    override fun edgeSource(edge: IndexedEdge): Vertex = edgeValues[edge.id].source
+    override fun edgeTarget(edge: IndexedEdge): Vertex = edgeValues[edge.id].target
 
     override fun registerVertexChangeListener(listener: VertexChangeListener) { vertexListeners.register(listener) }
     override fun unregisterVertexChangeListener(listener: VertexChangeListener) { vertexListeners.unregister(listener) }
@@ -312,26 +312,11 @@ internal class AdjacencyListNetwork(
         return IncidentEdgeSet(true, source, successors[source].edgesTo(target))
     }
 
-    override fun <T> createVertexProperty(
-        type: PropertyType<T>,
-        defaultValueFunction: VertexFunction<T>
-    ): MutableVertexProperty<T> = createVertexProperty(this, type, defaultValueFunction)
-
-    override fun <T> createEdgeProperty(
-        type: PropertyType<T>,
-        defaultValueFunction: EdgeFunction<T>
-    ): MutableEdgeProperty<T> = createEdgeProperty(this, type, defaultValueFunction)
-
-    override fun <T> createVertexKeyProperty(type: PropertyType<T>): MutableVertexKeyProperty<T> =
-        createVertexKeyProperty(this, type)
-
-    override fun <T> createEdgeKeyProperty(type: PropertyType<T>): MutableEdgeKeyProperty<T> =
-        createEdgeKeyProperty(this, type)
-
     override fun createVertexReference(vertex: Vertex): VertexReference =
         vertexRefs.getReference(validateVertex(vertex))
 
     override fun createEdgeReference(edge: Edge): EdgeReference = edgeRefs.getReference(validateEdge(edge))
+    override fun createEdgeReference(edge: IndexedEdge): EdgeReference = createEdgeReference(edge.toEdge())
 
     override fun trimToSize() {
         successors.trimToSize()
@@ -591,7 +576,7 @@ internal class AdjacencyListNetwork(
     private companion object {
         private val INVALID_VERTEX = Vertex(-1)
 
-        private val Edge.edgeId: Int inline get() = lowBits
+        private val Edge.edgeId: Int inline get() = id.toInt()
 
         private fun canonicalEdge(edgeId: Int): Edge = Edge(edgeId.toLong())
     }
