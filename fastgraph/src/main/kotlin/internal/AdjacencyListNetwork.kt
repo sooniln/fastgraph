@@ -47,7 +47,7 @@ internal class AdjacencyListNetwork(
     }
 
     override fun validateEdge(edge: Edge): Edge {
-        val e = IdentityIndexedEdge.from(edge)
+        val e = IdentityIndexedEdge(Math.toIntExact(edge.id))
         if (e.id !in 0..<edgeValues.size) throwIllegalEdge(edge)
         return edge
     }
@@ -267,10 +267,10 @@ internal class AdjacencyListNetwork(
     override fun edgeSource(edge: IdentityIndexedEdge): Vertex = edgeValues[edge.id].source
     override fun edgeTarget(edge: IdentityIndexedEdge): Vertex = edgeValues[edge.id].target
 
-    override fun registerVertexChangeListener(listener: VertexChangeListener) { vertexListeners.register(listener) }
-    override fun unregisterVertexChangeListener(listener: VertexChangeListener) { vertexListeners.unregister(listener) }
-    override fun registerEdgeChangeListener(listener: EdgeChangeListener) { edgeListeners.register(listener) }
-    override fun unregisterEdgeChangeListener(listener: EdgeChangeListener) { edgeListeners.unregister(listener) }
+    override fun registerVertexChangeListener(listener: VertexChangeListener) = vertexListeners.register(listener)
+    override fun unregisterVertexChangeListener(listener: VertexChangeListener) = vertexListeners.unregister(listener)
+    override fun registerEdgeChangeListener(listener: EdgeChangeListener) = edgeListeners.register(listener)
+    override fun unregisterEdgeChangeListener(listener: EdgeChangeListener) = edgeListeners.unregister(listener)
 
     override fun containsEdge(source: Vertex, target: Vertex): Boolean = successors[source.id].contains(target)
 
@@ -386,7 +386,6 @@ internal class AdjacencyListNetwork(
             private val mapIt = map.iterator()
             private var edgeIdIt: IntIterator = emptyIntIterator()
 
-            private var vertex = INVALID_VERTEX
             private var edgeId = -1
 
             init {
@@ -405,7 +404,6 @@ internal class AdjacencyListNetwork(
             private fun increment() {
                 while (!edgeIdIt.hasNext() && mapIt.hasNext()) {
                     val entry = mapIt.next()
-                    vertex = Vertex(entry.key)
                     val edgeId = entry.value
                     edgeIdIt = if (edgeId < 0) edgeListMap.getValue(edgeId).iterator() else intIteratorOf(edgeId)
                 }
@@ -538,8 +536,6 @@ internal class AdjacencyListNetwork(
     }
 
     private companion object {
-        private val INVALID_VERTEX = Vertex(-1)
-
         private operator fun ArrayList<AdjacencySet>.get(vertex: Vertex) = get(vertex.id)
         private operator fun ArrayList<AdjacencySet>.set(vertex: Vertex, value: AdjacencySet) = set(vertex.id, value)
         private fun ArrayList<AdjacencySet>.remove(vertex: Vertex) = removeAt(vertex.id)

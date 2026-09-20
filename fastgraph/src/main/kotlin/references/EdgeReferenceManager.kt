@@ -89,15 +89,5 @@ internal class EdgeReferenceManager(private val graph: Graph) : EdgeChangeListen
         fun invalidate() {
             valid = false
         }
-
-        override fun equals(other: Any?): Boolean {
-            if (this === other) return true
-            if (other is EdgeReferenceImpl) {
-                return valid && other.valid && unstable == other.unstable
-            }
-            return false
-        }
-
-        override fun hashCode(): Int = unstable.hashCode()
     }
 }

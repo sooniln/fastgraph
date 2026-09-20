@@ -3,12 +3,12 @@ package io.github.sooniln.fastgraph.listeners
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
 import java.lang.ref.WeakReference
+import java.util.concurrent.CopyOnWriteArrayList
 
 internal class VertexChangeListenerManager {
-    private val listeners = ArrayList<WeakReference<VertexChangeListener>>()
+    private val listeners = CopyOnWriteArrayList<WeakReference<VertexChangeListener>>()
 
-    /** Returns true if this is the first listener added. */
-    fun register(listener: VertexChangeListener): Boolean {
+    fun register(listener: VertexChangeListener) {
         val ref = WeakReference(listener)
 
         synchronized(listeners) {
@@ -29,13 +29,10 @@ internal class VertexChangeListenerManager {
             }
 
             listeners.add(ref)
-            return listeners.size == 1
         }
     }
 
-    /** Returns true if the last listener was removed. */
-    fun unregister(listener: VertexChangeListener): Boolean {
-        var removed = false
+    fun unregister(listener: VertexChangeListener) {
         synchronized(listeners) {
             var index = 0
             var size = listeners.size
@@ -43,7 +40,6 @@ internal class VertexChangeListenerManager {
                 val l = listeners[index].get()
                 if (l == null || l == listener) {
                     val old = listeners.removeAt(--size)
-                    removed = true
                     if (index != size) {
                         listeners[index] = old
                     }
@@ -51,8 +47,6 @@ internal class VertexChangeListenerManager {
                     ++index
                 }
             }
-
-            return removed && listeners.isEmpty()
         }
     }
 
@@ -69,7 +63,6 @@ internal class VertexChangeListenerManager {
 
     fun notifyTrimToSize() {
         synchronized(listeners) {
-            listeners.trimToSize()
             forEach { it.trimToSize() }
         }
     }

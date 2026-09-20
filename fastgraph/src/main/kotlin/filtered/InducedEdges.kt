@@ -111,9 +111,12 @@ internal class InducedEdges(
     }
 
     override fun onEdgeReassigned(oldEdge: Edge, newEdge: Edge) {
+        val removed = edges.remove(newEdge.id)
         if (edges.remove(oldEdge.id)) {
             edges.add(newEdge.id)
             listeners.notifyEdgeReassigned(oldEdge, newEdge)
+        } else if (removed) {
+            listeners.notifyEdgeRemoved(newEdge)
         }
     }
 }

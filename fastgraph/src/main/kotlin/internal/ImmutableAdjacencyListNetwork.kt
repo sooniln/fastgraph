@@ -195,7 +195,8 @@ internal class ImmutableAdjacencyListNetwork private constructor(
     }
 
     override fun validateEdge(edge: Edge): Edge {
-        if (IdentityIndexedEdge.from(edge).id !in edgeValues.indices) throwIllegalEdge(edge)
+        val e = IdentityIndexedEdge(Math.toIntExact(edge.id))
+        if (e.id !in edgeValues.indices) throwIllegalEdge(edge)
         return edge
     }
 

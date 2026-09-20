@@ -89,9 +89,12 @@ private class InducedSomeVertices(parent: Graph, inducers: VertexSet) : InducedV
     }
 
     override fun onVertexReassigned(oldVertex: Vertex, newVertex: Vertex) {
+        val removed = vertices.remove(newVertex.id)
         if (vertices.remove(oldVertex.id)) {
             vertices.add(newVertex.id)
             listeners.notifyVertexReassigned(oldVertex, newVertex)
+        } else if (removed) {
+            listeners.notifyVertexRemoved(newVertex)
         }
     }
 }

@@ -89,15 +89,5 @@ internal class VertexReferenceManager(private val graph: Graph) : VertexChangeLi
         fun invalidate() {
             valid = false
         }
-
-        override fun equals(other: Any?): Boolean {
-            if (this === other) return true
-            if (other is VertexReferenceImpl) {
-                return valid && other.valid && unstable == other.unstable
-            }
-            return false
-        }
-
-        override fun hashCode(): Int = unstable.hashCode()
     }
 }

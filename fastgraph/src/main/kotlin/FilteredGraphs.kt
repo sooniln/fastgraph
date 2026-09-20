@@ -13,10 +13,6 @@ import io.github.sooniln.fastgraph.filtered.PredicatedEdges
 import io.github.sooniln.fastgraph.filtered.PredicatedVertices
 import io.github.sooniln.fastgraph.filtered.InducedEdges
 import io.github.sooniln.fastgraph.filtered.InducedVertices
-import io.github.sooniln.fastgraph.internal.ImmutableEdgeReference
-import io.github.sooniln.fastgraph.internal.ImmutableVertexReference
-import io.github.sooniln.fastgraph.internal.throwIllegalEdge
-import io.github.sooniln.fastgraph.internal.throwIllegalVertex
 
 /**
  * A special type of [Graph] which is a filtered live-view of another [Graph]. In order to create a [FilteredGraph] see

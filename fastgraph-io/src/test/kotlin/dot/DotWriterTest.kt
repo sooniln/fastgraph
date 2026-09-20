@@ -20,7 +20,7 @@ class DotWriterTest {
         writeDot(output, DotGraph(graph))
 
         assertThat(output.toString(Charsets.UTF_8)).isEqualTo(
-            "digraph G {\n" +
+            "strict digraph G {\n" +
                 "  \"${a.id}\";\n" +
                 "  \"${b.id}\";\n" +
                 "  \"${a.id}\" -> \"${b.id}\";\n" +
@@ -39,7 +39,7 @@ class DotWriterTest {
         writeDot(output, DotGraph(graph))
 
         assertThat(output.toString(Charsets.UTF_8)).isEqualTo(
-            "graph G {\n" +
+            "strict graph G {\n" +
                 "  \"${a.id}\";\n" +
                 "  \"${b.id}\";\n" +
                 "  \"${a.id}\" -- \"${b.id}\";\n" +
@@ -62,7 +62,7 @@ class DotWriterTest {
         writeDot(output, DotGraph(graph, vertexProperties = mapOf("score" to score), edgeProperties = mapOf("label" to label)))
 
         assertThat(output.toString(Charsets.UTF_8)).isEqualTo(
-            "digraph G {\n" +
+            "strict digraph G {\n" +
                 "  \"${a.id}\" [\"score\"=\"5\"];\n" +
                 "  \"${b.id}\" [\"score\"=\"0\"];\n" +
                 "  \"${a.id}\" -> \"${b.id}\" [\"label\"=\"connects\"];\n" +
@@ -80,7 +80,7 @@ class DotWriterTest {
         writeDot(output, DotGraph(graph, vertexProperties = mapOf("label" to label)))
 
         assertThat(output.toString(Charsets.UTF_8)).isEqualTo(
-            "digraph G {\n" +
+            "strict digraph G {\n" +
                 "  \"${a.id}\";\n" +
                 "}\n"
         )

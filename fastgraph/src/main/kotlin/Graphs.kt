@@ -393,8 +393,8 @@ public fun Graph.edgeTarget(edgeReference: EdgeReference): Vertex = edgeTarget(e
 public fun Graph.edgeSource(edge: Edge, target: Vertex): Vertex {
     if (directed) {
         val source = edgeSource(edge)
-        assert(source != target)
-        return target
+        assert(edgeTarget(edge) == target)
+        return source
     } else {
         return edgeOpposite(edge, target)
     }
@@ -417,7 +417,7 @@ public fun Graph.edgeSource(edge: Edge, target: VertexReference): Vertex = edgeS
 public fun Graph.edgeTarget(edge: Edge, source: Vertex): Vertex {
     if (directed) {
         val target = edgeTarget(edge)
-        assert(source != target)
+        assert(edgeSource(edge) == source)
         return target
     } else {
         return edgeOpposite(edge, source)
@@ -464,13 +464,13 @@ public fun Graph.edgeOpposite(edge: Edge, other: Vertex): Vertex {
 public fun Graph.edgeOpposite(edge: Edge, other: VertexReference): Vertex = edgeOpposite(edge, other.unstable)
 
 /**
- * Returns the density of the graph, defined as 2M/(N*(N-1)) for directed graphs and M/(N*(N-1)) for undirected graphs,
+ * Returns the density of the graph, defined as M/(N*(N-1)) for directed graphs and 2M/(N*(N-1)) for undirected graphs,
  * where M is the number of edges and N is the number of vertices.
  */
 public fun Graph.density(): Double {
-    val numerator = if (directed) 2 * edges.size else edges.size
-    val numVertices = vertices.size
-    return numerator.toDouble() / (numVertices * (numVertices - 1))
+    val numerator = if (directed) edges.size.toDouble() else 2.0 * edges.size
+    val numVertices = vertices.size.toDouble()
+    return numerator / (numVertices * (numVertices - 1))
 }
 
 @Suppress("INAPPLICABLE_JVM_NAME")
@@ -672,8 +672,8 @@ public interface IdentityIndexedEdgeGraph : IndexedEdgeGraph {
 public fun IdentityIndexedEdgeGraph.edgeSource(edge: IdentityIndexedEdge, target: Vertex): Vertex {
     if (directed) {
         val source = edgeSource(edge)
-        assert(source != target)
-        return target
+        assert(edgeTarget(edge) == target)
+        return source
     } else {
         return edgeOpposite(edge, target)
     }
@@ -696,7 +696,7 @@ public fun IdentityIndexedEdgeGraph.edgeSource(edge: IdentityIndexedEdge, target
 public fun IdentityIndexedEdgeGraph.edgeTarget(edge: IdentityIndexedEdge, source: Vertex): Vertex {
     if (directed) {
         val target = edgeTarget(edge)
-        assert(source != target)
+        assert(edgeSource(edge) == source)
         return target
     } else {
         return edgeOpposite(edge, source)
@@ -767,8 +767,8 @@ public interface CanonicalEdgeGraph : Graph {
 public fun CanonicalEdgeGraph.edgeSource(edge: Edge, target: Vertex): Vertex {
     if (directed) {
         val source = edge.source
-        assert(source != target)
-        return target
+        assert(edge.target == target)
+        return source
     } else {
         return edge.opposite(target)
     }
@@ -791,7 +791,7 @@ public fun CanonicalEdgeGraph.edgeSource(edge: Edge, target: VertexReference): V
 public fun CanonicalEdgeGraph.edgeTarget(edge: Edge, source: Vertex): Vertex {
     if (directed) {
         val target = edge.target
-        assert(source != target)
+        assert(edge.source == source)
         return target
     } else {
         return edge.opposite(source)

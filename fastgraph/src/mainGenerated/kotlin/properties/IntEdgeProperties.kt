@@ -274,7 +274,7 @@ internal class IntEdgeProperty(
     }
 
     override fun onEdgeReassigned(oldEdge: Edge, newEdge: Edge) {
-        val oldValue = property.removeOrElse(oldEdge.id) { return }
+        val oldValue = property.removeOrElse(oldEdge.id) { property.remove(newEdge.id); return }
         property[newEdge.id] = oldValue
     }
 

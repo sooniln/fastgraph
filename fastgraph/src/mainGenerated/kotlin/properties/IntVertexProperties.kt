@@ -262,7 +262,7 @@ internal class IntVertexProperty(
     }
 
     override fun onVertexReassigned(oldVertex: Vertex, newVertex: Vertex) {
-        val oldValue = property.removeOrElse(oldVertex.id) { return }
+        val oldValue = property.removeOrElse(oldVertex.id) { property.remove(newVertex.id); return }
         property[newVertex.id] = oldValue
     }
 

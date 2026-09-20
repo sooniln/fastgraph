@@ -245,10 +245,11 @@ internal class AnyVertexProperty<T>(
     }
 
     override fun onVertexReassigned(oldVertex: Vertex, newVertex: Vertex) {
-        val oldValue = property.removeOrElse(oldVertex.id) { return }
+        val oldValue = property.removeOrElse(oldVertex.id) { property.remove(newVertex.id); return }
         property[newVertex.id] = oldValue
     }
 
+    override fun ensureVertexCapacity(vertexCapacity: Int) = property.ensureCapacity(vertexCapacity)
     override fun trimToSize() = property.trimToSize()
 }
 

@@ -3,9 +3,10 @@ package io.github.sooniln.fastgraph.listeners
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeChangeListener
 import java.lang.ref.WeakReference
+import java.util.concurrent.CopyOnWriteArrayList
 
 internal class EdgeChangeListenerManager {
-    private val listeners = ArrayList<WeakReference<EdgeChangeListener>>()
+    private val listeners = CopyOnWriteArrayList<WeakReference<EdgeChangeListener>>()
 
     fun register(listener: EdgeChangeListener) {
         val ref = WeakReference(listener)
@@ -62,7 +63,6 @@ internal class EdgeChangeListenerManager {
 
     fun notifyTrimToSize() {
         synchronized(listeners) {
-            listeners.trimToSize()
             forEach { it.trimToSize() }
         }
     }

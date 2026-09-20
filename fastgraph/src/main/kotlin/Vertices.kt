@@ -1,5 +1,5 @@
 /**
- * Methods dealing with edges.
+ * Methods dealing with vertices.
  */
 @file:JvmName("Vertices")
 

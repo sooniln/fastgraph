@@ -222,6 +222,7 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
 
         val source = canonicalEdge.source
         val target = canonicalEdge.target
+        if (!successors[source].contains(target)) throwIllegalEdge(edge)
 
         edgeListeners.notifyEdgeRemoved(edge)
 
@@ -315,10 +316,10 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
         }
     }
 
-    override fun registerVertexChangeListener(listener: VertexChangeListener) { vertexListeners.register(listener) }
-    override fun unregisterVertexChangeListener(listener: VertexChangeListener) { vertexListeners.unregister(listener) }
-    override fun registerEdgeChangeListener(listener: EdgeChangeListener) { edgeListeners.register(listener) }
-    override fun unregisterEdgeChangeListener(listener: EdgeChangeListener) { edgeListeners.unregister(listener) }
+    override fun registerVertexChangeListener(listener: VertexChangeListener) = vertexListeners.register(listener)
+    override fun unregisterVertexChangeListener(listener: VertexChangeListener) = vertexListeners.unregister(listener)
+    override fun registerEdgeChangeListener(listener: EdgeChangeListener) = edgeListeners.register(listener)
+    override fun unregisterEdgeChangeListener(listener: EdgeChangeListener) = edgeListeners.unregister(listener)
 
     override fun containsEdge(source: Vertex, target: Vertex): Boolean = successors[source].contains(target)
 
@@ -383,7 +384,7 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
         override val size: Int get() = adjacencies.size
         override fun contains(element: Edge): Boolean {
             val edge = CanonicalEdge.from(validateEdge(element))
-            return vertex == edge.source && adjacencies.contains(edge.target.id)
+            return vertex == edge.target && adjacencies.contains(edge.source.id)
         }
         override fun iterator(): EdgeIterator = object : EdgeIterator {
             private val it = adjacencies.iterator()

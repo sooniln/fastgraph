@@ -98,10 +98,10 @@ public fun writeDot(outputStream: OutputStream, graph: DotGraph) {
     val keyword = if (graph.graph.directed) "digraph" else "graph"
     val edgeOp = if (graph.graph.directed) "->" else "--"
 
-    if (graph.graph.multiEdge) {
+    if (!graph.graph.multiEdge) {
         writer.write("strict ")
     }
-    writer.write("$keyword G {\n")
+    writer.write("$keyword ${graph.graphId?.let { quote(it) } ?: "G"} {\n")
 
     if (graph.graphProperties.isNotEmpty()) {
         writer.write("  graph")
