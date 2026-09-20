@@ -137,6 +137,16 @@ public fun <V> MutableVertexProperty<V>.put(vertexReference: VertexReference, va
     put(vertexReference.unstable, value)
 
 /**
+ * Returns a new [MutableVertexProperty] with the given graph owner which passes all property functionality through to
+ * this property.
+ */
+public fun <E> MutableVertexProperty<E>.reparent(graph: Graph): MutableVertexProperty<E> {
+    return object : MutableVertexProperty<E> by this {
+        override val graph: Graph = graph
+    }
+}
+
+/**
  * Creates a [VertexProperty] for the [Unit] type. This is useful for cases where you are required to specify an
  * [VertexProperty] but have no useful vertex property to use (for example, with a [ValueGraph]). The resulting
  * vertex property takes up very little constant space.
@@ -487,6 +497,16 @@ public interface VertexKeyProperty<V> : VertexProperty<V> {
  * additionally returns the previous key.
  */
 public interface MutableVertexKeyProperty<V> : VertexKeyProperty<V>, MutableVertexProperty<V>
+
+/**
+ * Returns a new [MutableVertexKeyProperty] with the given graph owner which passes all property functionality through
+ * to this property.
+ */
+public fun <E> MutableVertexKeyProperty<E>.reparent(graph: Graph): MutableVertexKeyProperty<E> {
+    return object : MutableVertexKeyProperty<E> by this {
+        override val graph: Graph = graph
+    }
+}
 
 /**
  * Creates a vertex key property that is as specialized and efficient as possible for the given graph and type. See

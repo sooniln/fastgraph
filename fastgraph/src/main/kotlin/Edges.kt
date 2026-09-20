@@ -397,6 +397,8 @@ public interface EdgeSequencedCollection : EdgeCollection, RandomAccess {
     }
 }
 
+public val EdgeSequencedCollection.lastIndex: Int get() = size - 1
+
 /** A read-only set of edges. */
 @Suppress("INAPPLICABLE_JVM_NAME")
 public interface EdgeSet : EdgeCollection, Set<Edge> {
@@ -488,7 +490,7 @@ public fun <T : Edge> edgeSetOf(vararg edges: T): EdgeSet {
     return if (edges.isEmpty()) {
         emptyEdgeSet()
     } else if (edges.size == 1) {
-        SingletonEdgeSet(edges[0].id)
+        SingletonEdgeSet(edges[0])
     } else {
         LongHashSet(edges.size).apply {
             for (edge in edges) {
@@ -504,6 +506,20 @@ private object EmptyEdgeIterator : MutableEdgeIterator {
     override fun hasNext(): Boolean = false
     override fun next(): Edge = throw NoSuchElementException()
     override fun remove() = throw IllegalStateException()
+}
+
+@JvmName("edgeIteratorOf")
+public fun edgeIteratorOf(edge: Edge): EdgeIterator = SingletonEdgeIterator(edge)
+
+private class SingletonEdgeIterator(private val edge: Edge) : EdgeIterator {
+    private var done = false
+
+    override fun hasNext(): Boolean = !done
+    override fun next(): Edge {
+        if (done) throw NoSuchElementException()
+        done = true
+        return edge
+    }
 }
 
 public fun emptyEdgeSet(): IdentityIndexedEdgeSet = EmptyEdgeSet
@@ -568,11 +584,11 @@ public abstract class AbstractEdgeSequencedSet : EdgeSequencedSet, AbstractEdgeS
     override fun iterator(): EdgeIterator = super.iterator()
 }
 
-private class SingletonEdgeSet(private val edgeId: Long) : AbstractEdgeSet() {
+private class SingletonEdgeSet(private val edge: Edge) : AbstractEdgeSet() {
     override val size: Int get() = 1
-    override fun contains(element: Edge): Boolean = element.id == edgeId
-    override fun iterator(): EdgeIterator = longIteratorOf(edgeId).asEdgeIterator()
-    override fun toLongArray(): LongArray = LongArray(1) { edgeId }
+    override fun contains(element: Edge): Boolean = element.id == edge.id
+    override fun iterator(): EdgeIterator = edgeIteratorOf(edge)
+    override fun toLongArray(): LongArray = LongArray(1) { edge.id }
 }
 
 internal fun LongIterator.asEdgeIterator(): EdgeIterator = EdgeIteratorWrapper(this)

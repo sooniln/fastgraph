@@ -20,11 +20,11 @@ class DirectedMutableNetworkTest {
         context(graph) {
             assertThat(graph.vertices).isEmpty()
 
-            val v1 = graph.addVertex().createReference()
+            val v1 = graph.addVertex().reference()
             vertexProperty[v1] = "v1"
             assertThat(graph.vertices).containsExactlyInAnyOrder(v1.unstable)
 
-            val v2 = graph.addVertex().createReference()
+            val v2 = graph.addVertex().reference()
             vertexProperty[v2] = "v2"
             assertThat(graph.vertices).containsExactlyInAnyOrder(v1.unstable, v2.unstable)
 
@@ -47,11 +47,11 @@ class DirectedMutableNetworkTest {
     @Test
     fun removeVerticesWithIterator() {
         context(graph) {
-            val v1 = graph.addVertex().createReference()
+            val v1 = graph.addVertex().reference()
             vertexProperty[v1] = "v1"
-            val v2 = graph.addVertex().createReference()
+            val v2 = graph.addVertex().reference()
             vertexProperty[v2] = "v2"
-            val v3 = graph.addVertex().createReference()
+            val v3 = graph.addVertex().reference()
             vertexProperty[v3] = "v3"
 
             val e1 = graph.addEdge(v1, v2).reference()
@@ -99,11 +99,11 @@ class DirectedMutableNetworkTest {
     @Test
     fun mutateVertexWithEdges() {
         context(graph) {
-            val v1 = graph.addVertex().createReference()
+            val v1 = graph.addVertex().reference()
             vertexProperty[v1] = "v1"
-            val v2 = graph.addVertex().createReference()
+            val v2 = graph.addVertex().reference()
             vertexProperty[v2] = "v2"
-            val v3 = graph.addVertex().createReference()
+            val v3 = graph.addVertex().reference()
             vertexProperty[v3] = "v3"
 
             val e1 = graph.addEdge(v1, v2).reference()
@@ -174,11 +174,11 @@ class DirectedMutableNetworkTest {
     @Test
     fun removeEdgesWithIterator() {
         context(graph) {
-            val v1 = graph.addVertex().createReference()
+            val v1 = graph.addVertex().reference()
             vertexProperty[v1] = "v1"
-            val v2 = graph.addVertex().createReference()
+            val v2 = graph.addVertex().reference()
             vertexProperty[v2] = "v2"
-            val v3 = graph.addVertex().createReference()
+            val v3 = graph.addVertex().reference()
             vertexProperty[v3] = "v3"
 
             val e1 = graph.addEdge(v1, v2).reference()
@@ -198,59 +198,20 @@ class DirectedMutableNetworkTest {
             val e8 = graph.addEdge(v3, v3).reference()
             edgeProperty[e8] = "e8"
 
-            val it = graph.edges.iterator()
+            // which edge the iterator yields after a removal is an implementation detail (indices are kept
+            // contiguous by moving some edge), so only check that every edge is removed exactly once
+            val remaining = mutableSetOf(e1, e2, e3, e4, e5, e6, e7, e8)
+            val iterator = graph.edges.iterator()
 
-            assertThat(it.next()).isEqualTo(e1.unstable)
-            it.remove()
-            assertThat(graph.edges).containsExactlyInAnyOrder(
-                e2.unstable,
-                e3.unstable,
-                e4.unstable,
-                e5.unstable,
-                e6.unstable,
-                e7.unstable,
-                e8.unstable
-            )
+            while (iterator.hasNext()) {
+                val edge = iterator.next()
+                val reference = remaining.single { it.unstable == edge }
+                iterator.remove()
+                assertThat(remaining.remove(reference)).isTrue
+                assertThat(graph.edges).containsExactlyInAnyOrderElementsOf(remaining.map { it.unstable })
+            }
 
-            assertThat(it.next()).isEqualTo(e8.unstable)
-            it.remove()
-            assertThat(graph.edges).containsExactlyInAnyOrder(
-                e2.unstable,
-                e3.unstable,
-                e4.unstable,
-                e5.unstable,
-                e6.unstable,
-                e7.unstable
-            )
-
-            assertThat(it.next()).isEqualTo(e7.unstable)
-            it.remove()
-            assertThat(graph.edges).containsExactlyInAnyOrder(
-                e2.unstable,
-                e3.unstable,
-                e4.unstable,
-                e5.unstable,
-                e6.unstable
-            )
-
-            assertThat(it.next()).isEqualTo(e6.unstable)
-            it.remove()
-            assertThat(graph.edges).containsExactlyInAnyOrder(e2.unstable, e3.unstable, e4.unstable, e5.unstable)
-
-            assertThat(it.next()).isEqualTo(e5.unstable)
-            it.remove()
-            assertThat(graph.edges).containsExactlyInAnyOrder(e2.unstable, e3.unstable, e4.unstable)
-
-            assertThat(it.next()).isEqualTo(e4.unstable)
-            it.remove()
-            assertThat(graph.edges).containsExactlyInAnyOrder(e2.unstable, e3.unstable)
-
-            assertThat(it.next()).isEqualTo(e3.unstable)
-            it.remove()
-            assertThat(graph.edges).containsExactlyInAnyOrder(e2.unstable)
-
-            assertThat(it.next()).isEqualTo(e2.unstable)
-            it.remove()
+            assertThat(remaining).isEmpty()
             assertThat(graph.edges).isEmpty()
         }
     }

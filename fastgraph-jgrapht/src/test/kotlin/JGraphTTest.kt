@@ -330,6 +330,53 @@ class JGraphTTest {
 
     @ParameterizedTest
     @ValueSource(booleans = [true, false])
+    fun edgesOfTheMovedVertexStayValidAfterVertexRemoval(directed: Boolean) {
+        val fixture = triangle(directed)
+        fixture.addEdge("d", "c", weight = 2.0)
+        fixture.addEdge("d", "d", weight = 3.0)
+        val jgrapht = fixture.mutable(weighted = true)
+        val readOnly = fixture.readOnly(weighted = true)
+
+        // removing 'a' moves 'd' (the last vertex) into its place; in a canonical edge graph that renames every edge
+        // of 'd', and both views must keep handing out valid edges for them
+        assertThat(jgrapht.removeVertex("a")).isTrue()
+
+        for (view in listOf(jgrapht, readOnly)) {
+            assertThat(view.vertexSet()).containsExactlyInAnyOrder("b", "c", "d")
+            assertThat(view.edgeSet()).containsExactlyInAnyOrder("b-c", "d-c", "d-d")
+            assertThat(view.containsEdge("a-b")).isFalse()
+            assertThat(view.containsEdge("d-c")).isTrue()
+            assertThat(view.getEdge("d", "c")).isEqualTo("d-c")
+            assertThat(view.getEdge("d", "d")).isEqualTo("d-d")
+            assertThat(setOf(view.getEdgeSource("d-c"), view.getEdgeTarget("d-c"))).containsExactlyInAnyOrder("d", "c")
+            assertThat(view.getEdgeSource("d-d")).isEqualTo("d")
+            assertThat(view.getEdgeTarget("d-d")).isEqualTo("d")
+            assertThat(view.getEdgeWeight("d-c")).isEqualTo(2.0)
+            assertThat(view.getEdgeWeight("d-d")).isEqualTo(3.0)
+            assertThat(view.edgesOf("d")).containsExactlyInAnyOrder("d-c", "d-d")
+            assertThat(view.edgesOf("c")).containsExactlyInAnyOrder("b-c", "d-c")
+            assertThat(Graphs.neighborSetOf(view, "d")).containsExactlyInAnyOrder("c", "d")
+        }
+
+        // and the underlying fastgraph agrees
+        val d = fixture.vertexKeys.getVertex("d")
+        val c = fixture.vertexKeys.getVertex("c")
+        assertThat(fixture.edgeKeys.getEdge("d-c")).isEqualTo(fixture.graph.edge(d, c))
+        assertThat(fixture.edgeKeys.getEdge("d-d")).isEqualTo(fixture.graph.edge(d, d))
+        assertThat(fixture.weights[fixture.graph.edge(d, c)]).isEqualTo(2.0)
+
+        // the same rename through the mutable view of the underlying graph is visible in the JGraphT views
+        fixture.graph.removeVertex(fixture.vertexKeys.getVertex("b"))
+        for (view in listOf(jgrapht, readOnly)) {
+            assertThat(view.vertexSet()).containsExactlyInAnyOrder("c", "d")
+            assertThat(view.edgeSet()).containsExactlyInAnyOrder("d-c", "d-d")
+            assertThat(view.getEdge("d", "c")).isEqualTo("d-c")
+            assertThat(view.getEdgeWeight("d-d")).isEqualTo(3.0)
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = [true, false])
     fun algorithms(directed: Boolean) {
         val fixture = triangle(directed)
         val jgrapht = fixture.readOnly(weighted = true)

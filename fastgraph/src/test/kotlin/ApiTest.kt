@@ -88,12 +88,7 @@ class ApiTest {
         assertThat(violations).describedAs("Top-level functions").isEmpty()
     }
 
-    val allowedJvmNameMismatches = mapOf(
-        "io/github/sooniln/fastgraph/Homomorphism.getVertex" to "get",
-        "io/github/sooniln/fastgraph/Homomorphism.getEdge" to "get",
-        "io/github/sooniln/fastgraph/IdentityIsomorphism.getVertex" to "get",
-        "io/github/sooniln/fastgraph/IdentityIsomorphism.getEdge" to "get",
-    )
+    val allowedJvmNameMismatches = mapOf<String, String>()
 
     /**
      * JvmName annotations should match the Kotlin function name wherever possible to reduce API confusion.

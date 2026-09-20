@@ -312,7 +312,8 @@ internal class AdjacencyListNetwork(
             get() = adjacencies.size
 
         override fun contains(element: Edge): Boolean {
-            val edge = IdentityIndexedEdge.from(validateEdge(element))
+            if (element.id !in 0..<edgeValues.size) return false
+            val edge = IdentityIndexedEdge.from(element)
 
             val target: Vertex
             val source: Vertex
@@ -486,23 +487,25 @@ internal class AdjacencyListNetwork(
         }
 
         fun edgesTo(target: Vertex): EdgeAdjacencySet = object : EdgeAdjacencySet {
-            private val edgeIds: IntList
-
-            init {
+            override val size: Int get() {
                 val v = map[target.id]
-                edgeIds = if (v == Int.MIN_VALUE) {
-                    emptyIntList()
+                return if (v == Int.MIN_VALUE) {
+                    0
                 } else if (v < 0) {
-                    edgeListMap.getValue(v)
+                    edgeListMap.getValue(v).size
                 } else {
-                    intListOf(v)
+                    1
                 }
             }
 
-            override val size: Int get() = edgeIds.size
-
             override fun contains(element: EdgeAdjacency): Boolean {
-                return element.vertex == target && edgeIds.contains(element.edgeId)
+                if (element.vertex != target) return false
+                val v = map[target.id]
+                return v != Int.MIN_VALUE && if (v < 0) {
+                    edgeListMap.getValue(v).contains(element.edgeId)
+                } else {
+                    v == element.edgeId
+                }
             }
 
             override fun contains(vertex: Vertex): Boolean {
@@ -512,9 +515,19 @@ internal class AdjacencyListNetwork(
             override val vertices: VertexSet get() = vertexSetOf(target)
 
             override fun edgeIterator(): EdgeIterator = object : EdgeIterator {
-                private val it = edgeIds.iterator()
-                override fun hasNext(): Boolean = it.hasNext()
-                override fun next(): Edge = canonicalEdge(it.nextInt())
+                private val iterator: IntIterator
+                init {
+                    val v = map[target.id]
+                    iterator = if (v == Int.MIN_VALUE) {
+                        emptyIntIterator()
+                    } else if (v < 0) {
+                        edgeListMap.getValue(v).iterator()
+                    } else {
+                        intIteratorOf(v)
+                    }
+                }
+                override fun hasNext(): Boolean = iterator.hasNext()
+                override fun next(): Edge = canonicalEdge(iterator.nextInt())
             }
         }
 

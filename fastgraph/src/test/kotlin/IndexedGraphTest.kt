@@ -4,6 +4,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 import org.junit.jupiter.params.provider.ValueSource
 
 class IndexedGraphTest {
@@ -15,9 +16,9 @@ class IndexedGraphTest {
     private var e0: Edge = Edge(-1)
     private var e1: Edge = Edge(-1)
 
-    private fun constructGraph(immutable: Boolean, indexEdges: Boolean) {
+    private fun constructGraph(immutable: Boolean, indexEdges: Boolean, directed: Boolean = true) {
         graph = if (immutable) {
-            buildImmutableGraph(true, indexEdges = indexEdges) {
+            buildImmutableGraph(directed, indexEdges = indexEdges) {
                 v0 = addVertex()
                 v1 = addVertex()
                 v2 = addVertex()
@@ -25,7 +26,7 @@ class IndexedGraphTest {
                 e1 = addEdge(v1, v2)
             }
         } else {
-            buildGraph(true, indexEdges = indexEdges) {
+            buildGraph(directed, indexEdges = indexEdges) {
                 v0 = addVertex()
                 v1 = addVertex()
                 v2 = addVertex()
@@ -43,10 +44,10 @@ class IndexedGraphTest {
         assertThat(graph).isInstanceOf(IndexedVertexGraph::class.java)
     }
 
-    @ParameterizedTest(name = "immutable={0}")
-    @ValueSource(booleans = [true, false])
-    fun vertexSetGetAndIndexOf(immutable: Boolean) {
-        constructGraph(immutable, indexEdges = false)
+    @ParameterizedTest(name = "immutable={0}, directed={1}")
+    @CsvSource("true,true", "true,false", "false,true", "false,false")
+    fun vertexSetGetAndIndexOf(immutable: Boolean, directed: Boolean) {
+        constructGraph(immutable, indexEdges = false, directed = directed)
 
         val vertices = graph.vertices as IndexedVertexSet
 
@@ -57,8 +58,17 @@ class IndexedGraphTest {
         assertThat(vertices.indexOf(v1)).isEqualTo(1)
         assertThat(vertices.indexOf(v2)).isEqualTo(2)
 
+        assertThat(vertices.indexOf(Vertex(3))).isEqualTo(-1)
+        assertThat(vertices.indexOf(Vertex(-1))).isEqualTo(-1)
+        assertThat(vertices.lastIndexOf(v1)).isEqualTo(1)
+        assertThat(vertices.lastIndexOf(Vertex(3))).isEqualTo(-1)
+
         assertThrows<IndexOutOfBoundsException> { vertices[3] }
         assertThrows<IndexOutOfBoundsException> { vertices[-1] }
+
+        // vertices iterate in index order
+        assertThat(vertices).containsExactly(v0, v1, v2)
+        assertThat(vertices.toIntArray()).containsExactly(v0.id, v1.id, v2.id)
     }
 
     @ParameterizedTest(name = "immutable={0}")
@@ -77,10 +87,10 @@ class IndexedGraphTest {
         assertThat(graph).isInstanceOf(IndexedEdgeGraph::class.java)
     }
 
-    @ParameterizedTest(name = "immutable={0}")
-    @ValueSource(booleans = [true, false])
-    fun edgeSetGetAndIndexOf(immutable: Boolean) {
-        constructGraph(immutable, indexEdges = true)
+    @ParameterizedTest(name = "immutable={0}, directed={1}")
+    @CsvSource("true,true", "true,false", "false,true", "false,false")
+    fun edgeSetGetAndIndexOf(immutable: Boolean, directed: Boolean) {
+        constructGraph(immutable, indexEdges = true, directed = directed)
 
         val edges = graph.edges as IndexedEdgeSet
 
@@ -89,30 +99,57 @@ class IndexedGraphTest {
         assertThat(edges.indexOf(e0)).isEqualTo(0)
         assertThat(edges.indexOf(e1)).isEqualTo(1)
 
+        assertThat(edges.indexOf(Edge(2))).isEqualTo(-1)
+        assertThat(edges.indexOf(Edge(-1))).isEqualTo(-1)
+        assertThat(edges.lastIndexOf(e1)).isEqualTo(1)
+        assertThat(edges.lastIndexOf(Edge(2))).isEqualTo(-1)
+
         assertThrows<IndexOutOfBoundsException> { edges[2] }
         assertThrows<IndexOutOfBoundsException> { edges[-1] }
+
+        // edges iterate in index order
+        assertThat(edges).containsExactly(e0, e1)
+        assertThat(edges.toLongArray()).containsExactly(e0.id, e1.id)
     }
 
-    @Test
-    fun vertexIndexIsReassignedWhenNonLastVertexRemoved() {
-        constructGraph(immutable = false, indexEdges = false)
+    @ParameterizedTest(name = "indexEdges={0}, directed={1}")
+    @CsvSource("true,true", "true,false", "false,true", "false,false")
+    fun vertexIndexIsReassignedWhenNonLastVertexRemoved(indexEdges: Boolean, directed: Boolean) {
+        constructGraph(immutable = false, indexEdges = indexEdges, directed = directed)
         val mutableGraph = graph as MutableGraph
+        val v2Ref = graph.createVertexReference(v2)
+
+        var reassignedTo: Vertex? = null
+        mutableGraph.registerVertexChangeListener(object : VertexChangeListener {
+            override fun onVertexAdded(vertex: Vertex) {}
+            override fun onVertexRemoved(vertex: Vertex) {}
+            override fun onVertexReassigned(oldVertex: Vertex, newVertex: Vertex) {
+                assertThat(oldVertex).isEqualTo(v2)
+                reassignedTo = newVertex
+            }
+        })
 
         // v0 is removed, so v2 (the last vertex) is reassigned to v0's freed index
         mutableGraph.removeVertex(v0)
 
         val vertices = graph.vertices as IndexedVertexSet
-        assertThat(graph.vertices).containsExactlyInAnyOrder(v0, v1)
-        assertThat(vertices.indexOf(v0)).isEqualTo(0)
+        val moved = reassignedTo!!
+        assertThat(vertices).containsExactlyInAnyOrder(moved, v1)
+        assertThat(vertices.indexOf(moved)).isEqualTo(0)
         assertThat(vertices.indexOf(v1)).isEqualTo(1)
-        assertThat(vertices[0]).isEqualTo(v0)
+        assertThat(vertices[0]).isEqualTo(moved)
         assertThat(vertices[1]).isEqualTo(v1)
+        assertThat(vertices.indexOf(v2)).isEqualTo(-1)
+        assertThat(v2Ref.unstable).isEqualTo(moved)
+        assertThat(graph.hasEdge(v1, moved)).isTrue
     }
 
-    @Test
-    fun edgeIndexIsReassignedWhenNonLastEdgeRemoved() {
-        constructGraph(immutable = false, indexEdges = true)
+    @ParameterizedTest(name = "directed={0}")
+    @ValueSource(booleans = [true, false])
+    fun edgeIndexIsReassignedWhenNonLastEdgeRemoved(directed: Boolean) {
+        constructGraph(immutable = false, indexEdges = true, directed = directed)
         val mutableGraph = graph as MutableGraph
+        val e1Ref = graph.createEdgeReference(e1)
 
         var reassignedTo: Edge? = null
         mutableGraph.registerEdgeChangeListener(object : EdgeChangeListener {
@@ -127,9 +164,13 @@ class IndexedGraphTest {
         mutableGraph.removeEdge(e0)
 
         val edges = graph.edges as IndexedEdgeSet
-        assertThat(reassignedTo).isNotNull
-        assertThat(edges.indexOf(reassignedTo!!)).isEqualTo(0)
-        assertThat(edges[0]).isEqualTo(reassignedTo)
+        val moved = reassignedTo!!
+        assertThat(edges).containsExactly(moved)
+        assertThat(edges.indexOf(moved)).isEqualTo(0)
+        assertThat(edges[0]).isEqualTo(moved)
+        assertThat(edges.indexOf(e1)).isEqualTo(-1)
+        assertThat(e1Ref.unstable).isEqualTo(moved)
+        assertThat(setOf(graph.edgeSource(moved), graph.edgeTarget(moved))).containsExactlyInAnyOrder(v1, v2)
     }
 
     @ParameterizedTest(name = "indexEdges={0}")
@@ -169,9 +210,10 @@ class IndexedGraphTest {
         assertThat(vertices.size).isEqualTo(1)
     }
 
-    @Test
-    fun edgeListenersAreNotifiedBeforeMutationInIndexedEdgeGraph() {
-        constructGraph(immutable = false, indexEdges = true)
+    @ParameterizedTest(name = "directed={0}")
+    @ValueSource(booleans = [true, false])
+    fun edgeListenersAreNotifiedBeforeMutationInIndexedEdgeGraph(directed: Boolean) {
+        constructGraph(immutable = false, indexEdges = true, directed = directed)
         val mutableGraph = graph as MutableGraph
         val edges = graph.edges as IndexedEdgeSet
         val events = ArrayList<String>()
@@ -258,14 +300,48 @@ class IndexedGraphTest {
         assertThat(mutableGraph.hasEdge(v0, v0)).isTrue
     }
 
+    @ParameterizedTest(name = "directed={0}")
+    @ValueSource(booleans = [true, false])
+    fun edgeListenersAreNotifiedBeforeMutationInCanonicalEdgeGraph(directed: Boolean) {
+        constructGraph(immutable = false, indexEdges = false, directed = directed)
+        val mutableGraph = graph as MutableGraph
+        val events = ArrayList<String>()
+
+        mutableGraph.registerEdgeChangeListener(object : EdgeChangeListener {
+            override fun onEdgeAdded(edge: Edge) {
+                assertThat(graph.edges.contains(edge)).isTrue
+                events.add("added")
+            }
+            override fun onEdgeRemoved(edge: Edge) {
+                // the edge is still present when the listener runs
+                assertThat(graph.edges.contains(edge)).isTrue
+                events.add("removed")
+            }
+            override fun onEdgeReassigned(oldEdge: Edge, newEdge: Edge) = throw AssertionError()
+        })
+
+        // canonical edge ids are not indices, so removing an edge never re-assigns another one
+        mutableGraph.removeEdge(e0)
+        assertThat(events).containsExactly("removed")
+        assertThat(graph.edges).containsExactly(e1)
+
+        val e2 = mutableGraph.addEdge(v0, v2)
+        assertThat(events).containsExactly("removed", "added")
+        assertThat(graph.edges).containsExactlyInAnyOrder(e1, e2)
+    }
+
     @ParameterizedTest(name = "immutable={0}")
     @ValueSource(booleans = [true, false])
-    fun indicesAndLastIndexExtensionProperties(immutable: Boolean) {
-        constructGraph(immutable, indexEdges = false)
+    fun lastIndexExtensionProperties(immutable: Boolean) {
+        constructGraph(immutable, indexEdges = true)
 
         val vertices = graph.vertices as IndexedVertexSet
+        val edges = graph.edges as IndexedEdgeSet
 
         assertThat(vertices.lastIndex).isEqualTo(2)
+        assertThat(edges.lastIndex).isEqualTo(1)
+        assertThat(emptyVertexSet().lastIndex).isEqualTo(-1)
+        assertThat(emptyEdgeSet().lastIndex).isEqualTo(-1)
     }
 
     @ParameterizedTest
@@ -284,10 +360,10 @@ class IndexedGraphTest {
         assertThat(graph.edges.hashCode()).isEqualTo(edges.hashCode())
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = [true, false])
-    fun firstAndLast(immutable: Boolean) {
-        constructGraph(immutable, indexEdges = true)
+    @ParameterizedTest(name = "immutable={0}, directed={1}")
+    @CsvSource("true,true", "true,false", "false,true", "false,false")
+    fun firstAndLast(immutable: Boolean, directed: Boolean) {
+        constructGraph(immutable, indexEdges = true, directed = directed)
 
         val vertices = graph.vertices as IndexedVertexSet
         assertThat(vertices.first()).isEqualTo(v0)

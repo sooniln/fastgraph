@@ -137,8 +137,9 @@ private class FilteringGraph(
     override fun registerEdgeChangeListener(listener: EdgeChangeListener) = edges.registerEdgeChangeListener(listener)
     override fun unregisterEdgeChangeListener(listener: EdgeChangeListener) = edges.unregisterEdgeChangeListener(listener)
 
-    override fun createVertexReference(vertex: Vertex): VertexReference = vertices.createVertexReference(vertex)
-    override fun createEdgeReference(edge: Edge): EdgeReference = edges.createEdgeReference(edge)
+    override fun createVertexReference(vertex: Vertex): VertexReference =
+        vertices.createVertexReference(validateVertex(vertex))
+    override fun createEdgeReference(edge: Edge): EdgeReference = edges.createEdgeReference(validateEdge(edge))
 }
 
 private class ImmutableFilteringGraph(
@@ -192,34 +193,37 @@ private abstract class AbstractFilteredGraph<G : Graph>(
         return count
     }
 
+    // TODO: not live view?
     override fun getSuccessors(vertex: Vertex): VertexSet {
-        val parentVertices = parent.successors(vertex)
+        val parentEdges = parent.outgoingEdges(vertex)
         var successors: IntHashSet? = null
-        for (vertex in parentVertices) {
-            if (vertices.contains(vertex)) {
+        for (edge in parentEdges) {
+            if (edges.contains(edge)) {
                 if (successors == null) {
-                    successors = IntHashSet(parentVertices.size)
+                    successors = IntHashSet(parentEdges.size)
                 }
-                successors.add(vertex.id)
+                successors.add(parent.edgeTarget(edge, vertex).id)
             }
         }
         return successors?.asVertexSet() ?: emptyVertexSet()
     }
 
+    // TODO: not live view?
     override fun getPredecessors(vertex: Vertex): VertexSet {
-        val parentVertices = parent.predecessors(vertex)
+        val parentEdges = parent.incomingEdges(vertex)
         var predecessors: IntHashSet? = null
-        for (vertex in parentVertices) {
-            if (vertices.contains(vertex)) {
+        for (edge in parentEdges) {
+            if (edges.contains(edge)) {
                 if (predecessors == null) {
-                    predecessors = IntHashSet(parentVertices.size)
+                    predecessors = IntHashSet(parentEdges.size)
                 }
-                predecessors.add(vertex.id)
+                predecessors.add(parent.edgeSource(edge, vertex).id)
             }
         }
         return predecessors?.asVertexSet() ?: emptyVertexSet()
     }
 
+    // TODO: not live view?
     override fun getOutgoingEdges(vertex: Vertex): EdgeSet {
         val parentEdges = parent.outgoingEdges(vertex)
         var outgoing: LongHashSet? = null
@@ -234,6 +238,7 @@ private abstract class AbstractFilteredGraph<G : Graph>(
         return outgoing?.asEdgeSet() ?: emptyEdgeSet()
     }
 
+    // TODO: not live view?
     override fun getIncomingEdges(vertex: Vertex): EdgeSet {
         val parentEdges = parent.incomingEdges(vertex)
         var incoming: LongHashSet? = null
@@ -280,6 +285,7 @@ private abstract class AbstractFilteredGraph<G : Graph>(
         return singleEdge
     }
 
+    // TODO: not live view?
     override fun getEdges(source: Vertex, target: Vertex): EdgeSet {
         val parentEdges = parent.edges(source, target)
         var all: LongHashSet? = null

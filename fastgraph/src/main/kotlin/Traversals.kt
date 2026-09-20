@@ -114,9 +114,9 @@ public inline fun Graph.visitDepthFirst(
  */
 public inline fun Graph.visitDepthFirstPreOrder(
     initialVertices: VertexSet,
-    onVertexExamined: (Vertex) -> Unit,
-    onEdgeExamined: (Edge) -> Unit,
-    onVertexFinished: (Vertex) -> Unit,
+    onVertexDiscovered: (Vertex) -> Unit = {},
+    onEdgeExamined: (Edge) -> Unit = {},
+    onVertexFinished: (Vertex) -> Unit = {},
 ) {
     require(initialVertices.isNotEmpty())
 
@@ -131,7 +131,7 @@ public inline fun Graph.visitDepthFirstPreOrder(
     while (!stack.isEmpty()) {
         val vertex = stack.removeLast()
         visited[vertex] = true
-        onVertexExamined(vertex)
+        onVertexDiscovered(vertex)
         for (outgoingEdge in outgoingEdges(vertex)) {
             val target = edgeTarget(outgoingEdge, vertex)
             onEdgeExamined(outgoingEdge)
@@ -414,9 +414,11 @@ private class DFTreeEdgeIterator(private val graph: Graph, startVertices: Vertex
 
     init {
         require(startVertices.isNotEmpty())
+        // like the breadth-first iterator, every initial vertex is a root: none is ever discovered through an edge
         for (vertex in startVertices) {
             require(graph.vertices.contains(vertex))
             roots.addLast(vertex.id)
+            visited[vertex] = true
         }
         advance()
     }
@@ -442,10 +444,7 @@ private class DFTreeEdgeIterator(private val graph: Graph, startVertices: Vertex
                 targets.removeLast()
             }
             if (!edges.isEmpty() || roots.isEmpty()) return
-            val root = Vertex(roots.removeFirst())
-            if (visited[root]) continue
-            visited[root] = true
-            expand(root)
+            expand(Vertex(roots.removeFirst()))
         }
     }
 

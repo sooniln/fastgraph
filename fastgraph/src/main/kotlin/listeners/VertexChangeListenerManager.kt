@@ -16,15 +16,15 @@ internal class VertexChangeListenerManager {
             var size = listeners.size
             while (index < size) {
                 val l = listeners[index].get()
-                when (l) {
-                    null -> {
-                        val old = listeners.removeAt(--size)
-                        if (index != size) {
-                            listeners[index] = old
-                        }
+                if (l == null) {
+                    val old = listeners.removeAt(--size)
+                    if (index != size) {
+                        listeners[index] = old
                     }
-                    listener -> throw IllegalArgumentException("listener already registered: $listener")
-                    else -> ++index
+                } else if (l === listener) {
+                    throw IllegalArgumentException("listener already registered: $listener")
+                } else {
+                    ++index
                 }
             }
 
@@ -38,7 +38,7 @@ internal class VertexChangeListenerManager {
             var size = listeners.size
             while (index < listeners.size) {
                 val l = listeners[index].get()
-                if (l == null || l == listener) {
+                if (l == null || l === listener) {
                     val old = listeners.removeAt(--size)
                     if (index != size) {
                         listeners[index] = old

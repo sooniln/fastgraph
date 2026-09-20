@@ -4,6 +4,12 @@ import io.github.sooniln.fastgraph.buildValueGraph
 import io.github.sooniln.fastgraph.createEdgeProperty
 import io.github.sooniln.fastgraph.createVertexKeyProperty
 import io.github.sooniln.fastgraph.mutableGraph
+import io.github.sooniln.fastgraph.copyInto
+import io.github.sooniln.fastgraph.edgeSetOf
+import io.github.sooniln.fastgraph.filter
+import io.github.sooniln.fastgraph.toImmutableGraph
+import io.github.sooniln.fastgraph.vertexSetOf
+import io.github.sooniln.fastgraph.safeCast
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
@@ -134,5 +140,61 @@ class CsvEdgeListWriterTest {
 
         assertThat(result.graph.vertices).hasSize(3)
         assertThat(result.graph.edges).hasSize(2)
+    }
+
+    @Test
+    fun parallelEdgesAndSelfLoopsRoundTrip() {
+        val graph = mutableGraph(directed = true, multiEdge = true)
+        val vertexProperty = graph.createVertexKeyProperty<String>()
+        val a = graph.addVertex().also { vertexProperty[it] = "a" }
+        val b = graph.addVertex().also { vertexProperty[it] = "b" }
+        graph.addEdge(a, b)
+        graph.addEdge(a, b)
+        graph.addEdge(b, b)
+
+        val output = ByteArrayOutputStream()
+        writeCsvEdgeList(output, CsvEdgeListGraph(graph, vertexProperty))
+
+        assertThat(output.toString(Charsets.UTF_8)).isEqualTo("a,b\na,b\nb,b\n")
+
+        val result = readCsvEdgeList(output.toByteArray().inputStream(), directed = true, multiEdge = true)
+        assertThat(result.graph.vertices).hasSize(2)
+        assertThat(result.graph.edges).hasSize(3)
+        val ra = result.vertexProperty.safeCast<String>().getVertex("a")
+        val rb = result.vertexProperty.safeCast<String>().getVertex("b")
+        assertThat(result.graph.edges(ra, rb)).hasSize(2)
+        assertThat(result.graph.edges(rb, rb)).hasSize(1)
+    }
+
+    @Test
+    fun immutableAndFilteredSourceGraphsAreWritten() {
+        val graph = mutableGraph(directed = false)
+        val vertexProperty = graph.createVertexKeyProperty<String>()
+        val a = graph.addVertex().also { vertexProperty[it] = "a" }
+        val b = graph.addVertex().also { vertexProperty[it] = "b" }
+        val c = graph.addVertex().also { vertexProperty[it] = "c" }
+        val ab = graph.addEdge(a, b)
+        graph.addEdge(b, c)
+
+        val mutableOutput = ByteArrayOutputStream()
+        writeCsvEdgeList(mutableOutput, CsvEdgeListGraph(graph, vertexProperty))
+
+        // an immutable copy writes the same edge list (the key property is copied onto the copy)
+        val immutable = graph.toImmutableGraph()
+        val immutableKeys = immutable.createVertexKeyProperty<String>()
+        vertexProperty.copyInto(immutableKeys)
+        val immutableOutput = ByteArrayOutputStream()
+        writeCsvEdgeList(immutableOutput, CsvEdgeListGraph(immutable, immutableKeys))
+        assertThat(immutableOutput.toString(Charsets.UTF_8)).isEqualTo(mutableOutput.toString(Charsets.UTF_8))
+        assertThat(mutableOutput.toString(Charsets.UTF_8).lines().filter { it.isNotEmpty() }).hasSize(2)
+
+        // a filtered view writes only its own edges
+        val filtered = graph.filter(vertexSetOf(a, b), edgeSetOf(ab))
+        val filteredKeys = filtered.createVertexKeyProperty<String>()
+        filteredKeys[a] = "a"
+        filteredKeys[b] = "b"
+        val filteredOutput = ByteArrayOutputStream()
+        writeCsvEdgeList(filteredOutput, CsvEdgeListGraph(filtered, filteredKeys))
+        assertThat(filteredOutput.toString(Charsets.UTF_8)).isEqualTo("a,b\n")
     }
 }

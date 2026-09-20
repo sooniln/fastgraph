@@ -20,8 +20,9 @@ import io.github.sooniln.fastgraph.VertexReference
 import io.github.sooniln.fastgraph.VertexSet
 import io.github.sooniln.fastgraph.asVertexSet
 import io.github.sooniln.fastgraph.compareTo
+import io.github.sooniln.fastgraph.edgeIteratorOf
 import io.github.sooniln.fastgraph.edgeSetOf
-import io.github.sooniln.fastgraph.emptyEdgeSet
+import io.github.sooniln.fastgraph.emptyEdgeIterator
 import io.github.sooniln.fastgraph.inc
 import io.github.sooniln.fastgraph.listeners.EdgeChangeListenerManager
 import io.github.sooniln.fastgraph.listeners.VertexChangeListenerManager
@@ -328,9 +329,7 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
         return canonicalEdge(source, target)
     }
 
-    override fun getEdges(source: Vertex, target: Vertex): EdgeSet {
-        return if (!containsEdge(source, target)) emptyEdgeSet() else edgeSetOf(canonicalEdge(source, target))
-    }
+    override fun getEdges(source: Vertex, target: Vertex): EdgeSet = EdgesBetween(source, target)
 
     override fun createVertexReference(vertex: Vertex): VertexReference =
         vertexRefs.getReference(validateVertex(vertex))
@@ -390,6 +389,20 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
             private val it = adjacencies.iterator()
             override fun hasNext(): Boolean = it.hasNext()
             override fun next(): Edge = canonicalEdge(Vertex(it.nextInt()), vertex)
+        }
+    }
+
+    private inner class EdgesBetween(private val source: Vertex, private val target: Vertex) : AbstractEdgeSet() {
+        override val size: Int get() = if (containsEdge(source, target)) 1 else 0
+        override fun contains(element: Edge): Boolean {
+            return element == canonicalEdge(source, target) && containsEdge(source, target)
+        }
+        override fun iterator(): EdgeIterator {
+            return if (containsEdge(source, target)) {
+                edgeIteratorOf(canonicalEdge(source, target))
+            } else {
+                emptyEdgeIterator()
+            }
         }
     }
 

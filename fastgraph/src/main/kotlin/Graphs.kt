@@ -997,7 +997,7 @@ internal fun <V, E> ValueGraphBuilder(graph: MutableValueGraph<V, E>): ValueGrap
 
         override fun hasVertex(value: V): Boolean = vertexValueMap.containsKey(value)
         override fun getVertex(value: V): Vertex =
-            requireNotNull(vertexValueMap[value]) { "no vertex with value \"$value\" found" }
+            vertexValueMap[value] ?: throw NoSuchElementException("no vertex with value \"$value\" found")
     }
 }
 

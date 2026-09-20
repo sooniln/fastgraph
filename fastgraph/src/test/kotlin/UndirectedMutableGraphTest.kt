@@ -15,11 +15,11 @@ class UndirectedMutableGraphTest {
         context(graph) {
             assertThat(graph.vertices).isEmpty()
 
-            val v1 = graph.addVertex().createReference()
+            val v1 = graph.addVertex().reference()
             vertexProperty[v1] = "v1"
             assertThat(graph.vertices).containsExactlyInAnyOrder(v1.unstable)
 
-            val v2 = graph.addVertex().createReference()
+            val v2 = graph.addVertex().reference()
             vertexProperty[v2] = "v2"
             assertThat(graph.vertices).containsExactlyInAnyOrder(v1.unstable, v2.unstable)
 
@@ -42,11 +42,11 @@ class UndirectedMutableGraphTest {
     @Test
     fun removeVerticesWithIterator() {
         context(graph) {
-            val v1 = graph.addVertex().createReference()
+            val v1 = graph.addVertex().reference()
             vertexProperty[v1] = "v1"
-            val v2 = graph.addVertex().createReference()
+            val v2 = graph.addVertex().reference()
             vertexProperty[v2] = "v2"
-            val v3 = graph.addVertex().createReference()
+            val v3 = graph.addVertex().reference()
             vertexProperty[v3] = "v3"
 
             val e1 = graph.addEdge(v1, v2).reference()
@@ -80,11 +80,11 @@ class UndirectedMutableGraphTest {
     @Test
     fun mutateVertexWithEdges() {
         context(graph) {
-            val v1 = graph.addVertex().createReference()
+            val v1 = graph.addVertex().reference()
             vertexProperty[v1] = "v1"
-            val v2 = graph.addVertex().createReference()
+            val v2 = graph.addVertex().reference()
             vertexProperty[v2] = "v2"
-            val v3 = graph.addVertex().createReference()
+            val v3 = graph.addVertex().reference()
             vertexProperty[v3] = "v3"
 
             val e1 = graph.addEdge(v1, v2).reference()
@@ -95,13 +95,18 @@ class UndirectedMutableGraphTest {
             edgeProperty[e3] = "e3"
             val e4 = graph.addEdge(v1, v3).reference()
             edgeProperty[e4] = "e4"
+            val e5 = graph.addEdge(v3, v3).reference()
+            edgeProperty[e5] = "e5"
 
             graph.removeVertex(v2)
             assertThat(graph.vertices).containsExactlyInAnyOrder(v1.unstable, v3.unstable)
-            assertThat(graph.edges).containsExactlyInAnyOrder(e4.unstable)
+            assertThat(graph.edges).containsExactlyInAnyOrder(e4.unstable, e5.unstable)
             assertThat(vertexProperty[v1]).isEqualTo("v1")
             assertThat(vertexProperty[v3]).isEqualTo("v3")
             assertThat(edgeProperty[e4]).isEqualTo("e4")
+            assertThat(edgeProperty[e5]).isEqualTo("e5")
+            assertThat(graph.hasEdge(v1.unstable, v3.unstable)).isTrue
+            assertThat(graph.hasEdge(v3.unstable, v3.unstable)).isTrue
 
             assertThrows<IllegalArgumentException> { graph.removeVertex(v2) }
             assertThrows<IllegalArgumentException> { v2.unstable }
@@ -125,19 +130,22 @@ class UndirectedMutableGraphTest {
             assertThrows<IllegalArgumentException> { v3.unstable }
             assertThrows<IllegalArgumentException> { vertexProperty[v3] }
             assertThrows<IllegalArgumentException> { graph.removeEdge(e4) }
+            assertThrows<IllegalArgumentException> { graph.removeEdge(e5) }
             assertThrows<IllegalArgumentException> { e4.unstable }
+            assertThrows<IllegalArgumentException> { e5.unstable }
             assertThrows<IllegalArgumentException> { edgeProperty[e4] }
+            assertThrows<IllegalArgumentException> { edgeProperty[e5] }
         }
     }
 
     @Test
     fun removeEdgesWithIterator() {
         context(graph) {
-            val v1 = graph.addVertex().createReference()
+            val v1 = graph.addVertex().reference()
             vertexProperty[v1] = "v1"
-            val v2 = graph.addVertex().createReference()
+            val v2 = graph.addVertex().reference()
             vertexProperty[v2] = "v2"
-            val v3 = graph.addVertex().createReference()
+            val v3 = graph.addVertex().reference()
             vertexProperty[v3] = "v3"
 
             val e1 = graph.addEdge(v1, v2).reference()
@@ -172,8 +180,8 @@ class UndirectedMutableGraphTest {
 
         val e1 = graph.addEdge(v1, v2)
         assertThat(graph.edges).containsExactlyInAnyOrder(e1)
-        assertThat(graph.edgeSource(e1)).isEqualTo(v1)
-        assertThat(graph.edgeTarget(e1)).isEqualTo(v2)
+        // an undirected edge does not promise which endpoint is the source
+        assertThat(setOf(graph.edgeSource(e1), graph.edgeTarget(e1))).containsExactlyInAnyOrder(v1, v2)
 
         val e2 = graph.addEdge(v1, v1)
         assertThat(graph.edges).containsExactlyInAnyOrder(e1, e2)

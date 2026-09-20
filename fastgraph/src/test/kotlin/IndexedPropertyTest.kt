@@ -220,6 +220,7 @@ class IndexedPropertyTest {
         property[e20] = case.keyAt(1)
         property[e30] = case.keyAt(2)
         assertThat(property.getEdge(case.keyAt(2))).isEqualTo(e30)
+        assertThrows<IllegalArgumentException> { property[e20] = case.keyAt(2) }
         assertThrows<IllegalArgumentException> { property[Edge(99)] = case.keyAt(3) }
 
         graph.removeEdge(e10)
@@ -235,11 +236,21 @@ class IndexedPropertyTest {
 
     @Test
     fun builtInGraphsAreIdentityIndexed() {
-        assertThat(mutableGraph(true)).isInstanceOf(IdentityIndexedVertexGraph::class.java)
-        assertThat(mutableGraph(true, indexEdges = true)).isInstanceOf(IdentityIndexedEdgeGraph::class.java)
-        assertThat(buildImmutableGraph(true) { addVertex() }).isInstanceOf(IdentityIndexedVertexGraph::class.java)
-        assertThat(buildImmutableGraph(true, indexEdges = true) { addVertex() })
-            .isInstanceOf(IdentityIndexedEdgeGraph::class.java)
-        assertThat(emptyImmutableGraph(true)).isInstanceOf(IdentityIndexedEdgeGraph::class.java)
+        for (directed in listOf(true, false)) {
+            for (multiEdge in listOf(true, false)) {
+                assertThat(mutableGraph(directed, multiEdge)).isInstanceOf(IdentityIndexedVertexGraph::class.java)
+                assertThat(mutableGraph(directed, multiEdge, indexEdges = true))
+                    .isInstanceOf(IdentityIndexedVertexGraph::class.java)
+                    .isInstanceOf(IdentityIndexedEdgeGraph::class.java)
+                assertThat(buildImmutableGraph(directed, multiEdge) { addVertex() })
+                    .isInstanceOf(IdentityIndexedVertexGraph::class.java)
+                assertThat(buildImmutableGraph(directed, multiEdge, indexEdges = true) { addVertex() })
+                    .isInstanceOf(IdentityIndexedVertexGraph::class.java)
+                    .isInstanceOf(IdentityIndexedEdgeGraph::class.java)
+            }
+            assertThat(emptyImmutableGraph(directed))
+                .isInstanceOf(IdentityIndexedVertexGraph::class.java)
+                .isInstanceOf(IdentityIndexedEdgeGraph::class.java)
+        }
     }
 }

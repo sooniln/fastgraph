@@ -15,11 +15,11 @@ class DirectedMutableGraphTest {
         context(graph) {
             assertThat(graph.vertices).isEmpty()
 
-            val v1 = graph.addVertex().createReference()
+            val v1 = graph.addVertex().reference()
             vertexProperty[v1] = "v1"
             assertThat(graph.vertices).containsExactlyInAnyOrder(v1.unstable)
 
-            val v2 = graph.addVertex().createReference()
+            val v2 = graph.addVertex().reference()
             vertexProperty[v2] = "v2"
             assertThat(graph.vertices).containsExactlyInAnyOrder(v1.unstable, v2.unstable)
 
@@ -42,11 +42,11 @@ class DirectedMutableGraphTest {
     @Test
     fun removeVerticesWithIterator() {
         context(graph) {
-            val v1 = graph.addVertex().createReference()
+            val v1 = graph.addVertex().reference()
             vertexProperty[v1] = "v1"
-            val v2 = graph.addVertex().createReference()
+            val v2 = graph.addVertex().reference()
             vertexProperty[v2] = "v2"
-            val v3 = graph.addVertex().createReference()
+            val v3 = graph.addVertex().reference()
             vertexProperty[v3] = "v3"
 
             val e1 = graph.addEdge(v1, v2).reference()
@@ -80,11 +80,11 @@ class DirectedMutableGraphTest {
     @Test
     fun mutateVertexWithEdges() {
         context(graph) {
-            val v1 = graph.addVertex().createReference()
+            val v1 = graph.addVertex().reference()
             vertexProperty[v1] = "v1"
-            val v2 = graph.addVertex().createReference()
+            val v2 = graph.addVertex().reference()
             vertexProperty[v2] = "v2"
-            val v3 = graph.addVertex().createReference()
+            val v3 = graph.addVertex().reference()
             vertexProperty[v3] = "v3"
 
             val e1 = graph.addEdge(v1, v2).reference()
@@ -144,11 +144,11 @@ class DirectedMutableGraphTest {
     @Test
     fun removeEdgesWithIterator() {
         context(graph) {
-            val v1 = graph.addVertex().createReference()
+            val v1 = graph.addVertex().reference()
             vertexProperty[v1] = "v1"
-            val v2 = graph.addVertex().createReference()
+            val v2 = graph.addVertex().reference()
             vertexProperty[v2] = "v2"
-            val v3 = graph.addVertex().createReference()
+            val v3 = graph.addVertex().reference()
             vertexProperty[v3] = "v3"
 
             val e1 = graph.addEdge(v1, v2).reference()

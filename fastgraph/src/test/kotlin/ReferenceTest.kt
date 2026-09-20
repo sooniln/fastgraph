@@ -1,6 +1,7 @@
 package io.github.sooniln.fastgraph
 
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 
@@ -13,11 +14,11 @@ class ReferenceTest {
     private var e0: Edge = Edge(-1)
     private var e1: Edge = Edge(-1)
 
-    // built with multiEdge = true so that the graph is guaranteed to implement both IndexedVertexGraph and
+    // built with indexEdges = true so that the graph is guaranteed to implement both IndexedVertexGraph and
     // IndexedEdgeGraph, letting the same fixture exercise VertexReference.index/EdgeReference.index too
-    private fun constructGraph(immutable: Boolean) {
+    private fun constructGraph(immutable: Boolean, directed: Boolean = true) {
         graph = if (immutable) {
-            buildImmutableGraph(true, multiEdge = true) {
+            buildImmutableGraph(directed, indexEdges = true) {
                 v0 = addVertex()
                 v1 = addVertex()
                 v2 = addVertex()
@@ -25,7 +26,7 @@ class ReferenceTest {
                 e1 = addEdge(v1, v2)
             }
         } else {
-            buildGraph(true, multiEdge = true) {
+            buildGraph(directed, indexEdges = true) {
                 v0 = addVertex()
                 v1 = addVertex()
                 v2 = addVertex()
@@ -43,6 +44,11 @@ class ReferenceTest {
         val ref = graph.createVertexReference(v1)
 
         assertThat(ref.unstable).isEqualTo(v1)
+        // a reference to the same vertex resolves to the same vertex
+        assertThat(graph.createVertexReference(v1).unstable).isEqualTo(ref.unstable)
+        assertThrows<IllegalArgumentException> { graph.createVertexReference(Vertex(3)) }
+        assertThrows<IllegalArgumentException> { graph.createVertexReference(Vertex(-1)) }
+        assertThrows<IllegalArgumentException> { graph.createVertexReference(Vertex(99)) }
     }
 
     @ParameterizedTest(name = "immutable={0}")
@@ -60,6 +66,37 @@ class ReferenceTest {
             assertThat(ref.outgoingEdges()).containsExactlyInAnyOrder(e1)
             assertThat(ref.incomingEdges()).containsExactlyInAnyOrder(e0)
         }
+
+        // the reference overloads of the graph methods
+        assertThat(graph.outDegree(ref)).isEqualTo(1)
+        assertThat(graph.inDegree(ref)).isEqualTo(1)
+        assertThat(graph.successors(ref)).containsExactlyInAnyOrder(v2)
+        assertThat(graph.predecessors(ref)).containsExactlyInAnyOrder(v0)
+        assertThat(graph.outgoingEdges(ref)).containsExactlyInAnyOrder(e1)
+        assertThat(graph.incomingEdges(ref)).containsExactlyInAnyOrder(e0)
+        assertThat(graph.edgeOpposite(e0, ref)).isEqualTo(v0)
+        assertThat(graph.edgeSource(e0, ref)).isEqualTo(v0)
+        assertThat(graph.edgeTarget(e1, ref)).isEqualTo(v2)
+    }
+
+    @ParameterizedTest(name = "immutable={0}")
+    @ValueSource(booleans = [true, false])
+    fun undirectedVertexReferenceExtensionMembers(immutable: Boolean) {
+        constructGraph(immutable, directed = false)
+
+        val ref = graph.createVertexReference(v1)
+
+        context(graph) {
+            assertThat(ref.outDegree).isEqualTo(2)
+            assertThat(ref.inDegree).isEqualTo(2)
+            assertThat(ref.successors()).containsExactlyInAnyOrder(v0, v2)
+            assertThat(ref.predecessors()).containsExactlyInAnyOrder(v0, v2)
+            assertThat(ref.outgoingEdges()).containsExactlyInAnyOrder(e0, e1)
+            assertThat(ref.incomingEdges()).containsExactlyInAnyOrder(e0, e1)
+        }
+        assertThat(graph.edgeOpposite(e0, ref)).isEqualTo(v0)
+        assertThat(graph.edgeSource(e0, ref)).isEqualTo(v0)
+        assertThat(graph.edgeTarget(e0, ref)).isEqualTo(v0)
     }
 
     @ParameterizedTest(name = "immutable={0}")
@@ -82,6 +119,11 @@ class ReferenceTest {
         val ref = graph.createEdgeReference(e0)
 
         assertThat(ref.unstable).isEqualTo(e0)
+        // a reference to the same edge resolves to the same edge
+        assertThat(graph.createEdgeReference(e0).unstable).isEqualTo(ref.unstable)
+        assertThrows<IllegalArgumentException> { graph.createEdgeReference(Edge(2)) }
+        assertThrows<IllegalArgumentException> { graph.createEdgeReference(Edge(-1)) }
+        assertThrows<IllegalArgumentException> { graph.createEdgeReference(Edge(99)) }
     }
 
     @ParameterizedTest(name = "immutable={0}")
@@ -100,6 +142,29 @@ class ReferenceTest {
             val (source, target) = ref
             assertThat(source).isEqualTo(v0)
             assertThat(target).isEqualTo(v1)
+            assertThrows<IllegalArgumentException> { ref.opposite(v2) }
+        }
+
+        // the reference overloads of the graph methods
+        assertThat(graph.edgeSource(ref)).isEqualTo(v0)
+        assertThat(graph.edgeTarget(ref)).isEqualTo(v1)
+    }
+
+    @ParameterizedTest(name = "immutable={0}")
+    @ValueSource(booleans = [true, false])
+    fun undirectedEdgeReferenceExtensionMembers(immutable: Boolean) {
+        constructGraph(immutable, directed = false)
+
+        val ref = graph.createEdgeReference(e0)
+
+        context(graph) {
+            assertThat(setOf(ref.source, ref.target)).containsExactlyInAnyOrder(v0, v1)
+            assertThat(ref.source).isEqualTo(graph.edgeSource(e0))
+            assertThat(ref.target).isEqualTo(graph.edgeTarget(e0))
+            assertThat(ref.opposite(v0)).isEqualTo(v1)
+            assertThat(ref.opposite(v1)).isEqualTo(v0)
+            val (source, target) = ref
+            assertThat(setOf(source, target)).containsExactlyInAnyOrder(v0, v1)
         }
     }
 
@@ -113,5 +178,120 @@ class ReferenceTest {
         context(graph as IndexedEdgeGraph) {
             assertThat(ref.index).isEqualTo(0)
         }
+    }
+
+    @ParameterizedTest(name = "directed={0}")
+    @ValueSource(booleans = [true, false])
+    fun vertexReferenceFollowsReassignment(directed: Boolean) {
+        constructGraph(immutable = false, directed = directed)
+        val mutable = graph as MutableGraph
+        val ref = graph.createVertexReference(v2)
+        val staleRef = graph.createVertexReference(v0)
+
+        // removing v0 moves the last vertex (v2) into its index
+        mutable.removeVertex(v0)
+
+        val moved = ref.unstable
+        assertThat(moved).isNotEqualTo(v2)
+        assertThat(graph.vertices).containsExactlyInAnyOrder(v1, moved)
+        assertThat(graph.vertices.contains(v2)).isFalse
+        assertThat(graph.hasEdge(v1, moved)).isTrue
+        context(graph as IndexedVertexGraph) {
+            assertThat(ref.index).isEqualTo(graph.vertices.indexOf(moved))
+            assertThat(ref.inDegree).isEqualTo(1)
+            assertThat(ref.predecessors()).containsExactlyInAnyOrder(v1)
+        }
+
+        // a reference to the removed vertex is invalid for every purpose
+        assertThrows<IllegalArgumentException> { staleRef.unstable }
+        context(graph) {
+            assertThrows<IllegalArgumentException> { staleRef.outDegree }
+            assertThrows<IllegalArgumentException> { staleRef.inDegree }
+            assertThrows<IllegalArgumentException> { staleRef.successors() }
+            assertThrows<IllegalArgumentException> { staleRef.predecessors() }
+            assertThrows<IllegalArgumentException> { staleRef.outgoingEdges() }
+            assertThrows<IllegalArgumentException> { staleRef.incomingEdges() }
+        }
+        context(graph as IndexedVertexGraph) {
+            assertThrows<IllegalArgumentException> { staleRef.index }
+        }
+        assertThrows<IllegalArgumentException> { graph.outDegree(staleRef) }
+        assertThrows<IllegalArgumentException> { mutable.removeVertex(staleRef) }
+        assertThrows<IllegalArgumentException> { mutable.addEdge(staleRef, ref) }
+
+        // adding vertices never disturbs a reference
+        mutable.addVertex()
+        assertThat(ref.unstable).isEqualTo(moved)
+    }
+
+    @ParameterizedTest(name = "directed={0}")
+    @ValueSource(booleans = [true, false])
+    fun edgeReferenceFollowsReassignment(directed: Boolean) {
+        constructGraph(immutable = false, directed = directed)
+        val mutable = graph as MutableGraph
+        val ref = graph.createEdgeReference(e1)
+        val staleRef = graph.createEdgeReference(e0)
+
+        // removing e0 moves the last edge (e1) into its index
+        mutable.removeEdge(e0)
+
+        val moved = ref.unstable
+        assertThat(moved).isNotEqualTo(e1)
+        assertThat(graph.edges).containsExactlyInAnyOrder(moved)
+        assertThat(graph.edges.contains(e1)).isFalse
+        assertThat(setOf(graph.edgeSource(moved), graph.edgeTarget(moved))).containsExactlyInAnyOrder(v1, v2)
+        context(graph as IndexedEdgeGraph) {
+            assertThat(ref.index).isEqualTo(graph.edges.indexOf(moved))
+            assertThat(ref.opposite(v1)).isEqualTo(v2)
+        }
+
+        // a reference to the removed edge is invalid for every purpose
+        assertThrows<IllegalArgumentException> { staleRef.unstable }
+        context(graph) {
+            assertThrows<IllegalArgumentException> { staleRef.source }
+            assertThrows<IllegalArgumentException> { staleRef.target }
+            assertThrows<IllegalArgumentException> { staleRef.opposite(v0) }
+        }
+        context(graph as IndexedEdgeGraph) {
+            assertThrows<IllegalArgumentException> { staleRef.index }
+        }
+        assertThrows<IllegalArgumentException> { graph.edgeSource(staleRef) }
+        assertThrows<IllegalArgumentException> { mutable.removeEdge(staleRef) }
+
+        // adding edges never disturbs a reference
+        mutable.addEdge(v0, v2)
+        assertThat(ref.unstable).isEqualTo(moved)
+
+        // removing a vertex removes the edge, which invalidates the reference
+        mutable.removeVertex(v1)
+        assertThrows<IllegalArgumentException> { ref.unstable }
+    }
+
+    @ParameterizedTest(name = "directed={0}")
+    @ValueSource(booleans = [true, false])
+    fun canonicalEdgeReferenceFollowsVertexReassignment(directed: Boolean) {
+        val mutable = mutableGraph(directed)
+        val v0 = mutable.addVertex()
+        val v1 = mutable.addVertex()
+        val v2 = mutable.addVertex()
+        mutable.addEdge(v0, v1)
+        val e12 = mutable.addEdge(v1, v2)
+        val e22 = mutable.addEdge(v2, v2)
+        val ref12 = mutable.createEdgeReference(e12)
+        val ref22 = mutable.createEdgeReference(e22)
+        val ref2 = mutable.createVertexReference(v2)
+
+        // removing v0 moves v2 into its index, which renames both of the edges of v2
+        mutable.removeVertex(v0)
+
+        val movedV2 = ref2.unstable
+        assertThat(mutable.edges).containsExactlyInAnyOrder(ref12.unstable, ref22.unstable)
+        assertThat(ref12.unstable).isNotEqualTo(e12)
+        assertThat(ref22.unstable).isNotEqualTo(e22)
+        assertThat(setOf(mutable.edgeSource(ref12.unstable), mutable.edgeTarget(ref12.unstable)))
+            .containsExactlyInAnyOrder(v1, movedV2)
+        assertThat(mutable.edgeSource(ref22.unstable)).isEqualTo(movedV2)
+        assertThat(mutable.edgeTarget(ref22.unstable)).isEqualTo(movedV2)
+        assertThat(mutable.edge(v1, movedV2)).isEqualTo(ref12.unstable)
     }
 }

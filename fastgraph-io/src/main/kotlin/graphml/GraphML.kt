@@ -239,8 +239,8 @@ private fun parseGraphML(
                 val target = resolveVertex(targetId)
                 // an undirected edge in a directed graph is represented losslessly as two opposite directed edges (a
                 // self-loop is its own opposite, so it needs only one). a directed edge in an undirected graph can't be
-                // represented and is unsupported.
-                val createdEdges = if (edgeDirected || source == target) {
+                // represented and is unsupported. in an undirected graph an undirected edge is simply an edge.
+                val createdEdges = if (edgeDirected || !directed || source == target) {
                     listOf(graph.addEdge(source, target))
                 } else {
                     listOf(graph.addEdge(source, target), graph.addEdge(target, source))

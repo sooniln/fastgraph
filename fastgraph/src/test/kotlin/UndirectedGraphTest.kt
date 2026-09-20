@@ -71,6 +71,8 @@ class UndirectedGraphTest {
             assertThat(graph.vertices.contains(v3)).isTrue
 
             assertThat(graph.vertices.contains(Vertex(99))).isFalse
+            assertThat(graph.vertices.contains(Vertex(-1))).isFalse
+            assertThat(graph.isEmpty()).isFalse
 
             assertThat(v0.value).isEqualTo("v0")
             assertThat(v1.value).isEqualTo("v1")
@@ -91,6 +93,7 @@ class UndirectedGraphTest {
             assertThat(v3.outDegree).isEqualTo(0)
 
             assertThrows<IllegalArgumentException> { Vertex(99).outDegree }
+            assertThrows<IllegalArgumentException> { Vertex(-1).outDegree }
         }
     }
 
@@ -106,6 +109,7 @@ class UndirectedGraphTest {
             assertThat(v3.inDegree).isEqualTo(0)
 
             assertThrows<IllegalArgumentException> { Vertex(99).inDegree }
+            assertThrows<IllegalArgumentException> { Vertex(-1).inDegree }
         }
     }
 
@@ -350,6 +354,14 @@ class UndirectedGraphTest {
 
         assertThat(pair.edge(a, b)).isEqualTo(e)
         assertThat(pair.edge(b, a)).isEqualTo(e)
+
+        context(pair) {
+            assertThat(a.successor()).isEqualTo(b)
+            assertThat(a.predecessor()).isEqualTo(b)
+            assertThat(a.outgoingEdge()).isEqualTo(e)
+            assertThat(a.incomingEdge()).isEqualTo(e)
+            assertThat(b.edgeTo(a)).isEqualTo(e)
+        }
     }
 
     @ParameterizedTest(name = "immutable={0}")
@@ -365,6 +377,7 @@ class UndirectedGraphTest {
             assertThat(graph.edges.contains(e2)).isTrue
             assertThat(graph.edges.contains(e3)).isTrue
             assertThat(graph.edges.contains(Edge(99L))).isFalse
+            assertThat(graph.edges.contains(Edge(-1L))).isFalse
 
             assertThat(e0.value).isEqualTo(1.5f)
             assertThat(e1.value).isEqualTo(2.0f)
@@ -385,7 +398,6 @@ class UndirectedGraphTest {
             assertThat(e1.opposite(v1)).isEqualTo(v2)
             assertThat(e2.opposite(v0)).isEqualTo(v2)
             assertThat(e2.opposite(v2)).isEqualTo(v0)
-            assertThat(e3.opposite(v0)).isEqualTo(v0)
             assertThat(e3.opposite(v0)).isEqualTo(v0)
 
             assertThrows<IllegalArgumentException> { e0.opposite(v2) }
@@ -510,5 +522,111 @@ class UndirectedGraphTest {
 
         assertThrows<IllegalArgumentException> { graph.edges(v0, Vertex(99)) }
         assertThrows<IllegalArgumentException> { graph.edges(Vertex(99), v0) }
+    }
+
+    @ParameterizedTest(name = "immutable={0}")
+    @ValueSource(booleans = [true, false])
+    fun edgeSourceAndTarget(immutable: Boolean) {
+        constructGraph(immutable)
+
+        context(graph) {
+            // an undirected edge does not promise which endpoint is reported as the source, only that the pair is
+            // right, that the choice is stable, and that it agrees with edgeOpposite
+            assertThat(setOf(e0.source, e0.target)).containsExactlyInAnyOrder(v0, v1)
+            assertThat(setOf(e1.source, e1.target)).containsExactlyInAnyOrder(v1, v2)
+            assertThat(setOf(e2.source, e2.target)).containsExactlyInAnyOrder(v0, v2)
+            assertThat(e3.source).isEqualTo(v0)
+            assertThat(e3.target).isEqualTo(v0)
+
+            for (edge in listOf(e0, e1, e2, e3)) {
+                assertThat(edge.source).isEqualTo(edge.source)
+                assertThat(edge.target).isEqualTo(edge.target)
+                assertThat(edge.opposite(edge.source)).isEqualTo(edge.target)
+                assertThat(edge.opposite(edge.target)).isEqualTo(edge.source)
+            }
+        }
+    }
+
+    @ParameterizedTest(name = "immutable={0}")
+    @ValueSource(booleans = [true, false])
+    fun edgeEndpointRelativeToOtherEndpoint(immutable: Boolean) {
+        constructGraph(immutable)
+
+        // in an undirected graph the two-argument forms return the opposite endpoint whichever is supplied
+        assertThat(graph.edgeSource(e0, v1)).isEqualTo(v0)
+        assertThat(graph.edgeSource(e0, v0)).isEqualTo(v1)
+        assertThat(graph.edgeTarget(e0, v0)).isEqualTo(v1)
+        assertThat(graph.edgeTarget(e0, v1)).isEqualTo(v0)
+        assertThat(graph.edgeSource(e3, v0)).isEqualTo(v0)
+        assertThat(graph.edgeTarget(e3, v0)).isEqualTo(v0)
+
+        assertThat(graph.edgeSource(e0, graph.createVertexReference(v1))).isEqualTo(v0)
+        assertThat(graph.edgeTarget(e0, graph.createVertexReference(v1))).isEqualTo(v0)
+
+        context(graph) {
+            assertThat(e0.source(v1)).isEqualTo(v0)
+            assertThat(e0.source(v0)).isEqualTo(v1)
+            assertThat(e0.target(v0)).isEqualTo(v1)
+            assertThat(e0.target(v1)).isEqualTo(v0)
+        }
+
+        assertThrows<IllegalArgumentException> { graph.edgeSource(e0, v2) }
+        assertThrows<IllegalArgumentException> { graph.edgeTarget(e0, v2) }
+    }
+
+    @ParameterizedTest(name = "immutable={0}")
+    @ValueSource(booleans = [true, false])
+    fun edgeDestructuring(immutable: Boolean) {
+        constructGraph(immutable)
+
+        context(graph) {
+            val (source, target) = e0
+            assertThat(source).isEqualTo(e0.source)
+            assertThat(target).isEqualTo(e0.target)
+            assertThat(setOf(source, target)).containsExactlyInAnyOrder(v0, v1)
+        }
+    }
+
+    @ParameterizedTest(name = "immutable={0}")
+    @ValueSource(booleans = [true, false])
+    fun singularVertexContextMembers(immutable: Boolean) {
+        constructGraph(immutable)
+
+        context(graph) {
+            // every connected vertex here has more than one neighbour, and v3 has none
+            for (vertex in listOf(v0, v1, v2, v3)) {
+                assertThrows<IllegalStateException> { vertex.successor() }
+                assertThrows<IllegalStateException> { vertex.predecessor() }
+                assertThrows<IllegalStateException> { vertex.outgoingEdge() }
+                assertThrows<IllegalStateException> { vertex.incomingEdge() }
+            }
+
+            assertThrows<IllegalArgumentException> { Vertex(99).successor() }
+            assertThrows<IllegalArgumentException> { Vertex(99).predecessor() }
+            assertThrows<IllegalArgumentException> { Vertex(99).outgoingEdge() }
+            assertThrows<IllegalArgumentException> { Vertex(99).incomingEdge() }
+        }
+    }
+
+    @ParameterizedTest(name = "immutable={0}")
+    @ValueSource(booleans = [true, false])
+    fun edgeToAndEdgesTo(immutable: Boolean) {
+        constructGraph(immutable)
+
+        context(graph) {
+            assertThat(v0.edgeTo(v1)).isEqualTo(e0)
+            assertThat(v1.edgeTo(v0)).isEqualTo(e0)
+            assertThat(v2.edgeTo(v1)).isEqualTo(e1)
+            assertThat(v0.edgeTo(v0)).isEqualTo(e3)
+            assertThrows<IllegalStateException> { v0.edgeTo(v3) }
+            assertThrows<IllegalStateException> { v3.edgeTo(v0) }
+
+            assertThat(v0.edgesTo(v1)).containsExactlyInAnyOrder(e0)
+            assertThat(v1.edgesTo(v0)).containsExactlyInAnyOrder(e0)
+            assertThat(v0.edgesTo(v3)).isEmpty()
+
+            assertThrows<IllegalArgumentException> { v0.edgeTo(Vertex(99)) }
+            assertThrows<IllegalArgumentException> { Vertex(99).edgesTo(v0) }
+        }
     }
 }

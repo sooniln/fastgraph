@@ -276,14 +276,14 @@ however, is that `VertexReference` and `EdgeReference` are more expensive in ter
 and `Edge`, and should thus generally be used sparingly and only when actually necessary.
 
 A stable reference can be obtained via `Graph.createVertexReference()` and `Graph.createEdgeReference()` (or via the
-context APIs `Vertex.createReference()` and `Edge.reference()`). For example:
+context APIs `Vertex.reference()` and `Edge.reference()`). For example:
 
 ```kotlin
 val mutableGraph = mutableGraph(directed = false)
 
 context(mutableGraph) {
-    val vertex1Ref = mutableGraph.addVertex().createReference()
-    val vertex2Ref = mutableGraph.addVertex().createReference()
+    val vertex1Ref = mutableGraph.addVertex().reference()
+    val vertex2Ref = mutableGraph.addVertex().reference()
 
     // this will not invalidate vertex2Ref since it is a stable reference
     // this will invalidate vertex1Ref since it's being removed from the graph

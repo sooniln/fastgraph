@@ -18,6 +18,7 @@ import io.github.sooniln.fastgraph.createVertexKeyProperty
 import io.github.sooniln.fastgraph.createVertexProperty
 import io.github.sooniln.fastgraph.listeners.VertexChangeListenerManager
 import io.github.sooniln.fastgraph.references.VertexReferenceManager
+import io.github.sooniln.fastgraph.reparent
 
 internal interface InducedVertices : FilteredVertices {
     companion object {
@@ -125,11 +126,11 @@ private class InducedAllVertices(private val parent: Graph) : InducedVertices, A
         type: PropertyType<T>,
         defaultValueFunction: VertexFunction<T>
     ): MutableVertexProperty<T> {
-        return ReparentedMutableVertexProperty(graph, parent.createVertexProperty(type, defaultValueFunction))
+        return parent.createVertexProperty(type, defaultValueFunction).reparent(graph)
     }
 
     override fun <T> createVertexKeyProperty(type: PropertyType<T>): MutableVertexKeyProperty<T> {
-        return ReparentedMutableVertexKeyProperty(graph, parent.createVertexKeyProperty(type))
+        return parent.createVertexKeyProperty(type).reparent(graph)
     }
 
     override fun createVertexReference(vertex: Vertex): VertexReference {
@@ -137,14 +138,4 @@ private class InducedAllVertices(private val parent: Graph) : InducedVertices, A
     }
 
     override fun trimToSize() {}
-
-    private class ReparentedMutableVertexProperty<T>(
-        override val graph: Graph,
-        private val property: MutableVertexProperty<T>
-    ) : MutableVertexProperty<T> by property
-
-    private class ReparentedMutableVertexKeyProperty<T>(
-        override val graph: Graph,
-        private val property: MutableVertexKeyProperty<T>
-    ) : MutableVertexKeyProperty<T> by property
 }

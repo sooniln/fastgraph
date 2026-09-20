@@ -1,26 +1,32 @@
 package io.github.sooniln.fastgraph.internal
 
 import io.github.sooniln.fastcollect.*
-import io.github.sooniln.fastgraph.AbstractEdgeSet
+import io.github.sooniln.fastgraph.AbstractEdgeSequencedSet
 import io.github.sooniln.fastgraph.AbstractVertexSequencedSet
 import io.github.sooniln.fastgraph.CanonicalEdge
 import io.github.sooniln.fastgraph.Edge
+import io.github.sooniln.fastgraph.EdgeFunction
 import io.github.sooniln.fastgraph.EdgeIterator
 import io.github.sooniln.fastgraph.EdgeReference
 import io.github.sooniln.fastgraph.EdgeSet
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.IdentityIndexedEdge
 import io.github.sooniln.fastgraph.IdentityIndexedEdgeSet
-import io.github.sooniln.fastgraph.IndexedEdgeSet
-import io.github.sooniln.fastgraph.IndexedVertexSet
 import io.github.sooniln.fastgraph.MutableEdgeIterator
+import io.github.sooniln.fastgraph.MutableEdgeKeyProperty
+import io.github.sooniln.fastgraph.MutableEdgeProperty
 import io.github.sooniln.fastgraph.MutableGraph
 import io.github.sooniln.fastgraph.MutableIdentityIndexedVertexSet
 import io.github.sooniln.fastgraph.MutableIndexedEdgeSet
 import io.github.sooniln.fastgraph.MutableVertexIterator
+import io.github.sooniln.fastgraph.MutableVertexKeyProperty
+import io.github.sooniln.fastgraph.MutableVertexProperty
+import io.github.sooniln.fastgraph.PropertyType
 import io.github.sooniln.fastgraph.Vertex
+import io.github.sooniln.fastgraph.VertexFunction
 import io.github.sooniln.fastgraph.VertexReference
 import io.github.sooniln.fastgraph.VertexSet
+import io.github.sooniln.fastgraph.reparent
 import kotlin.math.max
 import kotlin.math.min
 
@@ -161,6 +167,22 @@ internal class TransposedGraph(val graph: Graph) : Graph by graph {
     override fun hasEdge(source: Vertex, target: Vertex): Boolean = graph.hasEdge(target, source)
     override fun edge(source: Vertex, target: Vertex): Edge = graph.edge(target, source)
     override fun edges(source: Vertex, target: Vertex): EdgeSet = graph.edges(target, source)
+
+    override fun <T> createVertexProperty(
+        type: PropertyType<T>,
+        defaultValueFunction: VertexFunction<T>
+    ): MutableVertexProperty<T> = graph.createVertexProperty(type, defaultValueFunction).reparent(this)
+
+    override fun <T> createEdgeProperty(
+        type: PropertyType<T>,
+        defaultValueFunction: EdgeFunction<T>
+    ): MutableEdgeProperty<T> = graph.createEdgeProperty(type, defaultValueFunction).reparent(this)
+
+    override fun <T> createVertexKeyProperty(type: PropertyType<T>): MutableVertexKeyProperty<T> =
+        graph.createVertexKeyProperty(type).reparent(this)
+
+    override fun <T> createEdgeKeyProperty(type: PropertyType<T>): MutableEdgeKeyProperty<T> =
+        graph.createEdgeKeyProperty(type).reparent(this)
 }
 
 @Suppress("NOTHING_TO_INLINE")
@@ -186,17 +208,9 @@ internal abstract class AbstractMutableIdentityIndexedVertexSet(private val grap
             previous = -1
         }
     }
-
-    override fun equals(other: Any?): Boolean {
-        if (other is IndexedVertexSet) {
-            return equalsSequenced(other)
-        }
-
-        return super.equals(other)
-    }
 }
 
-internal abstract class AbstractMutableIdentityIndexedEdgeSet(private val graph: MutableGraph) : IdentityIndexedEdgeSet, MutableIndexedEdgeSet, AbstractEdgeSet() {
+internal abstract class AbstractMutableIdentityIndexedEdgeSet(private val graph: MutableGraph) : IdentityIndexedEdgeSet, MutableIndexedEdgeSet, AbstractEdgeSequencedSet() {
     override fun iterator(): MutableEdgeIterator = object : MutableEdgeIterator {
         private var index = 0
         private var previous = -1
@@ -214,13 +228,5 @@ internal abstract class AbstractMutableIdentityIndexedEdgeSet(private val graph:
             index = previous
             previous = -1
         }
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (other is IndexedEdgeSet) {
-            return equalsSequenced(other)
-        }
-
-        return super.equals(other)
     }
 }

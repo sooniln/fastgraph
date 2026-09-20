@@ -3,6 +3,11 @@ package io.github.sooniln.fastgraph.io.dot
 import io.github.sooniln.fastgraph.createEdgeProperty
 import io.github.sooniln.fastgraph.createVertexProperty
 import io.github.sooniln.fastgraph.mutableGraph
+import io.github.sooniln.fastgraph.edgeSetOf
+import io.github.sooniln.fastgraph.filter
+import io.github.sooniln.fastgraph.toImmutableGraph
+import io.github.sooniln.fastgraph.vertexSetOf
+import io.github.sooniln.fastgraph.safeCast
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.io.ByteArrayOutputStream
@@ -165,5 +170,110 @@ class DotWriterTest {
         assertThat(result.graph.vertices).hasSize(2)
         assertThat(result.graph.edges).hasSize(1)
         assertThat(result.edgeProperties.getValue("weight")[result.graph.edges.single()]).isEqualTo("9")
+    }
+
+    @Test
+    fun parallelEdgesAndSelfLoopsAreWrittenAsNonStrictGraphAndRoundTrip() {
+        val graph = mutableGraph(directed = true, multiEdge = true)
+        val a = graph.addVertex()
+        val b = graph.addVertex()
+        graph.addEdge(a, b)
+        graph.addEdge(a, b)
+        graph.addEdge(b, b)
+
+        val output = ByteArrayOutputStream()
+        writeDot(output, DotGraph(graph))
+
+        assertThat(output.toString(Charsets.UTF_8)).isEqualTo(
+            "digraph G {\n" +
+                "  \"${a.id}\";\n" +
+                "  \"${b.id}\";\n" +
+                "  \"${a.id}\" -> \"${b.id}\";\n" +
+                "  \"${a.id}\" -> \"${b.id}\";\n" +
+                "  \"${b.id}\" -> \"${b.id}\";\n" +
+                "}\n"
+        )
+
+        val result = readDot(output.toByteArray().inputStream(), multiEdge = true)
+        assertThat(result.graph.multiEdge).isTrue
+        assertThat(result.graph.vertices).hasSize(2)
+        assertThat(result.graph.edges).hasSize(3)
+        val ra = result.vertexIdProperty.safeCast<String>().getVertex(a.id.toString())
+        val rb = result.vertexIdProperty.safeCast<String>().getVertex(b.id.toString())
+        assertThat(result.graph.edges(ra, rb)).hasSize(2)
+        assertThat(result.graph.edges(rb, rb)).hasSize(1)
+    }
+
+    @Test
+    fun immutableAndFilteredSourceGraphsAreWritten() {
+        val graph = mutableGraph(directed = false)
+        val a = graph.addVertex()
+        val b = graph.addVertex()
+        val c = graph.addVertex()
+        val ab = graph.addEdge(a, b)
+        graph.addEdge(b, c)
+
+        val mutableOutput = ByteArrayOutputStream()
+        writeDot(mutableOutput, DotGraph(graph))
+
+        // an immutable copy has the same ids, so it writes the same statements (iteration order may differ)
+        val immutableOutput = ByteArrayOutputStream()
+        writeDot(immutableOutput, DotGraph(graph.toImmutableGraph()))
+        assertThat(immutableOutput.toString(Charsets.UTF_8).lines())
+            .containsExactlyInAnyOrderElementsOf(mutableOutput.toString(Charsets.UTF_8).lines())
+
+        // a filtered view writes only its own vertices and edges
+        val filteredOutput = ByteArrayOutputStream()
+        writeDot(filteredOutput, DotGraph(graph.filter(vertexSetOf(a, b), edgeSetOf(ab))))
+        assertThat(filteredOutput.toString(Charsets.UTF_8).lines()).containsExactlyInAnyOrder(
+            "strict graph G {",
+            "  \"${a.id}\";",
+            "  \"${b.id}\";",
+            "  \"${a.id}\" -- \"${b.id}\";",
+            "}",
+            "",
+        )
+    }
+
+    @Test
+    fun vertexAndEdgePropertiesAreWrittenSymmetrically() {
+        val graph = mutableGraph(directed = true)
+        val a = graph.addVertex()
+        val b = graph.addVertex()
+        val edge = graph.addEdge(a, b)
+        val vertexLabel = graph.createVertexProperty<String?>(null)
+        val edgeLabel = graph.createEdgeProperty<String?>(null)
+        val vertexWeight = graph.createVertexProperty<Int>(1)
+        val edgeWeight = graph.createEdgeProperty<Int>(2)
+        vertexLabel[a] = "start"
+        edgeLabel[edge] = "link"
+
+        val output = ByteArrayOutputStream()
+        writeDot(
+            output,
+            DotGraph(
+                graph,
+                vertexProperties = mapOf("label" to vertexLabel, "weight" to vertexWeight),
+                edgeProperties = mapOf("label" to edgeLabel, "weight" to edgeWeight),
+            ),
+        )
+
+        // null values omit the attribute on both vertices and edges; other values are stringified
+        assertThat(output.toString(Charsets.UTF_8)).isEqualTo(
+            "strict digraph G {\n" +
+                "  \"${a.id}\" [\"label\"=\"start\", \"weight\"=\"1\"];\n" +
+                "  \"${b.id}\" [\"weight\"=\"1\"];\n" +
+                "  \"${a.id}\" -> \"${b.id}\" [\"label\"=\"link\", \"weight\"=\"2\"];\n" +
+                "}\n"
+        )
+
+        val result = readDot(output.toByteArray().inputStream())
+        val ra = result.vertexIdProperty.safeCast<String>().getVertex(a.id.toString())
+        val rb = result.vertexIdProperty.safeCast<String>().getVertex(b.id.toString())
+        assertThat(result.vertexProperties.getValue("label")[ra]).isEqualTo("start")
+        assertThat(result.vertexProperties.getValue("label")[rb]).isNull()
+        assertThat(result.vertexProperties.getValue("weight")[rb]).isEqualTo("1")
+        assertThat(result.edgeProperties.getValue("label")[result.graph.edges.single()]).isEqualTo("link")
+        assertThat(result.edgeProperties.getValue("weight")[result.graph.edges.single()]).isEqualTo("2")
     }
 }

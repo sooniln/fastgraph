@@ -136,6 +136,16 @@ public fun <E> MutableEdgeProperty<E>.put(edgeReference: EdgeReference, value: E
     put(edgeReference.unstable, value)
 
 /**
+ * Returns a new [MutableEdgeProperty] with the given graph owner which passes all property functionality through to
+ * this property.
+ */
+public fun <E> MutableEdgeProperty<E>.reparent(graph: Graph): MutableEdgeProperty<E> {
+    return object : MutableEdgeProperty<E> by this {
+        override val graph: Graph = graph
+    }
+}
+
+/**
  * Creates an [EdgeProperty] for the [Unit] type. This is useful for cases where you are required to specify an
  * [EdgeProperty] but have no useful edge property to use (for example, with a [ValueGraph]). The resulting edge
  * property takes up very little constant space.
@@ -486,6 +496,16 @@ public interface EdgeKeyProperty<E> : EdgeProperty<E> {
  * additionally returns the previous key.
  */
 public interface MutableEdgeKeyProperty<E> : EdgeKeyProperty<E>, MutableEdgeProperty<E>
+
+/**
+ * Returns a new [MutableEdgeKeyProperty] with the given graph owner which passes all property functionality through to
+ * this property.
+ */
+public fun <E> MutableEdgeKeyProperty<E>.reparent(graph: Graph): MutableEdgeKeyProperty<E> {
+    return object : MutableEdgeKeyProperty<E> by this {
+        override val graph: Graph = graph
+    }
+}
 
 /**
  * Creates an edge key property that is as specialized and efficient as possible for the given graph and type. See

@@ -5,9 +5,6 @@
 
 package io.github.sooniln.fastgraph
 
-import io.github.sooniln.fastcollect.Int2IntHashMap
-import io.github.sooniln.fastgraph.internal.throwIllegalEdge
-import io.github.sooniln.fastgraph.internal.throwIllegalVertex
 import io.github.sooniln.fastgraph.paths.ParentPathTreeBuilder
 
 
@@ -21,22 +18,22 @@ import io.github.sooniln.fastgraph.paths.ParentPathTreeBuilder
  * thus takes linear time with respect to the path length) and assembles a [Path] object.
  */
 @Suppress("INAPPLICABLE_JVM_NAME")
-public interface PathTree : ImmutableGraph, IndexedVertexGraph, IndexedEdgeGraph {
+public interface PathTree : Graph {
     override val directed: Boolean get() = true
 
     @get:JvmName("getStartVertex")
     public val startVertex: Vertex
 
     /**
-     * Vertices are indexed in the order of discovery when this PathTree was created (i.e. `vertices[0]` will always be
-     * [startVertex]).
+     * Vertices are sequenced in the order of discovery when this PathTree was created (i.e. `vertices[0]` must always
+     * be [startVertex]).
      */
-    override val vertices: IndexedVertexSet
+    override val vertices: VertexSequencedSet
 
     /**
-     * Edges are indexed in the order of discovery when this PathTree was created.
+     * Edges are sequenced in the order of discovery when this PathTree was created.
      */
-    override val edges: IndexedEdgeSet
+    override val edges: EdgeSequencedSet
 
     /** A property for the number of edges in a path from [startVertex] to the given vertex. */
     public val pathLengthProperty: VertexProperty<Int>

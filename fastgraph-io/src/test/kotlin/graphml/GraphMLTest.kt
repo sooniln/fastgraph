@@ -32,13 +32,26 @@ class GraphMLTest {
             <graphml>
               <graph edgedefault="undirected">
                 <node id="a"/>
+                <node id="b"/>
+                <edge source="a" target="b"/>
+                <edge source="b" target="b"/>
               </graph>
             </graphml>
         """.trimIndent()
 
         val result = readGraphML(xml.byteInputStream())
+        val graph = result.graph
 
-        assertThat(result.graph.directed).isFalse()
+        assertThat(graph.directed).isFalse()
+        // an undirected edge is a single edge, reachable from both endpoints
+        assertThat(graph.edges).hasSize(2)
+        val (a, b) = graph.vertices.toList()
+        assertThat(graph.hasEdge(a, b)).isTrue()
+        assertThat(graph.hasEdge(b, a)).isTrue()
+        assertThat(graph.edges(a, b)).hasSize(1)
+        assertThat(graph.hasEdge(b, b)).isTrue()
+        assertThat(graph.outDegree(a)).isEqualTo(1)
+        assertThat(graph.outDegree(b)).isEqualTo(2)
     }
 
     @Test

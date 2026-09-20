@@ -40,7 +40,7 @@ public value class Vertex(public val id: Int) {
      */
     @JvmSynthetic
     context(graph: Graph)
-    public fun createReference(): VertexReference = graph.createVertexReference(this)
+    public fun reference(): VertexReference = graph.createVertexReference(this)
 
     /**
      * See [Graph.outDegree].
@@ -64,11 +64,25 @@ public value class Vertex(public val id: Int) {
     public fun successors(): VertexSet = graph.successors(this)
 
     /**
+     * See [Graph.successor].
+     */
+    @JvmSynthetic
+    context(graph: Graph)
+    public fun successor(): Vertex = graph.successor(this)
+
+    /**
      * See [Graph.predecessors].
      */
     @JvmSynthetic
     context(graph: Graph)
     public fun predecessors(): VertexSet = graph.predecessors(this)
+
+    /**
+     * See [Graph.predecessor].
+     */
+    @JvmSynthetic
+    context(graph: Graph)
+    public fun predecessor(): Vertex = graph.predecessor(this)
 
     /**
      * See [Graph.outgoingEdges].
@@ -78,11 +92,25 @@ public value class Vertex(public val id: Int) {
     public fun outgoingEdges(): EdgeSet = graph.outgoingEdges(this)
 
     /**
+     * See [Graph.outgoingEdge].
+     */
+    @JvmSynthetic
+    context(graph: Graph)
+    public fun outgoingEdge(): Edge = graph.outgoingEdge(this)
+
+    /**
      * See [Graph.incomingEdges].
      */
     @JvmSynthetic
     context(graph: Graph)
     public fun incomingEdges(): EdgeSet = graph.incomingEdges(this)
+
+    /**
+     * See [Graph.incomingEdge].
+     */
+    @JvmSynthetic
+    context(graph: Graph)
+    public fun incomingEdge(): Edge = graph.incomingEdge(this)
 
     /**
      * See [Graph.edge].
@@ -350,7 +378,7 @@ public fun <T : Vertex> vertexSetOf(vararg vertices: T): VertexSet {
     return if (vertices.isEmpty()) {
         emptyVertexSet()
     } else if (vertices.size == 1) {
-        SingletonVertexSet(vertices[0].id)
+        SingletonVertexSet(vertices[0])
     } else {
         IntHashSet(vertices.size).apply {
             for (vertex in vertices) {
@@ -366,6 +394,20 @@ private object EmptyVertexIterator : MutableVertexIterator {
     override fun hasNext(): Boolean = false
     override fun next(): Vertex = throw NoSuchElementException()
     override fun remove() = throw IllegalStateException()
+}
+
+@JvmName("vertexIteratorOf")
+public fun vertexIteratorOf(vertex: Vertex): VertexIterator = SingletonVertexIterator(vertex)
+
+private class SingletonVertexIterator(private val vertex: Vertex) : VertexIterator {
+    private var done = false
+
+    override fun hasNext(): Boolean = !done
+    override fun next(): Vertex {
+        if (done) throw NoSuchElementException()
+        done = true
+        return vertex
+    }
 }
 
 public fun emptyVertexSet(): IdentityIndexedVertexSet = EmptyVertexSet
@@ -430,11 +472,11 @@ public abstract class AbstractVertexSequencedSet : VertexSequencedSet, AbstractV
     override fun iterator(): VertexIterator = super.iterator()
 }
 
-private class SingletonVertexSet(private val vertexId: Int) : AbstractVertexSet() {
+private class SingletonVertexSet(private val vertex: Vertex) : AbstractVertexSet() {
     override val size: Int get() = 1
-    override fun contains(element: Vertex): Boolean = element.id == vertexId
-    override fun iterator(): VertexIterator = intIteratorOf(vertexId).asVertexIterator()
-    override fun toIntArray(): IntArray = IntArray(1) { vertexId }
+    override fun contains(element: Vertex): Boolean = element.id == vertex.id
+    override fun iterator(): VertexIterator = vertexIteratorOf(vertex)
+    override fun toIntArray(): IntArray = IntArray(1) { vertex.id }
 }
 
 internal fun IntIterator.asVertexIterator(): VertexIterator = VertexIteratorWrapper(this)

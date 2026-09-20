@@ -1,6 +1,7 @@
 package io.github.sooniln.fastgraph
 
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
@@ -98,5 +99,207 @@ class TransposeTest {
         val empty = emptyImmutableGraph(directed)
 
         assertThat(empty.transpose()).isSameAs(empty)
+    }
+
+    @ParameterizedTest(name = "immutable={0}")
+    @ValueSource(booleans = [true, false])
+    fun transposingTwiceReturnsTheOriginalGraph(immutable: Boolean) {
+        constructGraph(true, immutable)
+
+        val transposed = graph.transpose()
+
+        assertThat(transposed).isNotSameAs(graph)
+        assertThat(transposed.transpose()).isSameAs(graph)
+        assertThat(transposed.multiEdge).isEqualTo(graph.multiEdge)
+        assertThat(transposed.isEmpty()).isFalse
+    }
+
+    @ParameterizedTest(name = "immutable={0}")
+    @ValueSource(booleans = [true, false])
+    fun transposeReversesEdgeEndpointHelpers(immutable: Boolean) {
+        constructGraph(true, immutable)
+
+        val transposed = graph.transpose()
+
+        assertThat(transposed.edgeOpposite(e0, v0)).isEqualTo(v1)
+        assertThat(transposed.edgeOpposite(e0, v1)).isEqualTo(v0)
+        assertThrows<IllegalArgumentException> { transposed.edgeOpposite(e0, v2) }
+        // e0 runs v1 -> v0 in the transposed view
+        assertThat(transposed.edgeSource(e0, v0)).isEqualTo(v1)
+        assertThat(transposed.edgeTarget(e0, v1)).isEqualTo(v0)
+
+        context(transposed) {
+            assertThat(e0.source).isEqualTo(v1)
+            assertThat(e0.target).isEqualTo(v0)
+            val (source, target) = e1
+            assertThat(source).isEqualTo(v2)
+            assertThat(target).isEqualTo(v1)
+            assertThat(v1.successor()).isEqualTo(v0)
+            assertThat(v1.predecessor()).isEqualTo(v2)
+            assertThat(v1.outgoingEdge()).isEqualTo(e0)
+            assertThat(v1.incomingEdge()).isEqualTo(e1)
+            assertThat(v1.edgeTo(v0)).isEqualTo(e0)
+            assertThat(v0.edgesTo(v1)).isEmpty()
+            assertThat(v1.edgesTo(v0)).containsExactlyInAnyOrder(e0)
+            assertThat(v2.outgoingEdges()).containsExactlyInAnyOrder(e1)
+            assertThat(v2.incomingEdges()).isEmpty()
+        }
+
+        assertThrows<IllegalArgumentException> { transposed.outDegree(Vertex(99)) }
+        assertThrows<IllegalArgumentException> { transposed.edges(Vertex(99), v0) }
+    }
+
+    @Test
+    fun transposeIsALiveView() {
+        constructGraph(true, immutable = false)
+        val mutable = graph as MutableGraph
+        val transposed = graph.transpose()
+
+        val v3 = mutable.addVertex()
+        val e2 = mutable.addEdge(v3, v0)
+
+        assertThat(transposed.vertices).containsExactlyInAnyOrder(v0, v1, v2, v3)
+        assertThat(transposed.edges).containsExactlyInAnyOrder(e0, e1, e2)
+        assertThat(transposed.edgeSource(e2)).isEqualTo(v0)
+        assertThat(transposed.edgeTarget(e2)).isEqualTo(v3)
+        assertThat(transposed.successors(v0)).containsExactlyInAnyOrder(v3)
+        assertThat(transposed.predecessors(v0)).containsExactlyInAnyOrder(v1)
+
+        mutable.removeEdge(e0)
+        assertThat(transposed.edges).containsExactlyInAnyOrder(e1, e2)
+        assertThat(transposed.hasEdge(v1, v0)).isFalse
+    }
+
+    @Test
+    fun transposeForwardsListenersAndReferences() {
+        constructGraph(true, immutable = false)
+        val mutable = graph as MutableGraph
+        val transposed = graph.transpose()
+        val added = mutableListOf<Vertex>()
+        val vertexListener = object : VertexChangeListener {
+            override fun onVertexAdded(vertex: Vertex) { added.add(vertex) }
+            override fun onVertexRemoved(vertex: Vertex) {}
+            override fun onVertexReassigned(oldVertex: Vertex, newVertex: Vertex) {}
+        }
+        val addedEdges = mutableListOf<Edge>()
+        val edgeListener = object : EdgeChangeListener {
+            override fun onEdgeAdded(edge: Edge) { addedEdges.add(edge) }
+            override fun onEdgeRemoved(edge: Edge) {}
+            override fun onEdgeReassigned(oldEdge: Edge, newEdge: Edge) {}
+        }
+
+        transposed.registerVertexChangeListener(vertexListener)
+        transposed.registerEdgeChangeListener(edgeListener)
+        assertThrows<IllegalArgumentException> { graph.registerVertexChangeListener(vertexListener) }
+        assertThrows<IllegalArgumentException> { graph.registerEdgeChangeListener(edgeListener) }
+
+        val v3 = mutable.addVertex()
+        val e2 = mutable.addEdge(v3, v0)
+        assertThat(added).containsExactly(v3)
+        assertThat(addedEdges).containsExactly(e2)
+
+        transposed.unregisterVertexChangeListener(vertexListener)
+        transposed.unregisterEdgeChangeListener(edgeListener)
+        mutable.addEdge(mutable.addVertex(), v0)
+        assertThat(added).containsExactly(v3)
+        assertThat(addedEdges).containsExactly(e2)
+
+        val v2Ref = transposed.createVertexReference(v2)
+        val e1Ref = transposed.createEdgeReference(e1)
+        assertThat(v2Ref.unstable).isEqualTo(v2)
+        assertThat(e1Ref.unstable).isEqualTo(e1)
+        context(transposed) {
+            assertThat(e1Ref.source).isEqualTo(v2)
+            assertThat(e1Ref.target).isEqualTo(v1)
+            assertThat(v2Ref.outDegree).isEqualTo(1)
+            assertThat(v2Ref.inDegree).isEqualTo(0)
+        }
+        assertThrows<IllegalArgumentException> { transposed.createVertexReference(Vertex(99)) }
+        assertThrows<IllegalArgumentException> { transposed.createEdgeReference(Edge(-1)) }
+
+        // removing v0 moves the last vertex into its place, and the references follow through the view
+        mutable.removeVertex(v0)
+        assertThat(transposed.vertices.contains(v2Ref.unstable)).isTrue
+        assertThat(transposed.edges.contains(e1Ref.unstable)).isTrue
+        assertThat(transposed.edgeSource(e1Ref.unstable)).isEqualTo(v2Ref.unstable)
+    }
+
+    @ParameterizedTest(name = "immutable={0}")
+    @ValueSource(booleans = [true, false])
+    fun transposedPropertiesBelongToTheTransposedView(immutable: Boolean) {
+        constructGraph(true, immutable)
+        val transposed = graph.transpose()
+
+        val vertexProperty = transposed.createVertexProperty<String>()
+        val edgeProperty = transposed.createEdgeProperty<Int>(0)
+        val vertexKeys = transposed.createVertexKeyProperty<String>()
+        val edgeKeys = transposed.createEdgeKeyProperty<String>()
+
+        assertThat(vertexProperty.graph).isSameAs(transposed)
+        assertThat(edgeProperty.graph).isSameAs(transposed)
+        assertThat(vertexKeys.graph).isSameAs(transposed)
+        assertThat(edgeKeys.graph).isSameAs(transposed)
+        assertThat(vertexProperty.type).isEqualTo(propertyTypeOf<String?>())
+        assertThat(edgeProperty.type).isEqualTo(propertyTypeOf<Int>())
+
+        vertexProperty[v1] = "v1"
+        assertThat(vertexProperty[v1]).isEqualTo("v1")
+        assertThat(vertexProperty[v0]).isNull()
+        assertThat(edgeProperty.put(e0, 5)).isEqualTo(0)
+        assertThat(edgeProperty[e0]).isEqualTo(5)
+        vertexKeys[v0] = "a"
+        vertexKeys[v1] = "b"
+        vertexKeys[v2] = "c"
+        assertThat(vertexKeys.getVertex("b")).isEqualTo(v1)
+        edgeKeys[e0] = "x"
+        edgeKeys[e1] = "y"
+        assertThat(edgeKeys.getEdge("y")).isEqualTo(e1)
+        assertThat(vertexKeys.copy().getVertex("c")).isEqualTo(v2)
+        assertThat(edgeKeys.copy().getEdge("x")).isEqualTo(e0)
+
+        // ... which means a value graph can be built over the view
+        val valueGraph = valueGraph(transposed, vertexProperty, edgeProperty)
+        assertThat(valueGraph.graph).isSameAs(transposed)
+        assertThat(valueGraph.edgeSource(e0)).isEqualTo(v1)
+        context(valueGraph) {
+            assertThat(v1.value).isEqualTo("v1")
+            assertThat(e0.value).isEqualTo(5)
+        }
+        assertThrows<IllegalArgumentException> { valueGraph(transposed, graph.createVertexProperty<String>(), edgeProperty) }
+        assertThrows<IllegalArgumentException> { valueGraph(graph, vertexProperty, graph.createEdgeProperty<Int>(0)) }
+
+        if (!immutable) {
+            val mutable = graph as MutableGraph
+            val v3 = mutable.addVertex()
+            assertThat(vertexProperty[v3]).isNull()
+            val e2 = mutable.addEdge(v3, v0)
+            assertThat(edgeProperty[e2]).isEqualTo(0)
+            assertThrows<IllegalStateException> { vertexKeys.getVertex("a") }
+            vertexKeys[v3] = "d"
+            assertThat(vertexKeys.getVertex("d")).isEqualTo(v3)
+        }
+    }
+
+    @ParameterizedTest(name = "immutable={0}")
+    @ValueSource(booleans = [true, false])
+    fun algorithmsRunOverTheTransposedView(immutable: Boolean) {
+        constructGraph(true, immutable)
+        val transposed = graph.transpose()
+
+        // v2 -> v1 -> v0 in the transposed view
+        val tree = transposed.breadthFirstPathTree(v2)
+        assertThat(tree.vertices).containsExactlyInAnyOrder(v0, v1, v2)
+        assertThat(tree.materializePath(v0).vertices).containsExactly(v2, v1, v0)
+        assertThat(tree.materializePath(v0).edges).containsExactly(e1, e0)
+        assertThat(tree.pathLengthProperty[v0]).isEqualTo(2)
+        assertThat(transposed.breadthFirstPathTree(v0).vertices).containsExactly(v0)
+
+        assertThat(transposed.breadthFirstVertexIterator(v2).asSequence().toList()).containsExactly(v2, v1, v0)
+        assertThat(transposed.depthFirstPostOrderVertexIterator(v2).asSequence().toList()).containsExactly(v0, v1, v2)
+
+        val filtered = transposed.filter(vertexSetOf(v0, v1), edgeSetOf(e0))
+        assertThat(filtered.parent).isSameAs(transposed)
+        assertThat(filtered.edgeSource(e0)).isEqualTo(v1)
+        assertThat(filtered.successors(v1)).containsExactlyInAnyOrder(v0)
     }
 }
