@@ -29,8 +29,8 @@ open class ImmutableNetworkBenchmark {
     fun setup() {
         val g = Loader.loadImmutableNetwork()
         graph = g.graph
-        vertexId = g.vertexProperty
-        edgeWeight = g.edgeProperty
+        vertexId = g.vertexKeys
+        edgeWeight = g.edgeValues
     }
 
     @OutputTimeUnit(TimeUnit.MICROSECONDS)

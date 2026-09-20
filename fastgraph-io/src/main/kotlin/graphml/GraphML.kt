@@ -63,11 +63,9 @@ public fun GraphMLGraph(
     graphAttributes: Map<String, Any> = emptyMap(),
 ) : GraphMLGraph = object : GraphMLGraph {
     override val graph: Graph get() = graph.graph
-    override val vertexProperties: Map<String, VertexProperty<*>> get() {
-        return mapOf(vertexPropertyName to graph.vertexProperty)
-    }
+    override val vertexProperties: Map<String, VertexProperty<*>> get() = mapOf(vertexPropertyName to graph.vertexKeys)
     override val edgeProperties: Map<String, EdgeProperty<*>> get() {
-        return mapOf(edgePropertyName to graph.edgeProperty)
+        return if (graph.edgeValues.type.isUnitType()) emptyMap() else mapOf(edgePropertyName to graph.edgeValues)
     }
     override val graphAttributes: Map<String, Any> get() = graphAttributes
 }

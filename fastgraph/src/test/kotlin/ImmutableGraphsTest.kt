@@ -36,11 +36,11 @@ class ImmutableGraphsTest {
 
         assertThat(graph.directed).isEqualTo(directed)
         assertThat(graph.isEmpty()).isTrue
-        assertThat(graph.vertexProperty.type).isEqualTo(propertyTypeOf<String>())
-        assertThat(graph.edgeProperty.type).isEqualTo(propertyTypeOf<Int>())
+        assertThat(graph.vertexKeys.type).isEqualTo(propertyTypeOf<String>())
+        assertThat(graph.edgeValues.type).isEqualTo(propertyTypeOf<Int>())
 
-        assertThrows<IllegalArgumentException> { graph.vertexProperty[Vertex(0)] }
-        assertThrows<IllegalArgumentException> { graph.edgeProperty[Edge(0)] }
+        assertThrows<IllegalArgumentException> { graph.vertexKeys[Vertex(0)] }
+        assertThrows<IllegalArgumentException> { graph.edgeValues[Edge(0)] }
     }
 
     @ParameterizedTest(name = "directed={0}")
@@ -81,7 +81,7 @@ class ImmutableGraphsTest {
     @ParameterizedTest(name = "directed={0}")
     @ValueSource(booleans = [true, false])
     fun immutableValueGraphCopiesPropertyValues(directed: Boolean) {
-        val valueGraph = buildValueGraph<String, Int>(directed, { "" }, { 0 }) {
+        val valueGraph = buildValueGraph<String, Int>(directed, { 0 }) {
             val v0 = addVertex("a")
             val v1 = addVertex("b")
             addEdge(v0, v1, 42)
@@ -90,30 +90,30 @@ class ImmutableGraphsTest {
         val immutable = valueGraph.toImmutableValueGraph()
 
         for (vertex in immutable.graph.vertices) {
-            assertThat(immutable.vertexProperty[vertex]).isEqualTo(valueGraph.vertexProperty[vertex])
+            assertThat(immutable.vertexKeys[vertex]).isEqualTo(valueGraph.vertexKeys[vertex])
         }
         for (edge in immutable.graph.edges) {
-            assertThat(immutable.edgeProperty[edge]).isEqualTo(valueGraph.edgeProperty[edge])
+            assertThat(immutable.edgeValues[edge]).isEqualTo(valueGraph.edgeValues[edge])
         }
 
         // mutating the source value graph's properties after the copy must not affect the immutable copy
         for (vertex in valueGraph.graph.vertices) {
-            valueGraph.vertexProperty[vertex] = "changed"
+            valueGraph.vertexKeys[vertex] = "changed${vertex.id}"
         }
         for (edge in valueGraph.graph.edges) {
-            valueGraph.edgeProperty[edge] = -1
+            valueGraph.edgeValues[edge] = -1
         }
-        assertThat(immutable.vertexProperty[immutable.graph.vertices.first()]).isEqualTo("a")
-        assertThat(immutable.edgeProperty[immutable.graph.edges.first()]).isEqualTo(42)
+        assertThat(immutable.vertexKeys[immutable.graph.vertices.first()]).isEqualTo("a")
+        assertThat(immutable.edgeValues[immutable.graph.edges.first()]).isEqualTo(42)
 
         // and vice versa
-        immutable.vertexProperty[immutable.graph.vertices.first()] = "copy"
-        immutable.edgeProperty[immutable.graph.edges.first()] = 7
-        assertThat(valueGraph.vertexProperty[valueGraph.graph.vertices.first()]).isEqualTo("changed")
-        assertThat(valueGraph.edgeProperty[valueGraph.graph.edges.first()]).isEqualTo(-1)
+        immutable.vertexKeys[immutable.graph.vertices.first()] = "copy"
+        immutable.edgeValues[immutable.graph.edges.first()] = 7
+        assertThat(valueGraph.vertexKeys[valueGraph.graph.vertices.first()]).isEqualTo("changed${valueGraph.graph.vertices.first().id}")
+        assertThat(valueGraph.edgeValues[valueGraph.graph.edges.first()]).isEqualTo(-1)
 
-        assertThat(immutable.vertexProperty.graph).isSameAs(immutable.graph)
-        assertThat(immutable.edgeProperty.graph).isSameAs(immutable.graph)
+        assertThat(immutable.vertexKeys.graph).isSameAs(immutable.graph)
+        assertThat(immutable.edgeValues.graph).isSameAs(immutable.graph)
         assertThat(immutable.toImmutableValueGraph()).isSameAs(immutable)
     }
 
@@ -121,16 +121,14 @@ class ImmutableGraphsTest {
     @ValueSource(booleans = [true, false])
     fun buildImmutableValueGraphWithNullableDefaults(directed: Boolean) {
         val graph = buildImmutableValueGraph<String, Int>(directed) {
-            val v0 = addVertex()
-            val v1 = addVertex()
+            val v0 = addVertex("a")
+            val v1 = addVertex("b")
             addEdge(v0, v1)
         }
 
-        for (vertex in graph.graph.vertices) {
-            assertThat(graph.vertexProperty[vertex]).isNull()
-        }
+        assertThat(graph.graph.vertices.map { graph.vertexKeys[it] }).containsExactlyInAnyOrder("a", "b")
         for (edge in graph.graph.edges) {
-            assertThat(graph.edgeProperty[edge]).isNull()
+            assertThat(graph.edgeValues[edge]).isNull()
         }
     }
 
@@ -288,12 +286,12 @@ class ImmutableGraphsTest {
         assertThat(graph.graph).isSameAs(io.github.sooniln.fastgraph.emptyImmutableGraph(directed))
         assertThat(graph.directed).isEqualTo(directed)
         assertThat(graph.isEmpty()).isTrue
-        assertThat(graph.vertexProperty.type).isEqualTo(propertyTypeOf<String>())
-        assertThat(graph.edgeProperty.type).isEqualTo(propertyTypeOf<Int>())
-        assertThat(graph.vertexProperty.graph).isSameAs(graph.graph)
-        assertThat(graph.edgeProperty.graph).isSameAs(graph.graph)
-        assertThrows<IllegalArgumentException> { graph.vertexProperty[Vertex(0)] = "x" }
-        assertThrows<IllegalArgumentException> { graph.edgeProperty[Edge(0)] = 1 }
+        assertThat(graph.vertexKeys.type).isEqualTo(propertyTypeOf<String>())
+        assertThat(graph.edgeValues.type).isEqualTo(propertyTypeOf<Int>())
+        assertThat(graph.vertexKeys.graph).isSameAs(graph.graph)
+        assertThat(graph.edgeValues.graph).isSameAs(graph.graph)
+        assertThrows<IllegalArgumentException> { graph.vertexKeys[Vertex(0)] }
+        assertThrows<IllegalArgumentException> { graph.edgeValues[Edge(0)] = 1 }
     }
 
     @ParameterizedTest(name = "{0}, directed={1}")

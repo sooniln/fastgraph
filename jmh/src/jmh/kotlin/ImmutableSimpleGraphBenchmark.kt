@@ -28,7 +28,7 @@ open class ImmutableSimpleGraphBenchmark {
     fun setup() {
         val g = Loader.loadImmutableSimpleGraph()
         graph = g.graph
-        vertexId = g.vertexProperty
+        vertexId = g.vertexKeys
     }
 
     @OutputTimeUnit(TimeUnit.MICROSECONDS)

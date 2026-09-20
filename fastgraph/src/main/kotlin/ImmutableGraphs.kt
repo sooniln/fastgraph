@@ -57,12 +57,12 @@ internal interface InternalImmutableGraph : ImmutableGraph
  */
 public class ImmutableValueGraph<V, E>(
     override val graph: ImmutableGraph,
-    override val vertexProperty: MutableVertexProperty<V>,
-    override val edgeProperty: MutableEdgeProperty<E>
+    override val vertexKeys: MutableVertexKeyProperty<V>,
+    override val edgeValues: MutableEdgeProperty<E>
 ) : ValueGraph<V, E>, ImmutableGraph by graph {
     init {
-        require(vertexProperty.graph === graph)
-        require(edgeProperty.graph === graph)
+        require(vertexKeys.graph === graph)
+        require(edgeValues.graph === graph)
     }
 }
 
@@ -85,7 +85,7 @@ public fun <V, E> emptyImmutableValueGraph(
     val graph = if (directed) EmptyGraph.DIRECTED else EmptyGraph.UNDIRECTED
     return ImmutableValueGraph(
         graph,
-        emptyVertexProperty(graph, vertexType),
+        emptyVertexKeyProperty(graph, vertexType),
         emptyEdgeProperty(graph, edgeType)
     )
 }
@@ -128,18 +128,18 @@ public fun <V, E> ValueGraph<V, E>.toImmutableValueGraph(): ImmutableValueGraph<
     } else if (graph.isEmpty()) {
         return emptyImmutableValueGraph(
             graph.directed,
-            vertexProperty.type,
-            edgeProperty.type)
+            vertexKeys.type,
+            edgeValues.type)
     }
 
     val graph = graph.toImmutableGraph()
-    // the property initializers are safe because (1) ImmutableGraph is a sealed type (2) we know all implementations
-    // will never retain a reference to the initializer post-construction (3) we know all copy implementations return
-    // identity isomorphisms (all vertex/edge ids are the same)
+    // the property initializer and key copy are safe because (1) ImmutableGraph is a sealed type (2) we know all
+    // implementations will never retain a reference to the initializer post-construction (3) we know all copy
+    // implementations return identity isomorphisms (all vertex/edge ids are the same)
     return ImmutableValueGraph(
         graph,
-        graph.createVertexProperty(vertexProperty.type) { vertex -> vertexProperty[vertex] },
-        graph.createEdgeProperty(edgeProperty.type) { edge -> edgeProperty[edge] },)
+        graph.createVertexKeyProperty(vertexKeys.type).also { vertexKeys.copyInto(it) },
+        graph.createEdgeProperty(edgeValues.type) { edge -> edgeValues[edge] },)
 }
 
 /**
@@ -160,13 +160,12 @@ public inline fun buildImmutableGraph(
  */
 public inline fun <reified V, reified E> buildImmutableValueGraph(
     directed: Boolean,
-    vertexInitializer: VertexFunction<V>,
     edgeInitializer: EdgeFunction<E>,
     multiEdge: Boolean = false,
     indexEdges: Boolean = false,
     builder: ValueGraphBuilder<V, E>.() -> Unit
 ): ImmutableValueGraph<V, E> {
-    return buildValueGraph(directed, vertexInitializer, edgeInitializer, multiEdge, indexEdges, builder).toImmutableValueGraph()
+    return buildValueGraph(directed, edgeInitializer, multiEdge, indexEdges, builder).toImmutableValueGraph()
 }
 
 /**
@@ -175,13 +174,12 @@ public inline fun <reified V, reified E> buildImmutableValueGraph(
  */
 public inline fun <reified V, reified E> buildImmutableValueGraph(
     directed: Boolean,
-    vertexDefaultValue: V,
     edgeDefaultValue: E,
     multiEdge: Boolean = false,
     indexEdges: Boolean = false,
     builder: ValueGraphBuilder<V, E>.() -> Unit
 ): ImmutableValueGraph<V, E> {
-    return buildImmutableValueGraph(directed, { vertexDefaultValue }, { edgeDefaultValue }, multiEdge, indexEdges, builder)
+    return buildImmutableValueGraph(directed, { edgeDefaultValue }, multiEdge, indexEdges, builder)
 }
 
 /**
@@ -192,9 +190,9 @@ public inline fun <reified V, reified E> buildImmutableValueGraph(
     directed: Boolean,
     multiEdge: Boolean = false,
     indexEdges: Boolean = false,
-    builder: ValueGraphBuilder<V?, E?>.() -> Unit
-): ImmutableValueGraph<V?, E?> {
-    return buildImmutableValueGraph(directed, { null }, { null }, multiEdge, indexEdges, builder)
+    builder: ValueGraphBuilder<V, E?>.() -> Unit
+): ImmutableValueGraph<V, E?> {
+    return buildImmutableValueGraph(directed, { null }, multiEdge, indexEdges, builder)
 }
 
 private class EmptyGraph(override val directed: Boolean) : ImmutableGraph, IdentityIndexedVertexGraph, IdentityIndexedEdgeGraph {

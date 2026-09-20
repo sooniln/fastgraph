@@ -43,7 +43,7 @@ open class MutableNetworkBenchmark {
     fun vertexValues(): Int {
         var i = 0
         for (vertex in graph.vertices) {
-            i += graph.vertexProperty[vertex]
+            i += graph.vertexKeys[vertex]
         }
         return i
     }
@@ -61,7 +61,7 @@ open class MutableNetworkBenchmark {
     fun edgeValues(): Double {
         var i = 0.0
         for (edge in graph.edges) {
-            i += graph.edgeProperty[edge]
+            i += graph.edgeValues[edge]
         }
         return i
     }
@@ -94,7 +94,7 @@ open class MutableNetworkBenchmark {
         var i = 0.0
         for (source in graph.vertices) {
             for (edge in graph.outgoingEdges(source)) {
-                i += graph.edgeProperty[edge]
+                i += graph.edgeValues[edge]
             }
         }
         return i
@@ -104,11 +104,11 @@ open class MutableNetworkBenchmark {
     fun bfs(): Int {
         var n = 0
         for (vertex in graph.breadthFirstVertexIterator(graph.vertices.first())) {
-            n += graph.vertexProperty[vertex]
+            n += graph.vertexKeys[vertex]
         }
         return n
     }
 
     @Benchmark
-    fun dijkstras() = Utils.dijkstras(graph, graph.edgeProperty, graph.vertices.first())
+    fun dijkstras() = Utils.dijkstras(graph, graph.edgeValues, graph.vertices.first())
 }

@@ -9,21 +9,23 @@ class ValueGraphTest {
 
     @ParameterizedTest(name = "directed={0}")
     @ValueSource(booleans = [true, false])
-    fun builderAddsVerticesByValueOnDemand(directed: Boolean) {
+    fun builderAddsVerticesByKeyOnDemand(directed: Boolean) {
         var a = Vertex(-1)
         var b = Vertex(-1)
         var c = Vertex(-1)
+        var d = Vertex(-1)
         var ab = Edge(-1)
         var bc = Edge(-1)
         var ca = Edge(-1)
-        val graph = buildValueGraph<String, Int>(directed, { "" }, { 0 }) {
+        val graph = buildValueGraph<String, Int>(directed, { 0 }) {
             a = addVertex("a")
             assertThat(hasVertex("a")).isTrue
             assertThat(hasVertex("b")).isFalse
             assertThat(getVertex("a")).isEqualTo(a)
             assertThrows<NoSuchElementException> { getVertex("b") }
+            assertThrows<IllegalArgumentException> { addVertex("a") }
 
-            // an edge by value creates the missing endpoint
+            // an edge by key creates the missing endpoint
             ab = addEdge("a", "b", 1)
             assertThat(hasVertex("b")).isTrue
             b = getVertex("b")
@@ -32,28 +34,26 @@ class ValueGraphTest {
             ca = addEdge(c, a, 3)
             assertThat(hasVertex("c")).isTrue
 
-            // a vertex added without a value is unknown to the builder
-            val anonymous = addVertex()
-            assertThat(hasVertex("")).isFalse
-            assertThat(addVertex(2, 2)).isNotEqualTo(anonymous)
+            d = addVertex("d", 2, 2)
+            assertThat(getVertex("d")).isEqualTo(d)
         }
 
-        assertThat(graph.vertices).hasSize(5)
+        assertThat(graph.vertices).containsExactlyInAnyOrder(a, b, c, d)
         assertThat(graph.edges).containsExactlyInAnyOrder(ab, bc, ca)
-        assertThat(graph.vertexProperty[a]).isEqualTo("a")
-        assertThat(graph.vertexProperty[b]).isEqualTo("b")
-        assertThat(graph.vertexProperty[c]).isEqualTo("c")
-        assertThat(graph.edgeProperty[ab]).isEqualTo(1)
-        assertThat(graph.edgeProperty[bc]).isEqualTo(0)
-        assertThat(graph.edgeProperty[ca]).isEqualTo(3)
+        assertThat(graph.vertexKeys[a]).isEqualTo("a")
+        assertThat(graph.vertexKeys[b]).isEqualTo("b")
+        assertThat(graph.vertexKeys[c]).isEqualTo("c")
+        assertThat(graph.vertexKeys[d]).isEqualTo("d")
+        assertThat(graph.vertexKeys.getVertex("c")).isEqualTo(c)
+        assertThat(graph.edgeValues[ab]).isEqualTo(1)
+        assertThat(graph.edgeValues[bc]).isEqualTo(0)
+        assertThat(graph.edgeValues[ca]).isEqualTo(3)
         if (directed) {
             assertThat(graph.edgeSource(ab)).isEqualTo(a)
             assertThat(graph.edgeTarget(ab)).isEqualTo(b)
         } else {
             assertThat(setOf(graph.edgeSource(ab), graph.edgeTarget(ab))).containsExactlyInAnyOrder(a, b)
         }
-        // the anonymous vertices got the default value
-        assertThat(graph.vertices.count { graph.vertexProperty[it] == "" }).isEqualTo(2)
     }
 
     @ParameterizedTest(name = "directed={0}")
@@ -61,15 +61,15 @@ class ValueGraphTest {
     fun builderAcceptsNullValues(directed: Boolean) {
         var v = Vertex(-1)
         var e = Edge(-1)
-        val graph = buildValueGraph<String?, Int?>(directed, { "x" }, { 7 }) {
+        val graph = buildValueGraph<String?, Int?>(directed, { 7 }) {
             v = addVertex(null)
             assertThat(hasVertex(null)).isTrue
             assertThat(getVertex(null)).isEqualTo(v)
             e = addEdge(null, null, null)
         }
 
-        assertThat(graph.vertexProperty[v]).isNull()
-        assertThat(graph.edgeProperty[e]).isNull()
+        assertThat(graph.vertexKeys[v]).isNull()
+        assertThat(graph.edgeValues[e]).isNull()
         assertThat(graph.edgeSource(e)).isEqualTo(v)
         assertThat(graph.edgeTarget(e)).isEqualTo(v)
     }
@@ -77,7 +77,7 @@ class ValueGraphTest {
     @ParameterizedTest(name = "directed={0}")
     @ValueSource(booleans = [true, false])
     fun valueGraphExposesTheTopologyAndBothProperties(directed: Boolean) {
-        val graph = buildValueGraph<String, Float>(directed, "?", 0f, multiEdge = true, indexEdges = true) {
+        val graph = buildValueGraph<String, Float>(directed, { 0f }, multiEdge = true, indexEdges = true) {
             addEdge("a", "b", 1.5f)
             addEdge("a", "b", 2.5f)
             addEdge("b", "b")
@@ -86,32 +86,35 @@ class ValueGraphTest {
         assertThat(graph.directed).isEqualTo(directed)
         assertThat(graph.multiEdge).isTrue
         assertThat(graph.graph).isInstanceOf(IndexedEdgeGraph::class.java)
-        assertThat(graph.vertexProperty.graph).isSameAs(graph.graph)
-        assertThat(graph.edgeProperty.graph).isSameAs(graph.graph)
-        assertThat(graph.vertexProperty.type).isEqualTo(propertyTypeOf<String>())
-        assertThat(graph.edgeProperty.type).isEqualTo(propertyTypeOf<Float>())
+        assertThat(graph.vertexKeys.graph).isSameAs(graph.graph)
+        assertThat(graph.edgeValues.graph).isSameAs(graph.graph)
+        assertThat(graph.vertexKeys.type).isEqualTo(propertyTypeOf<String>())
+        assertThat(graph.edgeValues.type).isEqualTo(propertyTypeOf<Float>())
         assertThat(graph.vertices).containsExactlyInAnyOrderElementsOf(graph.graph.vertices)
         assertThat(graph.edges).containsExactlyInAnyOrderElementsOf(graph.graph.edges)
 
         context(graph) {
-            val a = graph.vertices.first { it.value == "a" }
-            val b = graph.vertices.first { it.value == "b" }
+            val a = graph.getVertex("a")
+            val b = graph.getVertex("b")
+            assertThat(a.key).isEqualTo("a")
             assertThat(a.edgesTo(b).map { it.value }).containsExactlyInAnyOrder(1.5f, 2.5f)
             assertThat(b.edgeTo(b).value).isEqualTo(0f)
-            assertThat(graph.vertices.map { it.value }).containsExactlyInAnyOrder("a", "b")
+            assertThat(graph.vertices.map { it.key }).containsExactlyInAnyOrder("a", "b")
         }
 
-        // the value graph is a mutable graph: mutations are visible through the wrapped graph and its properties
-        val c = graph.addVertex()
+        // keyed mutations are visible through the wrapped graph and its properties
+        val c = graph.addVertex("c")
         assertThat(graph.graph.vertices).contains(c)
-        assertThat(graph.vertexProperty[c]).isEqualTo("?")
-        graph.vertexProperty[c] = "c"
-        context(graph) { assertThat(c.value).isEqualTo("c") }
+        assertThat(graph.vertexKeys[c]).isEqualTo("c")
+        context(graph) { assertThat(c.key).isEqualTo("c") }
         val cc = graph.addEdge(c, c)
-        assertThat(graph.edgeProperty[cc]).isEqualTo(0f)
+        assertThat(graph.edgeValues[cc]).isEqualTo(0f)
+        graph.removeEdge(cc)
+        assertThat(graph.edges).doesNotContain(cc)
         graph.removeVertex(c)
         assertThat(graph.graph.vertices).doesNotContain(c)
-        assertThat(graph.edges).doesNotContain(cc)
+        assertThat(graph.hasVertex("c")).isFalse
+        assertThat(graph.vertexKeys.hasVertex("c")).isFalse
     }
 
     @ParameterizedTest(name = "directed={0}")
@@ -119,31 +122,32 @@ class ValueGraphTest {
     fun valueGraphFactoriesRequirePropertiesOfTheSameGraph(directed: Boolean) {
         val graph = mutableGraph(directed)
         val other = mutableGraph(directed)
-        val vertexProperty = graph.createVertexProperty<String>()
-        val edgeProperty = graph.createEdgeProperty<String>()
+        val vertexKeys = graph.createVertexKeyProperty<String>()
+        val edgeValues = graph.createEdgeProperty<String>()
 
-        val valueGraph = valueGraph(graph, vertexProperty, edgeProperty)
+        val valueGraph = valueGraph(graph, vertexKeys, edgeValues)
         assertThat(valueGraph.graph).isSameAs(graph)
-        assertThat(valueGraph.vertexProperty).isSameAs(vertexProperty)
-        assertThat(valueGraph.edgeProperty).isSameAs(edgeProperty)
-        val mutableValueGraph = mutableValueGraph(graph, vertexProperty, edgeProperty)
+        assertThat(valueGraph.vertexKeys).isSameAs(vertexKeys)
+        assertThat(valueGraph.edgeValues).isSameAs(edgeValues)
+        val mutableValueGraph = mutableValueGraph(graph, vertexKeys, edgeValues)
         assertThat(mutableValueGraph.graph).isSameAs(graph)
-        val v = mutableValueGraph.addVertex()
+        val v = mutableValueGraph.addVertex("v")
         assertThat(valueGraph.vertices).containsExactly(v)
+        assertThat(vertexKeys[v]).isEqualTo("v")
 
-        assertThrows<IllegalArgumentException> { valueGraph(graph, other.createVertexProperty<String>(), edgeProperty) }
-        assertThrows<IllegalArgumentException> { valueGraph(graph, vertexProperty, other.createEdgeProperty<String>()) }
-        assertThrows<IllegalArgumentException> { mutableValueGraph(graph, other.createVertexProperty<String>(), edgeProperty) }
-        assertThrows<IllegalArgumentException> { mutableValueGraph(graph, vertexProperty, other.createEdgeProperty<String>()) }
-        assertThrows<IllegalArgumentException> { valueGraph(other, vertexProperty, edgeProperty) }
+        assertThrows<IllegalArgumentException> { valueGraph(graph, other.createVertexKeyProperty<String>(), edgeValues) }
+        assertThrows<IllegalArgumentException> { valueGraph(graph, vertexKeys, other.createEdgeProperty<String>()) }
+        assertThrows<IllegalArgumentException> { mutableValueGraph(graph, other.createVertexKeyProperty<String>(), edgeValues) }
+        assertThrows<IllegalArgumentException> { mutableValueGraph(graph, vertexKeys, other.createEdgeProperty<String>()) }
+        assertThrows<IllegalArgumentException> { valueGraph(other, vertexKeys, edgeValues) }
 
-        // unit properties are the way to say "no data on this side"
-        val unit = valueGraph(graph, unitVertexProperty(graph), edgeProperty)
-        assertThat(unit.vertexProperty[v]).isEqualTo(Unit)
+        // the vertex id property is the way to say "no vertex data"
+        val ids = valueGraph(graph, graph.vertexIdProperty, edgeValues)
+        assertThat(ids.vertexKeys[v]).isEqualTo(v.id)
         val immutable = graph.toImmutableGraph()
-        assertThrows<IllegalArgumentException> { ImmutableValueGraph(immutable, vertexProperty, immutable.createEdgeProperty<String>()) }
-        assertThrows<IllegalArgumentException> { ImmutableValueGraph(immutable, immutable.createVertexProperty<String>(), edgeProperty) }
-        val immutableValueGraph = ImmutableValueGraph(immutable, immutable.createVertexProperty<String>(), immutable.createEdgeProperty<String>())
+        assertThrows<IllegalArgumentException> { ImmutableValueGraph(immutable, vertexKeys, immutable.createEdgeProperty<String>()) }
+        assertThrows<IllegalArgumentException> { ImmutableValueGraph(immutable, immutable.createVertexKeyProperty<String>(), edgeValues) }
+        val immutableValueGraph = ImmutableValueGraph(immutable, immutable.createVertexKeyProperty<String>(), immutable.createEdgeProperty<String>())
         assertThat(immutableValueGraph.graph).isSameAs(immutable)
         assertThat(immutableValueGraph.vertices).containsExactly(v)
     }
@@ -151,30 +155,26 @@ class ValueGraphTest {
     @ParameterizedTest(name = "directed={0}")
     @ValueSource(booleans = [true, false])
     fun nullableDefaultsForMutableAndImmutableBuilders(directed: Boolean) {
-        val mutable = buildValueGraph<String?, Int?>(directed, { null }, { null }) {
+        val mutable = buildValueGraph<String, Int?>(directed, { null }) {
             addEdge("a", "b")
         }
         val immutable = buildImmutableValueGraph<String, Int>(directed) {
             addEdge("a", "b", 5)
         }
 
-        for (graph in listOf<ValueGraph<String?, Int?>>(mutable, immutable)) {
-            assertThat(graph.vertexProperty.type).isEqualTo(propertyTypeOf<String?>())
-            assertThat(graph.edgeProperty.type).isEqualTo(propertyTypeOf<Int?>())
-            assertThat(graph.vertices.map { graph.vertexProperty[it] }).containsExactlyInAnyOrder("a", "b")
+        for (graph in listOf<ValueGraph<String, Int?>>(mutable, immutable)) {
+            assertThat(graph.vertexKeys.type).isEqualTo(propertyTypeOf<String>())
+            assertThat(graph.edgeValues.type).isEqualTo(propertyTypeOf<Int?>())
+            assertThat(graph.vertices.map { graph.vertexKeys[it] }).containsExactlyInAnyOrder("a", "b")
         }
-        assertThat(mutable.edgeProperty[mutable.edges.first()]).isNull()
-        assertThat(immutable.edgeProperty[immutable.edges.first()]).isEqualTo(5)
-
-        // an added vertex gets the null default
-        val added = mutable.addVertex()
-        assertThat(mutable.vertexProperty[added]).isNull()
+        assertThat(mutable.edgeValues[mutable.edges.first()]).isNull()
+        assertThat(immutable.edgeValues[immutable.edges.first()]).isEqualTo(5)
     }
 
     @ParameterizedTest(name = "directed={0}")
     @ValueSource(booleans = [true, false])
     fun toImmutableValueGraphPreservesIdsAndValues(directed: Boolean) {
-        val mutable = buildValueGraph<String, Int>(directed, "?", -1, multiEdge = true) {
+        val mutable = buildValueGraph<String, Int>(directed, { -1 }, multiEdge = true) {
             addEdge("a", "b", 1)
             addEdge("a", "b", 2)
             addEdge("b", "b", 3)
@@ -188,10 +188,11 @@ class ValueGraphTest {
         assertThat(immutable.vertices).containsExactlyInAnyOrderElementsOf(mutable.vertices)
         assertThat(immutable.edges).containsExactlyInAnyOrderElementsOf(mutable.edges)
         for (vertex in mutable.vertices) {
-            assertThat(immutable.vertexProperty[vertex]).isEqualTo(mutable.vertexProperty[vertex])
+            assertThat(immutable.vertexKeys[vertex]).isEqualTo(mutable.vertexKeys[vertex])
+            assertThat(immutable.vertexKeys.getVertex(mutable.vertexKeys[vertex])).isEqualTo(vertex)
         }
         for (edge in mutable.edges) {
-            assertThat(immutable.edgeProperty[edge]).isEqualTo(mutable.edgeProperty[edge])
+            assertThat(immutable.edgeValues[edge]).isEqualTo(mutable.edgeValues[edge])
             assertThat(setOf(immutable.edgeSource(edge), immutable.edgeTarget(edge)))
                 .isEqualTo(setOf(mutable.edgeSource(edge), mutable.edgeTarget(edge)))
         }
@@ -199,11 +200,11 @@ class ValueGraphTest {
 
         // an empty value graph becomes the empty immutable value graph, keeping its types
         val emptyGraph = mutableGraph(directed)
-        val emptyValueGraph = mutableValueGraph(emptyGraph, emptyGraph.createVertexProperty<String>(), emptyGraph.createEdgeProperty<Int>(0))
+        val emptyValueGraph = mutableValueGraph(emptyGraph, emptyGraph.createVertexKeyProperty<String>(), emptyGraph.createEdgeProperty<Int>(0))
         val emptyImmutable = emptyValueGraph.toImmutableValueGraph()
         assertThat(emptyImmutable.graph).isSameAs(emptyImmutableGraph(directed))
-        assertThat(emptyImmutable.vertexProperty.type).isEqualTo(propertyTypeOf<String?>())
-        assertThat(emptyImmutable.edgeProperty.type).isEqualTo(propertyTypeOf<Int>())
+        assertThat(emptyImmutable.vertexKeys.type).isEqualTo(propertyTypeOf<String>())
+        assertThat(emptyImmutable.edgeValues.type).isEqualTo(propertyTypeOf<Int>())
     }
 
     @ParameterizedTest(name = "directed={0}")

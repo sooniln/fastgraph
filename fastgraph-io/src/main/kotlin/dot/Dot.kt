@@ -50,6 +50,24 @@ public fun DotGraph(
     override val graphProperties: Map<String, Any?> get() = graphProperties
 }
 
+/** A convenient way to construct a [DotGraph] for writing. */
+@JvmOverloads
+public fun DotGraph(
+    graph: ValueGraph<out Any, *>,
+    edgePropertyName: String,
+    graphId: String? = null,
+    graphProperties: Map<String, String> = emptyMap(),
+) : DotGraph = object : DotGraph {
+    override val graph: Graph get() = graph.graph
+    override val graphId: String? get() = graphId
+    override val vertexIdProperty: VertexKeyProperty<out Any> get() = graph.vertexKeys
+    override val vertexProperties: Map<String, VertexProperty<*>> get() = emptyMap()
+    override val edgeProperties: Map<String, EdgeProperty<*>> get() {
+        return if (graph.edgeValues.type.isUnitType()) emptyMap() else mapOf(edgePropertyName to graph.edgeValues)
+    }
+    override val graphProperties: Map<String, Any?> get() = graphProperties
+}
+
 /** A mutable version of [DotGraph] used for output from DOT reading methods. */
 public class MutableDotGraph(
     override val graph: MutableGraph,

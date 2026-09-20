@@ -891,114 +891,134 @@ public fun MutableGraph.addEdge(source: VertexReference, target: VertexReference
 public fun MutableGraph.removeEdge(edgeReference: EdgeReference): Unit = removeEdge(edgeReference.unstable)
 
 /**
- * A convenience interface for bundling a graph topology and an associated vertex and edge property. The [ValueGraph]
+ * A convenience interface for bundling a graph topology with a vertex key property and an edge value property. Every
+ * vertex is identified by a unique key (see [VertexKeyProperty]) and every edge carries a value. The [ValueGraph]
  * itself implements [Graph] as a convenience - invoking graph methods on the [ValueGraph] is the same as invoking them
  * on [graph]. However, note that this is just a convenience - in particular the [ValueGraph] is NOT guaranteed to
  * implement the same marker interfaces as the actual [graph]. Ensure that you pass in [graph] anywhere that expects a
  * real [Graph] argument.
  *
- * When creating and using [ValueGraph], note that if you only require a vertex property or an edge property, but not
- * both, you can set the type of the unused property to [Unit], which ensures it will take up no additional resources.
+ * When creating and using [ValueGraph], note that if you do not require an edge value, you can set the edge type to
+ * [Unit], which ensures it will take up no additional resources. If you do not require a vertex key of your own,
+ * [Graph.vertexIdProperty] can be used as a key property which takes up no additional resources.
  */
 public interface ValueGraph<V, E> : Graph {
     /** The topology. */
     public val graph: Graph
-    /** The single vertex property associated with the topology. */
-    public val vertexProperty: MutableVertexProperty<V>
-    /** The single edge property associated with the topology. */
-    public val edgeProperty: MutableEdgeProperty<E>
+    /** The vertex key property associated with the topology. */
+    public val vertexKeys: MutableVertexKeyProperty<V>
+    /** The edge value property associated with the topology. */
+    public val edgeValues: MutableEdgeProperty<E>
 }
 
 /**
- * A specialization of [ValueGraph] which contains (and implements) a [MutableGraph].
+ * A specialization of [ValueGraph] which contains a [MutableGraph] and allows mutation of the graph topology. Vertices
+ * may only be added with a key (see [ValueGraphBuilder]) so that [vertexKeys] is always complete - use [graph] if
+ * direct access to the underlying [MutableGraph] is required.
  */
-public interface MutableValueGraph<V, E> : MutableGraph, ValueGraph<V, E> {
+@Suppress("INAPPLICABLE_JVM_NAME")
+public interface MutableValueGraph<V, E> : ValueGraph<V, E>, ValueGraphBuilder<V, E> {
     override val graph: MutableGraph
+    override val vertexKeys: MutableVertexKeyProperty<V>
+
+    /**
+     * See [MutableGraph.removeVertex].
+     */
+    @JvmName("removeVertex")
+    public fun removeVertex(vertex: Vertex): Unit = graph.removeVertex(vertex)
+
+    /**
+     * See [MutableGraph.removeEdge].
+     */
+    @JvmName("removeEdge")
+    public fun removeEdge(edge: Edge): Unit = graph.removeEdge(edge)
+
+    @JvmName("hasVertex")
+    override fun hasVertex(key: V): Boolean = vertexKeys.hasVertex(key)
+
+    @JvmName("getVertex")
+    override fun getVertex(key: V): Vertex = vertexKeys.getVertex(key)
 }
 
 /**
- * An interface for building ValueGraphs. This interface allows for associating vertex/edge values with vertices/edges
- * at construction time. In addition, it allows referring to vertices/edges by their unique values during construction
+ * An interface for building ValueGraphs. This interface allows for associating vertex keys/edge values with
+ * vertices/edges at construction time. In addition, it allows referring to vertices by their keys during construction
  * as a convenience.
  */
 @Suppress("INAPPLICABLE_JVM_NAME")
-public interface ValueGraphBuilder<V, E> : GraphBuilder {
-    /** Adds a new vertex with the given [value] set in [ValueGraph.vertexProperty] and returns it. */
+public interface ValueGraphBuilder<V, E> {
+    /**
+     * Adds a new vertex with the given [key] set in [ValueGraph.vertexKeys] and returns it. Throws
+     * [IllegalArgumentException] if the key is already the key of a different vertex.
+     */
     @JvmName("addVertex")
-    public fun addVertex(value: V): Vertex
+    public fun addVertex(key: V): Vertex
+
+    /**
+     * Adds a new vertex with the given [key] set in [ValueGraph.vertexKeys] and returns it. Optionally may
+     * pre-allocate enough memory for the given [outDegreeCapacity]/[inDegreeCapacity].
+     */
+    @JvmName("addVertex")
+    public fun addVertex(key: V, outDegreeCapacity: Int, inDegreeCapacity: Int): Vertex = addVertex(key)
+
+    /**
+     * Adds a new edge connecting the given source and target vertex with the default value of
+     * [ValueGraph.edgeValues] and returns it. See [GraphBuilder.addEdge] for caveats.
+     */
+    @JvmName("addEdge")
+    public fun addEdge(source: Vertex, target: Vertex): Edge
 
     /**
      * Adds a new edge connecting the given source and target vertex with the given [value] set in
-     * [ValueGraph.edgeProperty] and returns it.
+     * [ValueGraph.edgeValues] and returns it. See [GraphBuilder.addEdge] for caveats.
      */
     @JvmName("addEdge")
     public fun addEdge(source: Vertex, target: Vertex, value: E): Edge
 
     /**
-     * Adds a new edge between the two vertices with the given unique values and returns it. If a vertex is not found
-     * with the desired value, one will be created with that value. If the values given are not unique (there are
-     * multiple vertices with that value) then behavior is undefined - it is your responsibility to avoid this.
+     * Adds a new edge between the two vertices with the given keys and returns it. If a vertex is not found with the
+     * desired key, one will be created with that key.
      */
     @JvmName("addEdge")
-    public fun addEdge(sourceValue: V, targetValue:V): Edge {
-        val source = if (hasVertex(sourceValue)) getVertex(sourceValue) else addVertex(sourceValue)
-        val target = if (hasVertex(targetValue)) getVertex(targetValue) else addVertex(targetValue)
+    public fun addEdge(sourceKey: V, targetKey: V): Edge {
+        val source = if (hasVertex(sourceKey)) getVertex(sourceKey) else addVertex(sourceKey)
+        val target = if (hasVertex(targetKey)) getVertex(targetKey) else addVertex(targetKey)
         return addEdge(source, target)
     }
 
     /**
-     * Adds a new edge between the two vertices with the given unique values with the given [value] set in
-     * [ValueGraph.edgeProperty] and returns it. If a vertex is not found with the desired value, one will be created
-     * with that value. If the values given are not unique (there are multiple vertices with that value) then behavior
-     * is undefined - it is your responsibility to avoid this.
+     * Adds a new edge between the two vertices with the given keys with the given [value] set in
+     * [ValueGraph.edgeValues] and returns it. If a vertex is not found with the desired key, one will be created with
+     * that key.
      */
     @JvmName("addEdge")
-    public fun addEdge(sourceValue: V, targetValue: V, value: E): Edge {
-        val source = if (hasVertex(sourceValue)) getVertex(sourceValue) else addVertex(sourceValue)
-        val target = if (hasVertex(targetValue)) getVertex(targetValue) else addVertex(targetValue)
+    public fun addEdge(sourceKey: V, targetKey: V, value: E): Edge {
+        val source = if (hasVertex(sourceKey)) getVertex(sourceKey) else addVertex(sourceKey)
+        val target = if (hasVertex(targetKey)) getVertex(targetKey) else addVertex(targetKey)
         return addEdge(source, target, value)
     }
 
     /**
-     * Returns true if there is a vertex with the given value associated with it in [ValueGraph.vertexProperty].
+     * See [VertexKeyProperty.hasVertex].
      */
     @JvmName("hasVertex")
-    public fun hasVertex(value: V): Boolean
+    public fun hasVertex(key: V): Boolean
 
     /**
-     * Returns the vertex associated with the given value, or throws [NoSuchElementException] if there is none.
+     * See [VertexKeyProperty.getVertex].
      */
     @JvmName("getVertex")
-    public fun getVertex(value: V): Vertex
-}
+    public fun getVertex(key: V): Vertex
 
-@PublishedApi
-internal fun <V, E> ValueGraphBuilder(graph: MutableValueGraph<V, E>): ValueGraphBuilder<V, E> {
-    return object : ValueGraphBuilder<V, E> {
-        private val vertexValueMap = HashMap<V, Vertex>()
+    /**
+     * Optionally implemented to pre-allocate enough memory for the given [vertexCapacity].
+     */
+    public fun ensureVertexCapacity(vertexCapacity: Int) {}
 
-        override fun addVertex(): Vertex = graph.addVertex()
-        override fun addVertex(outDegreeCapacity: Int, inDegreeCapacity: Int): Vertex {
-            return graph.addVertex(outDegreeCapacity, inDegreeCapacity)
-        }
-        override fun addVertex(value: V): Vertex {
-            val vertex = graph.addVertex()
-            graph.vertexProperty[vertex] = value
-            vertexValueMap[value] = vertex
-            return vertex
-        }
-
-        override fun addEdge(source: Vertex, target: Vertex): Edge = graph.addEdge(source, target)
-        override fun addEdge(source: Vertex, target: Vertex, value: E): Edge {
-            val edge = graph.addEdge(source, target)
-            graph.edgeProperty[edge] = value
-            return edge
-        }
-
-        override fun hasVertex(value: V): Boolean = vertexValueMap.containsKey(value)
-        override fun getVertex(value: V): Vertex =
-            vertexValueMap[value] ?: throw NoSuchElementException("no vertex with value \"$value\" found")
-    }
+    /**
+     * Optionally implemented to pre-allocate enough memory for the given [edgeCapacity].
+     */
+    public fun ensureEdgeCapacity(edgeCapacity: Int) {}
 }
 
 /**
@@ -1029,34 +1049,17 @@ public inline fun buildGraph(
  */
 public inline fun <reified V, reified E> buildValueGraph(
     directed: Boolean,
-    vertexInitializer: VertexFunction<V>,
-    edgeInitializer: EdgeFunction<E>,
+    defaultEdgeValueFunction: EdgeFunction<E>,
     multiEdge: Boolean = false,
     indexEdges: Boolean = false,
     builder: ValueGraphBuilder<V, E>.() -> Unit
 ): MutableValueGraph<V, E> {
     val graph = mutableGraph(directed, multiEdge, indexEdges)
-    val valueGraph = mutableValueGraph(
+    return mutableValueGraph(
         graph,
-        graph.createVertexProperty(propertyTypeOf<V>(), vertexInitializer),
-        graph.createEdgeProperty(propertyTypeOf<E>(), edgeInitializer)
-    )
-    ValueGraphBuilder(valueGraph).builder()
-    return valueGraph
-}
-
-/**
- * Builds a [MutableValueGraph] with the given options. See [mutableGraph] for more information on options.
- */
-public inline fun <reified V, reified E> buildValueGraph(
-    directed: Boolean,
-    vertexDefaultValue: V,
-    edgeDefaultValue: E,
-    multiEdge: Boolean = false,
-    indexEdges: Boolean = false,
-    builder: ValueGraphBuilder<V, E>.() -> Unit
-): MutableValueGraph<V, E> {
-    return buildValueGraph(directed, { vertexDefaultValue }, { edgeDefaultValue }, multiEdge, indexEdges, builder)
+        graph.createVertexKeyProperty(propertyTypeOf<V>()),
+        graph.createEdgeProperty(propertyTypeOf<E>(), defaultEdgeValueFunction)
+    ).apply { builder() }
 }
 
 /**
@@ -1092,28 +1095,51 @@ public fun mutableGraph(directed: Boolean, multiEdge: Boolean = false, indexEdge
 }
 
 /**
- * Creates a [ValueGraph] from the given graph, vertex property, and edge property.
+ * Creates a [ValueGraph] from the given graph, vertex key property, and edge value property.
  */
-public fun <V, E> valueGraph(graph: Graph, vertexProperty: MutableVertexProperty<V>, edgeProperty: MutableEdgeProperty<E>): ValueGraph<V, E> {
-    require(vertexProperty.graph === graph)
-    require(edgeProperty.graph === graph)
+public fun <V, E> valueGraph(graph: Graph, vertexKeys: MutableVertexKeyProperty<V>, edgeValues: MutableEdgeProperty<E>): ValueGraph<V, E> {
+    require(vertexKeys.graph === graph)
+    require(edgeValues.graph === graph)
     return object : ValueGraph<V, E>, Graph by graph {
         override val graph: Graph get() = graph
-        override val vertexProperty: MutableVertexProperty<V> get() = vertexProperty
-        override val edgeProperty: MutableEdgeProperty<E> get() = edgeProperty
+        override val vertexKeys: MutableVertexKeyProperty<V> get() = vertexKeys
+        override val edgeValues: MutableEdgeProperty<E> get() = edgeValues
     }
 }
 
 /**
- * Creates a [MutableValueGraph] from the given mutable graph, vertex property, and edge property.
+ * Creates a [MutableValueGraph] from the given mutable graph, vertex key property, and edge value property.
  */
-public fun <V, E> mutableValueGraph(graph: MutableGraph, vertexProperty: MutableVertexProperty<V>, edgeProperty: MutableEdgeProperty<E>): MutableValueGraph<V, E> {
-    require(vertexProperty.graph === graph)
-    require(edgeProperty.graph === graph)
-    return object : MutableValueGraph<V, E>, MutableGraph by graph {
+public fun <V, E> mutableValueGraph(graph: MutableGraph, vertexKeys: MutableVertexKeyProperty<V>, edgeValues: MutableEdgeProperty<E>): MutableValueGraph<V, E> {
+    require(vertexKeys.graph === graph)
+    require(edgeValues.graph === graph)
+    return object : MutableValueGraph<V, E>, Graph by graph {
         override val graph: MutableGraph get() = graph
-        override val vertexProperty: MutableVertexProperty<V> get() = vertexProperty
-        override val edgeProperty: MutableEdgeProperty<E> get() = edgeProperty
+        override val vertexKeys: MutableVertexKeyProperty<V> get() = vertexKeys
+        override val edgeValues: MutableEdgeProperty<E> get() = edgeValues
+
+        private fun checkKey(key: V) {
+            require(!vertexKeys.hasVertex(key)) { "\"$key\" is already associated with ${vertexKeys.getVertex(key)}" }
+        }
+
+        override fun addVertex(key: V): Vertex {
+            checkKey(key)
+            return graph.addVertex().also { vertexKeys[it] = key }
+        }
+        override fun addVertex(key: V, outDegreeCapacity: Int, inDegreeCapacity: Int): Vertex {
+            checkKey(key)
+            return graph.addVertex(outDegreeCapacity, inDegreeCapacity).also { vertexKeys[it] = key }
+        }
+
+        override fun addEdge(source: Vertex, target: Vertex): Edge {
+            return graph.addEdge(source, target)
+        }
+        override fun addEdge(source: Vertex, target: Vertex, value: E): Edge {
+            return graph.addEdge(source, target).also { edgeValues[it] = value }
+        }
+
+        override fun ensureVertexCapacity(vertexCapacity: Int) = graph.ensureVertexCapacity(vertexCapacity)
+        override fun ensureEdgeCapacity(edgeCapacity: Int) = graph.ensureEdgeCapacity(edgeCapacity)
     }
 }
 
@@ -1131,22 +1157,30 @@ public fun Graph.transpose(): Graph {
     }
 }
 
-/** An integer property that simply returns the [Vertex.id] for every vertex. */
-public val Graph.vertexIdProperty: VertexKeyProperty<Int> get() = object : VertexKeyProperty<Int> {
+/**
+ * An integer property that simply returns the [Vertex.id] for every vertex. Note that while this is exposed as a
+ * mutable property for convenience, all mutator methods are guaranteed to throw [UnsupportedOperationException].
+ */
+public val Graph.vertexIdProperty: MutableVertexKeyProperty<Int> get() = object : MutableVertexKeyProperty<Int> {
     override val graph: Graph get() = this@vertexIdProperty
     override val type: PropertyType<Int> get() = propertyTypeOf()
     override fun get(vertex: Vertex): Int = vertex.id
     override fun hasVertex(key: Int): Boolean = graph.vertices.contains(Vertex(key))
     override fun getVertex(key: Int): Vertex = Vertex(key)
+    override fun set(vertex: Vertex, value: Int) = throw UnsupportedOperationException()
 }
 
-/** A long property that simply returns the [Edge.id] for every edge. */
-public val Graph.edgeIdProperty: EdgeKeyProperty<Long> get() = object : EdgeKeyProperty<Long> {
+/**
+ * A long property that simply returns the [Edge.id] for every edge. Note that while this is exposed as a mutable
+ * property for convenience, all mutator methods are guaranteed to throw [UnsupportedOperationException].
+ */
+public val Graph.edgeIdProperty: MutableEdgeKeyProperty<Long> get() = object : MutableEdgeKeyProperty<Long> {
     override val graph: Graph get() = this@edgeIdProperty
     override val type: PropertyType<Long> get() = propertyTypeOf()
     override fun get(edge: Edge): Long = edge.id
     override fun hasEdge(key: Long): Boolean = graph.edges.contains(Edge(key))
     override fun getEdge(key: Long): Edge = Edge(key)
+    override fun set(edge: Edge, value: Long) = throw UnsupportedOperationException()
 }
 
 /** A base class that provides some basic functionality to implement [Graph]. */

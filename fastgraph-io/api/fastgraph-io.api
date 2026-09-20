@@ -21,6 +21,7 @@ public final class io/github/sooniln/fastgraph/io/csv/CsvEdgeList {
 	public static final fun CsvEdgeListGraph (Lio/github/sooniln/fastgraph/Graph;)Lio/github/sooniln/fastgraph/io/csv/CsvEdgeListGraph;
 	public static final fun CsvEdgeListGraph (Lio/github/sooniln/fastgraph/Graph;Lio/github/sooniln/fastgraph/VertexKeyProperty;)Lio/github/sooniln/fastgraph/io/csv/CsvEdgeListGraph;
 	public static final fun CsvEdgeListGraph (Lio/github/sooniln/fastgraph/Graph;Lio/github/sooniln/fastgraph/VertexKeyProperty;Ljava/util/List;)Lio/github/sooniln/fastgraph/io/csv/CsvEdgeListGraph;
+	public static final fun CsvEdgeListGraph (Lio/github/sooniln/fastgraph/ValueGraph;)Lio/github/sooniln/fastgraph/io/csv/CsvEdgeListGraph;
 	public static synthetic fun CsvEdgeListGraph$default (Lio/github/sooniln/fastgraph/Graph;Lio/github/sooniln/fastgraph/VertexKeyProperty;Ljava/util/List;ILjava/lang/Object;)Lio/github/sooniln/fastgraph/io/csv/CsvEdgeListGraph;
 	public static final fun readCsvEdgeList (Ljava/io/InputStream;Z)Lio/github/sooniln/fastgraph/io/csv/MutableCsvEdgeListGraph;
 	public static final fun readCsvEdgeList (Ljava/io/InputStream;ZZ)Lio/github/sooniln/fastgraph/io/csv/MutableCsvEdgeListGraph;
@@ -79,7 +80,11 @@ public final class io/github/sooniln/fastgraph/io/dot/Dot {
 	public static final fun DotGraph (Lio/github/sooniln/fastgraph/Graph;Ljava/lang/String;Lio/github/sooniln/fastgraph/VertexKeyProperty;Ljava/util/Map;)Lio/github/sooniln/fastgraph/io/dot/DotGraph;
 	public static final fun DotGraph (Lio/github/sooniln/fastgraph/Graph;Ljava/lang/String;Lio/github/sooniln/fastgraph/VertexKeyProperty;Ljava/util/Map;Ljava/util/Map;)Lio/github/sooniln/fastgraph/io/dot/DotGraph;
 	public static final fun DotGraph (Lio/github/sooniln/fastgraph/Graph;Ljava/lang/String;Lio/github/sooniln/fastgraph/VertexKeyProperty;Ljava/util/Map;Ljava/util/Map;Ljava/util/Map;)Lio/github/sooniln/fastgraph/io/dot/DotGraph;
+	public static final fun DotGraph (Lio/github/sooniln/fastgraph/ValueGraph;Ljava/lang/String;)Lio/github/sooniln/fastgraph/io/dot/DotGraph;
+	public static final fun DotGraph (Lio/github/sooniln/fastgraph/ValueGraph;Ljava/lang/String;Ljava/lang/String;)Lio/github/sooniln/fastgraph/io/dot/DotGraph;
+	public static final fun DotGraph (Lio/github/sooniln/fastgraph/ValueGraph;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;)Lio/github/sooniln/fastgraph/io/dot/DotGraph;
 	public static synthetic fun DotGraph$default (Lio/github/sooniln/fastgraph/Graph;Ljava/lang/String;Lio/github/sooniln/fastgraph/VertexKeyProperty;Ljava/util/Map;Ljava/util/Map;Ljava/util/Map;ILjava/lang/Object;)Lio/github/sooniln/fastgraph/io/dot/DotGraph;
+	public static synthetic fun DotGraph$default (Lio/github/sooniln/fastgraph/ValueGraph;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)Lio/github/sooniln/fastgraph/io/dot/DotGraph;
 	public static final fun readDot (Ljava/io/InputStream;)Lio/github/sooniln/fastgraph/io/dot/MutableDotGraph;
 	public static final fun readDot (Ljava/io/InputStream;Z)Lio/github/sooniln/fastgraph/io/dot/MutableDotGraph;
 	public static final fun readDot (Ljava/io/InputStream;ZZ)Lio/github/sooniln/fastgraph/io/dot/MutableDotGraph;

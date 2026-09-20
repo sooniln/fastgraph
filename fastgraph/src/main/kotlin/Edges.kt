@@ -75,7 +75,7 @@ public value class Edge(public val id: Long) {
 
     @get:JvmSynthetic
     context(graph: ValueGraph<*, E>)
-    public val <E> value: E inline get() = graph.edgeProperty[this]
+    public val <E> value: E inline get() = graph.edgeValues[this]
 
     @JvmSynthetic
     context(graph: Graph)

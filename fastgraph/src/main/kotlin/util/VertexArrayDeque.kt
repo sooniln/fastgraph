@@ -6,7 +6,7 @@ import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexCollection
 
 @Suppress("INAPPLICABLE_JVM_NAME")
-public class VertexArrayDeque(capacity: Int) : AbstractVertexSequencedCollection() {
+public class VertexArrayDeque(capacity: Int = 0) : AbstractVertexSequencedCollection() {
 
     public constructor(elements: VertexCollection) : this(elements.size) {
         addAll(elements)

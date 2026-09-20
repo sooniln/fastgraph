@@ -258,15 +258,15 @@ class TransposeTest {
         assertThat(edgeKeys.copy().getEdge("x")).isEqualTo(e0)
 
         // ... which means a value graph can be built over the view
-        val valueGraph = valueGraph(transposed, vertexProperty, edgeProperty)
+        val valueGraph = valueGraph(transposed, vertexKeys, edgeProperty)
         assertThat(valueGraph.graph).isSameAs(transposed)
         assertThat(valueGraph.edgeSource(e0)).isEqualTo(v1)
         context(valueGraph) {
-            assertThat(v1.value).isEqualTo("v1")
+            assertThat(v1.key).isEqualTo("b")
             assertThat(e0.value).isEqualTo(5)
         }
-        assertThrows<IllegalArgumentException> { valueGraph(transposed, graph.createVertexProperty<String>(), edgeProperty) }
-        assertThrows<IllegalArgumentException> { valueGraph(graph, vertexProperty, graph.createEdgeProperty<Int>(0)) }
+        assertThrows<IllegalArgumentException> { valueGraph(transposed, graph.createVertexKeyProperty<String>(), edgeProperty) }
+        assertThrows<IllegalArgumentException> { valueGraph(graph, vertexKeys, graph.createEdgeProperty<Int>(0)) }
 
         if (!immutable) {
             val mutable = graph as MutableGraph

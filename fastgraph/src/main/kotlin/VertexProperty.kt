@@ -148,8 +148,8 @@ public fun <E> MutableVertexProperty<E>.reparent(graph: Graph): MutableVertexPro
 
 /**
  * Creates a [VertexProperty] for the [Unit] type. This is useful for cases where you are required to specify an
- * [VertexProperty] but have no useful vertex property to use (for example, with a [ValueGraph]). The resulting
- * vertex property takes up very little constant space.
+ * [VertexProperty] but have no useful vertex property to use. The resulting vertex property takes up very little
+ * constant space.
  */
 public fun unitVertexProperty(graph: Graph): MutableVertexProperty<Unit> {
     return object : MutableVertexProperty<Unit> {

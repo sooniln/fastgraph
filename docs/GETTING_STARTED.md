@@ -109,22 +109,23 @@ property, and thus can be a source of memory leaks...
 ```kotlin
 val graph = ...
 
-val vertexId = graph.createVertexProperty<Int> { 0 }
+val vertexId = graph.createVertexKeyProperty<Int>()
 val edgeWeight = graph.createEdgeProperty<Float> { 0f }
 
 val myVertex = ...
 vertexId[myVertex] = 99
 println(vertexId[myVertex])
+println(vertexId.getVertex(99))
 
 val myEdge = ...
 edgeWeight[myEdge] = 5.0f
 println(edgeWeight[myEdge])
 
-// a ValueGraph bundles a graph with one vertex property and one edge property, and offers context APIs for reading
+// a ValueGraph bundles a graph with a vertex key property and one edge property, and offers context APIs for reading
 // the bundled values in a more convenient form
 val valueGraph = valueGraph(graph, vertexId, edgeWeight)
 context(valueGraph) {
-    println(myVertex.value)
+    println(myVertex.key)
     println(myEdge.value)
 }
 ```
@@ -322,15 +323,15 @@ val graph: ImmutableGraph = buildImmutableGraph(directed = false) {
 
 // to construct an immutable graph with vertex and edge properties
 val valueGraph: ImmutableValueGraph<String, Float> =
-    buildImmutableValueGraph(directed = false, vertexDefaultValue = "", edgeDefaultValue = 0f) {
+    buildImmutableValueGraph(directed = false, edgeDefaultValue = 0f) {
         ensureVertexCapacity(3)
         ensureEdgeCapacity(3)
         addEdge("vertex1", "vertex2", 1f)
         addEdge("vertex2", "vertex3", 2f)
         addEdge("vertex3", "vertex1", 1f)
     }
-val vertexName: VertexProperty<String> = valueGraph.vertexProperty
-val edgeWeight: EdgeProperty<Float> = valueGraph.edgeProperty
+val vertexName: VertexKeyProperty<String> = valueGraph.vertexKeys
+val edgeWeight: EdgeProperty<Float> = valueGraph.edgeValues
 
 // to copy an existing graph into an immutable graph
 val copy: ImmutableGraph = mutableGraph.toImmutableGraph()

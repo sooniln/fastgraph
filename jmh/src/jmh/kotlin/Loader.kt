@@ -119,7 +119,7 @@ object Loader {
 
     fun loadImmutableSimpleGraph(): ImmutableValueGraph<Int, Unit> =
         load { numVertices, numEdges, lineSequence ->
-            val graph = buildImmutableValueGraph(false, 0, Unit) {
+            val graph = buildImmutableValueGraph<Int, Unit>(false, Unit) {
                 ensureVertexCapacity(numVertices)
                 ensureEdgeCapacity(numEdges)
                 lineSequence.forEach { (v1, v2, _) -> addEdge(v1, v2) }
@@ -132,7 +132,7 @@ object Loader {
         }
 
     fun loadImmutableGraph(): ImmutableValueGraph<Int, Float> = load { numVertices, numEdges, lineSequence ->
-        val graph = buildImmutableValueGraph(false, 0, 0f) {
+        val graph = buildImmutableValueGraph<Int, Float>(false, 0f) {
             ensureVertexCapacity(numVertices)
             ensureEdgeCapacity(numEdges)
             lineSequence.forEach { (v1, v2, e) -> addEdge(v1, v2, e) }
@@ -145,7 +145,7 @@ object Loader {
     }
 
     fun loadImmutableNetwork(): ImmutableValueGraph<Int, Float> = load { numVertices, numEdges, lineSequence ->
-        val graph = buildImmutableValueGraph(false, 0, 0f, multiEdge = true) {
+        val graph = buildImmutableValueGraph<Int, Float>(false, 0f, multiEdge = true) {
             ensureVertexCapacity(numVertices)
             ensureEdgeCapacity(numEdges)
             lineSequence.forEach { (v1, v2, e) -> addEdge(v1, v2, e) }
@@ -158,7 +158,7 @@ object Loader {
     }
 
     fun loadMutableSimpleGraph(): ValueGraph<Int, Unit> = load { numVertices, numEdges, lineSequence ->
-        val graph = buildValueGraph(false, 0, Unit) {
+        val graph = buildValueGraph<Int, Unit>(false, {}) {
             ensureVertexCapacity(numVertices)
             ensureEdgeCapacity(numEdges)
             lineSequence.forEach { (v1, v2) -> addEdge(v1, v2) }
@@ -171,7 +171,7 @@ object Loader {
     }
 
     fun loadMutableGraph(): ValueGraph<Int, Float> = load { numVertices, numEdges, lineSequence ->
-        val graph = buildValueGraph(false, 0, 0f) {
+        val graph = buildValueGraph<Int, Float>(false, { 0f }) {
             ensureVertexCapacity(numVertices)
             ensureEdgeCapacity(numEdges)
             lineSequence.forEach { (v1, v2, e) -> addEdge(v1, v2, e) }
@@ -184,7 +184,7 @@ object Loader {
     }
 
     fun loadMutableNetwork(): ValueGraph<Int, Float> = load { numVertices, numEdges, lineSequence ->
-        val graph = buildValueGraph(false, 0, 0f, multiEdge = true) {
+        val graph = buildValueGraph<Int, Float>(false, { 0f }, multiEdge = true) {
             ensureVertexCapacity(numVertices)
             ensureEdgeCapacity(numEdges)
             lineSequence.forEach { (v1, v2, e) -> addEdge(v1, v2, e) }

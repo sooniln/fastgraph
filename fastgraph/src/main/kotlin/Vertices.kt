@@ -128,7 +128,7 @@ public value class Vertex(public val id: Int) {
 
     @get:JvmSynthetic
     context(graph: ValueGraph<V, *>)
-    public val <V> value: V inline get() = graph.vertexProperty[this]
+    public val <V> key: V inline get() = graph.vertexKeys[this]
 
     @JvmName("toString")
     override fun toString(): String = "Vertex(${id.toHexString(VERTEX_HEX_FORMAT)})"

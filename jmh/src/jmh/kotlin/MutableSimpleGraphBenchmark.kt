@@ -43,7 +43,7 @@ open class MutableSimpleGraphBenchmark {
     fun vertexValues(): Int {
         var i = 0
         for (vertex in graph.vertices) {
-            i += graph.vertexProperty[vertex]
+            i += graph.vertexKeys[vertex]
         }
         return i
     }
@@ -85,7 +85,7 @@ open class MutableSimpleGraphBenchmark {
     fun bfs(): Int {
         var n = 0
         for (vertex in graph.breadthFirstVertexIterator(graph.vertices.first())) {
-            n += graph.vertexProperty[vertex]
+            n += graph.vertexKeys[vertex]
         }
         return n
     }

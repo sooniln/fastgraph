@@ -23,7 +23,7 @@ class UndirectedNetworkTest {
 
     private fun constructGraph(immutable: Boolean) {
         valueGraph = if (immutable) {
-            buildImmutableValueGraph<String, Float>(false, { "" }, { 0f }, multiEdge = true) {
+            buildImmutableValueGraph<String, Float>(false, { 0f }, multiEdge = true) {
                 v0 = addVertex("v0")
                 v1 = addVertex("v1")
                 v2 = addVertex("v2")
@@ -35,7 +35,7 @@ class UndirectedNetworkTest {
                 e4 = addEdge("v0", "v0", 3.0f)
             }
         } else {
-            buildValueGraph<String, Float>(false, { "" }, { 0f }, multiEdge = true) {
+            buildValueGraph<String, Float>(false, { 0f }, multiEdge = true) {
                 v0 = addVertex("v0")
                 v1 = addVertex("v1")
                 v2 = addVertex("v2")
@@ -48,8 +48,8 @@ class UndirectedNetworkTest {
             }
         }
         graph = valueGraph.graph
-        vertexName = valueGraph.vertexProperty
-        edgeWeight = valueGraph.edgeProperty
+        vertexName = valueGraph.vertexKeys
+        edgeWeight = valueGraph.edgeValues
     }
 
     @ParameterizedTest(name = "immutable={0}")
@@ -69,10 +69,10 @@ class UndirectedNetworkTest {
             assertThat(graph.vertices.contains(Vertex(-1))).isFalse
             assertThat(graph.isEmpty()).isFalse
 
-            assertThat(v0.value).isEqualTo("v0")
-            assertThat(v1.value).isEqualTo("v1")
-            assertThat(v2.value).isEqualTo("v2")
-            assertThat(v3.value).isEqualTo("v3")
+            assertThat(v0.key).isEqualTo("v0")
+            assertThat(v1.key).isEqualTo("v1")
+            assertThat(v2.key).isEqualTo("v2")
+            assertThat(v3.key).isEqualTo("v3")
         }
     }
 

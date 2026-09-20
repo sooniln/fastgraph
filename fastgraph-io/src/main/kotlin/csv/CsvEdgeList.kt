@@ -45,6 +45,17 @@ public fun CsvEdgeListGraph(
     override val edgeProperties: List<EdgeProperty<*>> get() = edgeProperties
 }
 
+/** A convenient way to construct a [CsvEdgeListGraph] for writing. */
+public fun CsvEdgeListGraph(
+    graph: ValueGraph<out Any, *>,
+) : CsvEdgeListGraph = object : CsvEdgeListGraph {
+    override val graph: Graph get() = graph.graph
+    override val vertexProperty: VertexKeyProperty<out Any> get() = graph.vertexKeys
+    override val edgeProperties: List<EdgeProperty<*>> get() {
+        return if (graph.edgeValues.type.isUnitType()) emptyList() else listOf(graph.edgeValues)
+    }
+}
+
 /** A mutable version of [CsvEdgeListGraph] used for output from CSV edge list reading methods. */
 public class MutableCsvEdgeListGraph(
     override val graph: MutableGraph,
