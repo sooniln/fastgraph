@@ -8,6 +8,7 @@ import io.github.sooniln.fastcollect.removeOrElse
 import io.github.sooniln.fastcollect.replaceOrSet
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
+import io.github.sooniln.fastgraph.IdentityIndexedVertexGraph
 import io.github.sooniln.fastgraph.IndexedVertexGraph
 import io.github.sooniln.fastgraph.MutableVertexProperty
 import io.github.sooniln.fastgraph.PropertyType
@@ -18,8 +19,8 @@ import io.github.sooniln.fastgraph.propertyTypeOf
 import io.github.sooniln.fastgraph.internal.throwIllegalVertex
 
 
-internal class DoubleArrayVertexProperty(
-    override val graph: IndexedVertexGraph,
+internal class DoubleIdentityIndexedVertexProperty(
+    override val graph: IdentityIndexedVertexGraph,
     defaultValueFunction: VertexFunction<Double>,
 ) : MutableVertexProperty<Double>, VertexChangeListener {
 
@@ -80,10 +81,72 @@ internal class DoubleArrayVertexProperty(
     private fun write(it: Double): Double { return it }
 }
 
-internal class ImmutableDoubleArrayVertexProperty<G>(
+internal class DoubleIndexedVertexProperty(
+    override val graph: IndexedVertexGraph,
+    defaultValueFunction: VertexFunction<Double>,
+) : MutableVertexProperty<Double>, VertexChangeListener {
+
+    private val property = DoubleArrayList()
+    private val initializer = defaultValueFunction
+
+    init {
+        property.ensureCapacity(graph.vertices.size)
+        for (vertex in graph.vertices) { onVertexAdded(vertex) }
+        graph.registerVertexChangeListener(this)
+    }
+
+    override val type: PropertyType<Double> get() = propertyTypeOf()
+
+    override fun get(vertex: Vertex): Double {
+        try {
+            return read(property[graph.vertices.indexOf(vertex)])
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalVertex(vertex, e)
+        }
+    }
+
+    override fun set(vertex: Vertex, value: Double) {
+        try {
+            property[graph.vertices.indexOf(vertex)] = write(value)
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalVertex(vertex, e)
+        }
+    }
+
+    override fun put(vertex: Vertex, value: Double): Double {
+        try {
+            return read(property.replace(graph.vertices.indexOf(vertex), write(value)))
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalVertex(vertex, e)
+        }
+    }
+
+    override fun onVertexAdded(vertex: Vertex) {
+        check(graph.vertices.indexOf(vertex) == property.size)
+        property.add(write(initializer.apply(vertex)))
+    }
+
+    override fun onVertexRemoved(vertex: Vertex) {
+        check(graph.vertices.indexOf(vertex) == property.lastIndex)
+        property.removeAt(property.lastIndex)
+    }
+
+    override fun onVertexReassigned(oldVertex: Vertex, newVertex: Vertex) {
+        check(graph.vertices.indexOf(oldVertex) == property.lastIndex)
+        property[graph.vertices.indexOf(newVertex)] = property.removeAt(property.lastIndex)
+    }
+
+    override fun ensureVertexCapacity(vertexCapacity: Int) = property.ensureCapacity(vertexCapacity)
+    override fun trimToSize() = property.trimToSize()
+
+    private fun read(it: Double): Double { return it }
+    private fun write(it: Double): Double { return it }
+}
+
+internal class ImmutableDoubleIdentityIndexedVertexProperty<G>(
     override val graph: G,
     defaultValueFunction: VertexFunction<Double>,
-) : MutableVertexProperty<Double> where G : ImmutableGraph, G : IndexedVertexGraph {
+) : MutableVertexProperty<Double> where G : ImmutableGraph, G : IdentityIndexedVertexGraph {
 
     private val property = DoubleArray(graph.vertices.size) { vertexId ->
         write(defaultValueFunction.apply(Vertex(vertexId)))
@@ -121,7 +184,49 @@ internal class ImmutableDoubleArrayVertexProperty<G>(
     private fun write(it: Double): Double { return it }
 }
 
-internal class DoubleMapVertexProperty(
+internal class ImmutableDoubleIndexedVertexProperty<G>(
+    override val graph: G,
+    defaultValueFunction: VertexFunction<Double>,
+) : MutableVertexProperty<Double> where G : ImmutableGraph, G : IndexedVertexGraph {
+
+    private val property = DoubleArray(graph.vertices.size) { index ->
+        write(defaultValueFunction.apply(graph.vertices[index]))
+    }
+
+    override val type: PropertyType<Double> get() = propertyTypeOf()
+
+    override fun get(vertex: Vertex): Double {
+        try {
+            return read(property[graph.vertices.indexOf(vertex)])
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalVertex(vertex, e)
+        }
+    }
+
+    override fun set(vertex: Vertex, value: Double) {
+        try {
+            property[graph.vertices.indexOf(vertex)] = write(value)
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalVertex(vertex, e)
+        }
+    }
+
+    override fun put(vertex: Vertex, value: Double): Double {
+        try {
+            val index = graph.vertices.indexOf(vertex)
+            val oldValue = read(property[index])
+            property[index] = write(value)
+            return oldValue
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalVertex(vertex, e)
+        }
+    }
+
+    private fun read(it: Double): Double { return it }
+    private fun write(it: Double): Double { return it }
+}
+
+internal class DoubleVertexProperty(
     override val graph: Graph,
     defaultValueFunction: VertexFunction<Double>
 ) : MutableVertexProperty<Double>, VertexChangeListener {
@@ -165,7 +270,7 @@ internal class DoubleMapVertexProperty(
     private fun write(it: Double): Double { return it }
 }
 
-internal class ImmutableDoubleMapVertexProperty(
+internal class ImmutableDoubleVertexProperty(
     override val graph: ImmutableGraph,
     defaultValueFunction: VertexFunction<Double>
 ) : MutableVertexProperty<Double> {

@@ -6,8 +6,6 @@
 package io.github.sooniln.fastgraph
 
 import io.github.sooniln.fastcollect.*
-import io.github.sooniln.fastgraph.paths.ParentCanonicalEdgePathTree
-import io.github.sooniln.fastgraph.paths.ParentPathTree
 import io.github.sooniln.fastgraph.util.VertexArrayDeque
 import kotlin.collections.isNotEmpty
 
@@ -236,48 +234,19 @@ public fun Graph.depthFirstTreeEdgeIterator(initialVertices: VertexSet): Iterato
  * trivial single-vertex path).
  */
 @JvmName("breadthFirstPathTree")
-public fun Graph.breadthFirstPathTree(source: Vertex): PathTree {
-    val vertexIds = IntArrayList()
-    val parentIndices = IntArrayList()
-    val parentEdgeIds = LongArrayList()
-    val depths = IntArrayList()
-    val indices = Int2IntHashMap(defaultValue = -1)
-    // BFS examines vertices in discovery order, so the index of the vertex being examined just counts up.
-    var examinedIndex = -1
+public fun Graph.breadthFirstPathTree(source: Vertex): PathTree = buildPathTree(source) {
+    // BFS examines a vertex before any of the vertices it discovers, so the vertex examined most recently is the
+    // parent of the vertex being discovered.
+    var parent = source
     var treeEdge = Edge(0)
     visitBreadthFirst(
         vertexSetOf(source),
-        onVertexExamined = { examinedIndex++ },
+        onVertexExamined = { parent = it },
         onTreeEdge = { treeEdge = it },
         onVertexDiscovered = { vertex ->
-            indices[vertex.id] = vertexIds.size
-            vertexIds.add(vertex.id)
-            parentIndices.add(examinedIndex)
-            parentEdgeIds.add(treeEdge.id)
-            depths.add(if (examinedIndex < 0) 0 else depths[examinedIndex] + 1)
+            if (vertex != source) setParent(parent, treeEdge, vertex)
         },
     )
-
-    return if (this is CanonicalEdgeGraph) {
-        ParentCanonicalEdgePathTree(
-            directed,
-            source,
-            vertexIds.toArray(),
-            parentIndices.toArray(),
-            parentEdgeIds.toArray(),
-            depths.toArray(),
-            indices,
-        )
-    } else {
-        ParentPathTree(
-            source,
-            vertexIds.toArray(),
-            parentIndices.toArray(),
-            parentEdgeIds.toArray(),
-            depths.toArray(),
-            indices,
-        )
-    }
 }
 
 private class BFIterator(private val graph: Graph, startVertices: VertexSet) : VertexIterator {

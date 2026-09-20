@@ -1,14 +1,23 @@
 package io.github.sooniln.fastgraph.internal
 
 import io.github.sooniln.fastcollect.*
+import io.github.sooniln.fastgraph.AbstractEdgeSet
+import io.github.sooniln.fastgraph.AbstractVertexSequencedSet
 import io.github.sooniln.fastgraph.CanonicalEdge
 import io.github.sooniln.fastgraph.Edge
-import io.github.sooniln.fastgraph.EdgeConsumer
 import io.github.sooniln.fastgraph.EdgeIterator
 import io.github.sooniln.fastgraph.EdgeReference
 import io.github.sooniln.fastgraph.EdgeSet
 import io.github.sooniln.fastgraph.Graph
-import io.github.sooniln.fastgraph.IndexedEdge
+import io.github.sooniln.fastgraph.IdentityIndexedEdge
+import io.github.sooniln.fastgraph.IdentityIndexedEdgeSet
+import io.github.sooniln.fastgraph.IndexedEdgeSet
+import io.github.sooniln.fastgraph.IndexedVertexSet
+import io.github.sooniln.fastgraph.MutableEdgeIterator
+import io.github.sooniln.fastgraph.MutableGraph
+import io.github.sooniln.fastgraph.MutableIdentityIndexedVertexSet
+import io.github.sooniln.fastgraph.MutableIndexedEdgeSet
+import io.github.sooniln.fastgraph.MutableVertexIterator
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexReference
 import io.github.sooniln.fastgraph.VertexSet
@@ -22,6 +31,9 @@ internal fun throwIllegalVertex(vertex: Vertex, cause: Throwable? = null): Nothi
 @JvmName("throwGraphIllegalEdge")
 context(graph: Graph)
 internal fun throwIllegalEdge(edge: Edge, cause: Throwable? = null): Nothing {
+    // the endpoints can only be resolved for an edge the graph knows about (e.g. one that belongs to a filtered view's
+    // parent) - resolving an unknown edge would fail or recurse back into this method
+    if (!graph.edges.contains(edge)) throw IllegalArgumentException("$edge not found in graph", cause)
     throw IllegalArgumentException(
         "$edge (${graph.edgeSource(edge).id} -> ${graph.edgeTarget(edge).id}) not found in graph",
         cause
@@ -32,7 +44,7 @@ internal fun throwIllegalEdge(graph: Graph, edge: Edge, cause: Throwable? = null
     context(graph) { throwIllegalEdge(edge, cause) }
 }
 
-internal fun throwIllegalEdge(graph: Graph, edge: IndexedEdge, cause: Throwable? = null): Nothing {
+internal fun throwIllegalEdge(graph: Graph, edge: IdentityIndexedEdge, cause: Throwable? = null): Nothing {
     context(graph) { throwIllegalEdge(edge.toEdge(), cause) }
 }
 
@@ -154,3 +166,61 @@ internal class TransposedGraph(val graph: Graph) : Graph by graph {
 @Suppress("NOTHING_TO_INLINE")
 private inline fun constructLongValue(highBits: Int, lowBits: Int): Long =
     highBits.toLong().shl(32).or(lowBits.toLong().and(0xFFFFFFFF))
+
+internal abstract class AbstractMutableIdentityIndexedVertexSet(private val graph: MutableGraph) : MutableIdentityIndexedVertexSet, AbstractVertexSequencedSet() {
+    override fun iterator(): MutableVertexIterator = object : MutableVertexIterator {
+        private var index = 0
+        private var previous = -1
+
+        override fun hasNext(): Boolean = index < size
+        override fun next(): Vertex {
+            if (!hasNext()) throw NoSuchElementException()
+            previous = index++
+            return Vertex(previous)
+        }
+
+        override fun remove() {
+            check(previous != -1)
+            graph.removeVertex(Vertex(previous))
+            index = previous
+            previous = -1
+        }
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (other is IndexedVertexSet) {
+            return equalsSequenced(other)
+        }
+
+        return super.equals(other)
+    }
+}
+
+internal abstract class AbstractMutableIdentityIndexedEdgeSet(private val graph: MutableGraph) : IdentityIndexedEdgeSet, MutableIndexedEdgeSet, AbstractEdgeSet() {
+    override fun iterator(): MutableEdgeIterator = object : MutableEdgeIterator {
+        private var index = 0
+        private var previous = -1
+
+        override fun hasNext(): Boolean = index < size
+        override fun next(): Edge {
+            if (index >= size) throw NoSuchElementException()
+            previous = index++
+            return get(previous)
+        }
+
+        override fun remove() {
+            check (previous != -1)
+            graph.removeEdge(get(previous))
+            index = previous
+            previous = -1
+        }
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (other is IndexedEdgeSet) {
+            return equalsSequenced(other)
+        }
+
+        return super.equals(other)
+    }
+}

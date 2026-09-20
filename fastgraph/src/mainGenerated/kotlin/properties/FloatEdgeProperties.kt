@@ -11,7 +11,8 @@ import io.github.sooniln.fastgraph.EdgeChangeListener
 import io.github.sooniln.fastgraph.EdgeFunction
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
-import io.github.sooniln.fastgraph.IndexedEdge
+import io.github.sooniln.fastgraph.IdentityIndexedEdge
+import io.github.sooniln.fastgraph.IdentityIndexedEdgeGraph
 import io.github.sooniln.fastgraph.IndexedEdgeGraph
 import io.github.sooniln.fastgraph.MutableEdgeProperty
 import io.github.sooniln.fastgraph.PropertyType
@@ -19,7 +20,75 @@ import io.github.sooniln.fastgraph.propertyTypeOf
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
 
 
-internal class FloatArrayEdgeProperty(
+internal class FloatIdentityIndexedEdgeProperty(
+    override val graph: IdentityIndexedEdgeGraph,
+    defaultValueFunction: EdgeFunction<Float>,
+) : MutableEdgeProperty<Float>, EdgeChangeListener {
+
+    private val property = FloatArrayList()
+    private val initializer = defaultValueFunction
+
+    init {
+        property.ensureCapacity(graph.edges.size)
+        for (edge in graph.edges) { onEdgeAdded(edge) }
+        graph.registerEdgeChangeListener(this)
+    }
+
+    override val type: PropertyType<Float> get() = propertyTypeOf()
+
+    override fun get(edge: Edge): Float {
+        val edge = IdentityIndexedEdge.from(edge)
+        try {
+            return read(property[edge.id])
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalEdge(graph, edge, e)
+        }
+    }
+
+    override fun set(edge: Edge, value: Float) {
+        val edge = IdentityIndexedEdge.from(edge)
+        try {
+            property[edge.id] = write(value)
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalEdge(graph, edge, e)
+        }
+    }
+
+    override fun put(edge: Edge, value: Float): Float {
+        val edge = IdentityIndexedEdge.from(edge)
+        try {
+            return read(property.replace(edge.id, write(value)))
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalEdge(graph, edge, e)
+        }
+    }
+
+    override fun onEdgeAdded(edge: Edge) {
+        check(IdentityIndexedEdge.from(edge).id == property.size)
+        property.add(write(initializer.apply(edge)))
+    }
+
+    override fun onEdgeRemoved(edge: Edge) {
+        val edge = IdentityIndexedEdge.from(edge)
+        check(edge.id == property.lastIndex)
+        property.removeAt(edge.id)
+    }
+
+    override fun onEdgeReassigned(oldEdge: Edge, newEdge: Edge) {
+        val oldEdge = IdentityIndexedEdge.from(oldEdge)
+        val newEdge = IdentityIndexedEdge.from(newEdge)
+        check(oldEdge.id == property.lastIndex)
+        property[newEdge.id] = property.removeAt(oldEdge.id)
+    }
+
+    override fun ensureEdgeCapacity(edgeCapacity: Int) = property.ensureCapacity(edgeCapacity)
+    override fun trimToSize() = property.trimToSize()
+
+    private fun read(it: Float): Float { return it }
+    private fun write(it: Float): Float { return it }
+}
+
+internal class FloatIndexedEdgeProperty(
     override val graph: IndexedEdgeGraph,
     defaultValueFunction: EdgeFunction<Float>,
 ) : MutableEdgeProperty<Float>, EdgeChangeListener {
@@ -36,48 +105,42 @@ internal class FloatArrayEdgeProperty(
     override val type: PropertyType<Float> get() = propertyTypeOf()
 
     override fun get(edge: Edge): Float {
-        val edge = IndexedEdge.from(edge)
         try {
-            return read(property[edge.id])
+            return read(property[graph.edges.indexOf(edge)])
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
     }
 
     override fun set(edge: Edge, value: Float) {
-        val edge = IndexedEdge.from(edge)
         try {
-            property[edge.id] = write(value)
+            property[graph.edges.indexOf(edge)] = write(value)
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
     }
 
     override fun put(edge: Edge, value: Float): Float {
-        val edge = IndexedEdge.from(edge)
         try {
-            return read(property.replace(edge.id, write(value)))
+            return read(property.replace(graph.edges.indexOf(edge), write(value)))
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
     }
 
     override fun onEdgeAdded(edge: Edge) {
-        check(IndexedEdge.from(edge).id == property.size)
+        check(graph.edges.indexOf(edge) == property.size)
         property.add(write(initializer.apply(edge)))
     }
 
     override fun onEdgeRemoved(edge: Edge) {
-        val edge = IndexedEdge.from(edge)
-        check(edge.id == property.lastIndex)
-        property.removeAt(edge.id)
+        check(graph.edges.indexOf(edge) == property.lastIndex)
+        property.removeAt(property.lastIndex)
     }
 
     override fun onEdgeReassigned(oldEdge: Edge, newEdge: Edge) {
-        val oldEdge = IndexedEdge.from(oldEdge)
-        val newEdge = IndexedEdge.from(newEdge)
-        check(oldEdge.id == property.lastIndex)
-        property[newEdge.id] = property.removeAt(oldEdge.id)
+        check(graph.edges.indexOf(oldEdge) == property.lastIndex)
+        property[graph.edges.indexOf(newEdge)] = property.removeAt(property.lastIndex)
     }
 
     override fun ensureEdgeCapacity(edgeCapacity: Int) = property.ensureCapacity(edgeCapacity)
@@ -87,10 +150,10 @@ internal class FloatArrayEdgeProperty(
     private fun write(it: Float): Float { return it }
 }
 
-internal class ImmutableFloatArrayEdgeProperty<G>(
+internal class ImmutableFloatIdentityIndexedEdgeProperty<G>(
     override val graph: G,
     defaultValueFunction: EdgeFunction<Float>,
-) : MutableEdgeProperty<Float> where G : ImmutableGraph, G : IndexedEdgeGraph {
+) : MutableEdgeProperty<Float> where G : ImmutableGraph, G : IdentityIndexedEdgeGraph {
 
     private val property = FloatArray(graph.edges.size) { edgeId ->
         write(defaultValueFunction.apply(graph.edges[edgeId]))
@@ -99,7 +162,7 @@ internal class ImmutableFloatArrayEdgeProperty<G>(
     override val type: PropertyType<Float> get() = propertyTypeOf()
 
     override fun get(edge: Edge): Float {
-        val edge = IndexedEdge.from(edge)
+        val edge = IdentityIndexedEdge.from(edge)
         try {
             return read(property[edge.id])
         } catch (e: IndexOutOfBoundsException) {
@@ -108,7 +171,7 @@ internal class ImmutableFloatArrayEdgeProperty<G>(
     }
 
     override fun set(edge: Edge, value: Float) {
-        val edge = IndexedEdge.from(edge)
+        val edge = IdentityIndexedEdge.from(edge)
         try {
             property[edge.id] = write(value)
         } catch (e: IndexOutOfBoundsException) {
@@ -117,7 +180,7 @@ internal class ImmutableFloatArrayEdgeProperty<G>(
     }
 
     override fun put(edge: Edge, value: Float): Float {
-        val edge = IndexedEdge.from(edge)
+        val edge = IdentityIndexedEdge.from(edge)
         try {
             val oldValue = read(property[edge.id])
             property[edge.id] = write(value)
@@ -131,7 +194,49 @@ internal class ImmutableFloatArrayEdgeProperty<G>(
     private fun write(it: Float): Float { return it }
 }
 
-internal class FloatMapEdgeProperty(
+internal class ImmutableFloatIndexedEdgeProperty<G>(
+    override val graph: G,
+    defaultValueFunction: EdgeFunction<Float>,
+) : MutableEdgeProperty<Float> where G : ImmutableGraph, G : IndexedEdgeGraph {
+
+    private val property = FloatArray(graph.edges.size) { index ->
+        write(defaultValueFunction.apply(graph.edges[index]))
+    }
+
+    override val type: PropertyType<Float> get() = propertyTypeOf()
+
+    override fun get(edge: Edge): Float {
+        try {
+            return read(property[graph.edges.indexOf(edge)])
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalEdge(graph, edge, e)
+        }
+    }
+
+    override fun set(edge: Edge, value: Float) {
+        try {
+            property[graph.edges.indexOf(edge)] = write(value)
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalEdge(graph, edge, e)
+        }
+    }
+
+    override fun put(edge: Edge, value: Float): Float {
+        try {
+            val index = graph.edges.indexOf(edge)
+            val oldValue = read(property[index])
+            property[index] = write(value)
+            return oldValue
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalEdge(graph, edge, e)
+        }
+    }
+
+    private fun read(it: Float): Float { return it }
+    private fun write(it: Float): Float { return it }
+}
+
+internal class FloatEdgeProperty(
     override val graph: Graph,
     defaultValueFunction: EdgeFunction<Float>
 ) : MutableEdgeProperty<Float>, EdgeChangeListener {
@@ -175,7 +280,7 @@ internal class FloatMapEdgeProperty(
     private fun write(it: Float): Float { return it }
 }
 
-internal class ImmutableFloatMapEdgeProperty(
+internal class ImmutableFloatEdgeProperty(
     override val graph: ImmutableGraph,
     defaultValueFunction: EdgeFunction<Float>
 ) : MutableEdgeProperty<Float> {

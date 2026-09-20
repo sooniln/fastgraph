@@ -90,15 +90,15 @@ public value class Edge(public val id: Long) {
 }
 
 /**
- * A unique indexed edge identifier. Every edge in a graph is assigned a consecutive integer [id] in [0,
- * graph.edges.size). An [Edge] may only be converted to a [IndexedEdge] if it belongs to a [Graph] that implements
- * [IndexedEdgeGraph].
+ * A unique identity-indexed edge identifier. Every edge in a graph is assigned a consecutive integer [id] in [0,
+ * graph.edges.size), which is also its index in `graph.edges`. An [Edge] may only be converted to an
+ * [IdentityIndexedEdge] if it belongs to a [Graph] that implements [IdentityIndexedEdgeGraph].
  *
  * This class is primarily intended for internal usage while implementing a graph, but may find other uses occasionally.
  */
 @Suppress("INAPPLICABLE_JVM_NAME")
 @JvmInline
-public value class IndexedEdge(public val id: Int) {
+public value class IdentityIndexedEdge(public val id: Int) {
 
     @JvmName("toEdge")
     public fun toEdge(): Edge = Edge(id.toLong())
@@ -107,50 +107,50 @@ public value class IndexedEdge(public val id: Int) {
      * See [Graph.edgeSource].
      */
     @get:JvmSynthetic
-    context(graph: IndexedEdgeGraph)
+    context(graph: IdentityIndexedEdgeGraph)
     public val source: Vertex inline get() = graph.edgeSource(this)
 
     /**
      * See [Graph.edgeTarget].
      */
     @get:JvmSynthetic
-    context(graph: IndexedEdgeGraph)
+    context(graph: IdentityIndexedEdgeGraph)
     public val target: Vertex inline get() = graph.edgeTarget(this)
 
     /**
      * See [edgeSource].
      */
     @JvmSynthetic
-    context(graph: IndexedEdgeGraph)
+    context(graph: IdentityIndexedEdgeGraph)
     public fun source(target: Vertex): Vertex = graph.edgeSource(this, target)
 
     /**
      * See [edgeSource].
      */
     @JvmSynthetic
-    context(graph: IndexedEdgeGraph)
+    context(graph: IdentityIndexedEdgeGraph)
     public fun target(source: Vertex): Vertex = graph.edgeTarget(this, source)
 
     /**
      * See [Graph.edgeOpposite].
      */
     @JvmSynthetic
-    context(graph: IndexedEdgeGraph)
+    context(graph: IdentityIndexedEdgeGraph)
     public fun opposite(other: Vertex): Vertex = graph.edgeOpposite(this, other)
 
     /**
      * See [Graph.createEdgeReference].
      */
     @JvmSynthetic
-    context(graph: IndexedEdgeGraph)
+    context(graph: IdentityIndexedEdgeGraph)
     public fun reference(): EdgeReference = graph.createEdgeReference(this)
 
     @JvmSynthetic
-    context(graph: IndexedEdgeGraph)
+    context(graph: IdentityIndexedEdgeGraph)
     public operator fun component1(): Vertex = source
 
     @JvmSynthetic
-    context(graph: IndexedEdgeGraph)
+    context(graph: IdentityIndexedEdgeGraph)
     public operator fun component2(): Vertex = target
 
     @JvmName("toString")
@@ -158,7 +158,7 @@ public value class IndexedEdge(public val id: Int) {
 
     public companion object {
         @JvmSynthetic
-        public fun from(edge: Edge) : IndexedEdge = IndexedEdge(edge.id.toInt())
+        public fun from(edge: Edge) : IdentityIndexedEdge = IdentityIndexedEdge(edge.id.toInt())
     }
 }
 
@@ -437,9 +437,33 @@ public interface MutableEdgeSequencedSet : EdgeSequencedSet, MutableEdgeSet {
     override fun iterator(): MutableEdgeIterator
 }
 
-/** An ordered set of edges where the [Edge.id] of each edge is in [0, size). */
+/**
+ * An ordered set of edges where every edge is associated with an index in [0, size), such that [get] and [indexOf]
+ * are both constant time. The index of an edge is obtained via [indexOf], and the edge for an index via [get].
+ */
 @Suppress("INAPPLICABLE_JVM_NAME")
 public interface IndexedEdgeSet : EdgeSequencedSet {
+    @JvmName("indexOf")
+    abstract override fun indexOf(element: Edge): Int
+
+    @JvmName("contains")
+    override fun contains(element: Edge): Boolean = indexOf(element) != -1
+
+    @JvmName("lastIndexOf")
+    override fun lastIndexOf(element: Edge): Int = indexOf(element)
+}
+
+/** An [IndexedEdgeSet] with an iterator that allows for removal. */
+public interface MutableIndexedEdgeSet : IndexedEdgeSet, MutableEdgeSequencedSet {
+    override fun iterator(): MutableEdgeIterator
+}
+
+/**
+ * An [IndexedEdgeSet] where the index of each edge is its [Edge.id], i.e. `get(index) == Edge(index)` and
+ * `indexOf(edge) == edge.id`.
+ */
+@Suppress("INAPPLICABLE_JVM_NAME")
+public interface IdentityIndexedEdgeSet : IndexedEdgeSet {
     @JvmName("get")
     override fun get(index: Int): Edge {
         if (index !in 0..<size) throw IndexOutOfBoundsException()
@@ -451,15 +475,10 @@ public interface IndexedEdgeSet : EdgeSequencedSet {
 
     @JvmName("indexOf")
     override fun indexOf(element: Edge): Int = if (element.id in 0..<size) element.id.toInt() else -1
-
-    @JvmName("lastIndexOf")
-    override fun lastIndexOf(element: Edge): Int = indexOf(element)
 }
 
-/**
- * An ordered set of edges where the [Edge.id] of each edge is in [0, size) with an iterator that allows for removal.
- */
-public interface MutableIndexedEdgeSet : IndexedEdgeSet, MutableEdgeSequencedSet {
+/** An [IndexedEdgeSet] with an iterator that allows for removal. */
+public interface MutableIdentityIndexedEdgeSet : IdentityIndexedEdgeSet, MutableIndexedEdgeSet {
     override fun iterator(): MutableEdgeIterator
 }
 
@@ -487,9 +506,9 @@ private object EmptyEdgeIterator : MutableEdgeIterator {
     override fun remove() = throw IllegalStateException()
 }
 
-public fun emptyEdgeSet(): IndexedEdgeSet = EmptyEdgeSet
+public fun emptyEdgeSet(): IdentityIndexedEdgeSet = EmptyEdgeSet
 
-private object EmptyEdgeSet : MutableIndexedEdgeSet, AbstractEdgeSet() {
+private object EmptyEdgeSet : IdentityIndexedEdgeSet, MutableIndexedEdgeSet, AbstractEdgeSet() {
     override val size: Int get() = 0
     override fun get(index: Int): Edge = throw IndexOutOfBoundsException()
     override fun contains(element: Edge): Boolean = false
@@ -547,36 +566,6 @@ public abstract class AbstractEdgeSet : EdgeSet {
 /** Provides a skeletal implementation of the [EdgeSequencedSet] interface. */
 public abstract class AbstractEdgeSequencedSet : EdgeSequencedSet, AbstractEdgeSet() {
     override fun iterator(): EdgeIterator = super.iterator()
-}
-
-/** Provides a skeletal implementation of the [MutableIndexedEdgeSet] interface. */
-internal abstract class AbstractMutableIndexedEdgeSet(private val graph: MutableGraph) : MutableIndexedEdgeSet, AbstractEdgeSet() {
-    override fun iterator(): MutableEdgeIterator = object : MutableEdgeIterator {
-        private var index = 0
-        private var previous = -1
-
-        override fun hasNext(): Boolean = index < size
-        override fun next(): Edge {
-            if (index >= size) throw NoSuchElementException()
-            previous = index++
-            return get(previous)
-        }
-
-        override fun remove() {
-            check (previous != -1)
-            graph.removeEdge(get(previous))
-            index = previous
-            previous = -1
-        }
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (other is IndexedEdgeSet) {
-            return equalsSequenced(other)
-        }
-
-        return super.equals(other)
-    }
 }
 
 private class SingletonEdgeSet(private val edgeId: Long) : AbstractEdgeSet() {

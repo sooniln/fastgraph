@@ -3,6 +3,7 @@ package io.github.sooniln.fastgraph.properties
 import io.github.sooniln.fastcollect.Int2AnyHashMap
 import io.github.sooniln.fastcollect.removeOrElse
 import io.github.sooniln.fastgraph.Graph
+import io.github.sooniln.fastgraph.IdentityIndexedVertexGraph
 import io.github.sooniln.fastgraph.IndexedVertexGraph
 import io.github.sooniln.fastgraph.MutableVertexKeyProperty
 import io.github.sooniln.fastgraph.PropertyType
@@ -11,8 +12,8 @@ import io.github.sooniln.fastgraph.VertexChangeListener
 import io.github.sooniln.fastgraph.internal.throwIllegalVertex
 
 @Suppress("UNCHECKED_CAST")
-internal class ArrayVertexKeyProperty<T>(
-    override val graph: IndexedVertexGraph,
+internal class AnyIdentityIndexedVertexKeyProperty<T>(
+    override val graph: IdentityIndexedVertexGraph,
     override val type: PropertyType<T>,
 ) : MutableVertexKeyProperty<T>, VertexChangeListener {
 
@@ -96,7 +97,99 @@ internal class ArrayVertexKeyProperty<T>(
 }
 
 @Suppress("UNCHECKED_CAST")
-internal class MapVertexKeyProperty<T>(
+internal class AnyIndexedVertexKeyProperty<T>(
+    override val graph: IndexedVertexGraph,
+    override val type: PropertyType<T>,
+) : MutableVertexKeyProperty<T>, VertexChangeListener {
+
+    private val keys = ArrayList<T?>()
+    private val index = HashMap<T, Int>()
+
+    init {
+        keys.ensureCapacity(graph.vertices.size)
+        for (vertex in graph.vertices) { onVertexAdded(vertex) }
+        graph.registerVertexChangeListener(this)
+    }
+
+    private fun checkComplete() {
+        check(index.size == keys.size) {
+            "vertices have no key: ${graph.vertices.filter {
+                val i = graph.vertices.indexOf(it)
+                index[keys[i] as T] != i
+            }}"
+        }
+    }
+
+    override fun get(vertex: Vertex): T {
+        checkComplete()
+        try {
+            return keys[graph.vertices.indexOf(vertex)] as T
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalVertex(vertex, e)
+        }
+    }
+
+    override fun set(vertex: Vertex, value: T) {
+        val vertexIndex = graph.vertices.indexOf(vertex)
+        val existingIndex = index[value]
+        if (existingIndex != null) {
+            if (existingIndex == vertexIndex) return
+            val existingVertex = graph.vertices[existingIndex]
+            throw IllegalArgumentException("\"$value\" is already associated with $existingVertex")
+        }
+
+        val oldValue = try {
+            keys.set(vertexIndex, value)
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalVertex(vertex, e)
+        }
+        index.remove(oldValue as T, vertexIndex)
+        index[value] = vertexIndex
+    }
+
+    override fun put(vertex: Vertex, value: T): T {
+        val oldValue = get(vertex)
+        set(vertex, value)
+        return oldValue
+    }
+
+    override fun hasVertex(key: T): Boolean {
+        checkComplete()
+        return index.containsKey(key)
+    }
+
+    override fun getVertex(key: T): Vertex {
+        checkComplete()
+        return graph.vertices[index.getValue(key)]
+    }
+
+    override fun onVertexAdded(vertex: Vertex) {
+        check(graph.vertices.indexOf(vertex) == keys.size)
+        keys.add(null)
+    }
+
+    override fun onVertexRemoved(vertex: Vertex) {
+        val vertexIndex = graph.vertices.indexOf(vertex)
+        check(vertexIndex == keys.lastIndex)
+        index.remove(keys.removeAt(vertexIndex) as T, vertexIndex)
+    }
+
+    override fun onVertexReassigned(oldVertex: Vertex, newVertex: Vertex) {
+        val oldIndex = graph.vertices.indexOf(oldVertex)
+        val newIndex = graph.vertices.indexOf(newVertex)
+        check(oldIndex == keys.lastIndex)
+        index.remove(keys[newIndex] as T, newIndex)
+        val moved = keys.removeAt(oldIndex) as T
+        keys[newIndex] = moved
+        if (index.remove(moved, oldIndex)) index[moved] = newIndex
+    }
+
+    override fun ensureVertexCapacity(vertexCapacity: Int) = keys.ensureCapacity(vertexCapacity)
+    override fun trimToSize() = keys.trimToSize()
+}
+
+@Suppress("UNCHECKED_CAST")
+internal class AnyVertexKeyProperty<T>(
     override val graph: Graph,
     override val type: PropertyType<T>,
 ) : MutableVertexKeyProperty<T>, VertexChangeListener {

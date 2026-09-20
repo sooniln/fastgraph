@@ -66,6 +66,6 @@ public fun VertexReference.incomingEdges(): EdgeSet = graph.incomingEdges(unstab
 /**
  * Returns the index of this vertex in [IndexedVertexGraph.vertices].
  */
-context(graph: IndexedEdgeGraph)
+context(graph: IndexedVertexGraph)
 public val VertexReference.index: Int
     @JvmSynthetic inline get() = graph.vertices.indexOf(unstable)

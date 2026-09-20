@@ -6,20 +6,26 @@ import io.github.sooniln.fastgraph.AbstractEdgeSet
 import io.github.sooniln.fastgraph.AbstractVertexSet
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeIterator
-import io.github.sooniln.fastgraph.EdgeSequencedSet
+import io.github.sooniln.fastgraph.EdgeProperty
 import io.github.sooniln.fastgraph.EdgeSet
+import io.github.sooniln.fastgraph.Graph
+import io.github.sooniln.fastgraph.IndexedEdgeSet
+import io.github.sooniln.fastgraph.IndexedVertexSet
 import io.github.sooniln.fastgraph.Path
 import io.github.sooniln.fastgraph.PathTree
+import io.github.sooniln.fastgraph.PropertyType
 import io.github.sooniln.fastgraph.SimplePath
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexIterator
-import io.github.sooniln.fastgraph.VertexSequencedSet
+import io.github.sooniln.fastgraph.VertexProperty
 import io.github.sooniln.fastgraph.VertexSet
 import io.github.sooniln.fastgraph.edgeSetOf
 import io.github.sooniln.fastgraph.emptyEdgeSet
 import io.github.sooniln.fastgraph.emptyVertexSet
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
 import io.github.sooniln.fastgraph.internal.throwIllegalVertex
+import io.github.sooniln.fastgraph.propertyTypeOf
+import io.github.sooniln.fastgraph.util.cheapLazy
 import io.github.sooniln.fastgraph.vertexSetOf
 
 
@@ -69,10 +75,11 @@ internal abstract class AbstractParentPathTree(
 
     private fun childCount(index: Int): Int = children.offsets[index + 1] - children.offsets[index]
 
-    override val vertices: VertexSequencedSet = object : VertexSequencedSet {
+    override val vertices: IndexedVertexSet = object : IndexedVertexSet {
         override val size: Int get() = vertexIds.size
         override fun get(index: Int): Vertex = Vertex(vertexIds[index])
         override fun contains(element: Vertex): Boolean = vertexIndices.containsKey(element.id)
+        override fun indexOf(element: Vertex): Int = vertexIndices[element.id]
     }
 
     override fun outDegree(vertex: Vertex): Int {
@@ -123,10 +130,14 @@ internal abstract class AbstractParentPathTree(
         return ChildEdgeSet(index)
     }
 
-    override val edges: EdgeSequencedSet = object : EdgeSequencedSet, AbstractEdgeSequencedSet() {
+    override val edges: IndexedEdgeSet = object : IndexedEdgeSet, AbstractEdgeSequencedSet() {
         override val size: Int get() = parentEdgeIds.size - 1
         override fun get(index: Int): Edge = Edge(parentEdgeIds[index + 1])
         override fun contains(element: Edge): Boolean = childIndex(element) >= 0
+        override fun indexOf(element: Edge): Int {
+            val index = childIndex(element)
+            return if (index < 0) -1 else index - 1
+        }
     }
 
     override fun edgeSource(edge: Edge): Vertex {
@@ -167,10 +178,14 @@ internal abstract class AbstractParentPathTree(
         }
     }
 
-    override fun getPathLength(endVertex: Vertex): Int {
-        val index = vertexIndices[endVertex.id]
-        if (index < 0) throwIllegalVertex(endVertex)
-        return depths[index]
+    override val pathLengthProperty: VertexProperty<Int> = object : VertexProperty<Int> {
+        override val graph: Graph get() = this@AbstractParentPathTree
+        override val type: PropertyType<Int> get() = propertyTypeOf()
+        override fun get(vertex: Vertex): Int {
+            val index = vertexIndices[vertex.id]
+            if (index < 0) throwIllegalVertex(vertex)
+            return depths[index]
+        }
     }
 
     override fun materializePath(endVertex: Vertex): Path {

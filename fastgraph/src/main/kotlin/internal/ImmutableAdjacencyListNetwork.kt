@@ -10,22 +10,23 @@ import io.github.sooniln.fastgraph.EdgeIterator
 import io.github.sooniln.fastgraph.EdgeReference
 import io.github.sooniln.fastgraph.EdgeSet
 import io.github.sooniln.fastgraph.ImmutableGraph
-import io.github.sooniln.fastgraph.IndexedEdge
-import io.github.sooniln.fastgraph.IndexedEdgeGraph
-import io.github.sooniln.fastgraph.IndexedEdgeSet
-import io.github.sooniln.fastgraph.IndexedVertexGraph
-import io.github.sooniln.fastgraph.IndexedVertexSet
+import io.github.sooniln.fastgraph.IdentityIndexedEdge
+import io.github.sooniln.fastgraph.IdentityIndexedEdgeGraph
+import io.github.sooniln.fastgraph.IdentityIndexedEdgeSet
+import io.github.sooniln.fastgraph.IdentityIndexedVertexGraph
+import io.github.sooniln.fastgraph.IdentityIndexedVertexSet
 import io.github.sooniln.fastgraph.InternalImmutableGraph
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexIterator
 import io.github.sooniln.fastgraph.VertexSet
+import io.github.sooniln.fastgraph.util.cheapLazy
 
 internal class ImmutableAdjacencyListNetwork private constructor(
     override val directed: Boolean,
     override val multiEdge: Boolean,
     private val successors: Adjacencies,
     private val edgeValues: EdgeValueArray,
-) : AbstractGraph(), IndexedVertexGraph, IndexedEdgeGraph, InternalImmutableGraph {
+) : AbstractGraph(), IdentityIndexedVertexGraph, IdentityIndexedEdgeGraph, InternalImmutableGraph {
 
     // Two-level CSR. Vertex v's adjacency slots are [targetOffsets[v], targetOffsets[v + 1]); slot k targets
     // targets[k] (sorted ascending within a vertex's range) and owns edge ids
@@ -90,7 +91,7 @@ internal class ImmutableAdjacencyListNetwork private constructor(
         fun edge(vertex: Vertex): Edge {
             val start = edgeStart(vertex)
             check(edgeEnd(vertex) - start == 1)
-            return IndexedEdge(edgeIds[start]).toEdge()
+            return IdentityIndexedEdge(edgeIds[start]).toEdge()
         }
 
         fun edges(vertex: Vertex): Edges = Edges(edgeStart(vertex), edgeEnd(vertex))
@@ -100,7 +101,7 @@ internal class ImmutableAdjacencyListNetwork private constructor(
             check(slot >= 0)
             val start = edgeStart(slot)
             check(edgeEnd(slot) - start == 1)
-            return IndexedEdge(edgeIds[start]).toEdge()
+            return IdentityIndexedEdge(edgeIds[start]).toEdge()
         }
 
         fun edges(source: Vertex, target: Vertex): Edges {
@@ -113,7 +114,7 @@ internal class ImmutableAdjacencyListNetwork private constructor(
             override fun hasNext(): Boolean = i < edgeEnd
             override fun next(): Edge {
                 if (!hasNext()) throw NoSuchElementException()
-                return IndexedEdge(edgeIds[i++]).toEdge()
+                return IdentityIndexedEdge(edgeIds[i++]).toEdge()
             }
         }
 
@@ -155,7 +156,7 @@ internal class ImmutableAdjacencyListNetwork private constructor(
         }
 
         companion object {
-            fun <G> createSuccessors(graph: G): Adjacencies where G : IndexedVertexGraph, G : IndexedEdgeGraph {
+            fun <G> createSuccessors(graph: G): Adjacencies where G : IdentityIndexedVertexGraph, G : IdentityIndexedEdgeGraph {
                 val n = graph.vertices.size
                 val targetOffsets = IntArray(n + 1)
                 var numEdgeIds = 0
@@ -176,7 +177,7 @@ internal class ImmutableAdjacencyListNetwork private constructor(
                     val vertex = Vertex(vertexId)
                     for (slot in targetOffsets[vertexId]..<targetOffsets[vertexId + 1]) {
                         var i = edgeOffsets[slot]
-                        for (edge in graph.edges(vertex, Vertex(targets[slot]))) { edgeIds[i++] = IndexedEdge.from(edge).id }
+                        for (edge in graph.edges(vertex, Vertex(targets[slot]))) { edgeIds[i++] = IdentityIndexedEdge.from(edge).id }
                         edgeIds.sort(edgeOffsets[slot], i)
                         edgeOffsets[slot + 1] = i
                     }
@@ -186,7 +187,7 @@ internal class ImmutableAdjacencyListNetwork private constructor(
         }
     }
 
-    private val predecessors: Adjacencies by lazy { check(directed); successors.transpose() }
+    private val predecessors: Adjacencies by cheapLazy { check(directed); successors.transpose() }
 
     override fun validateVertex(vertex: Vertex): Vertex {
         if (vertex.id !in 0..<successors.size) throwIllegalVertex(vertex)
@@ -194,11 +195,11 @@ internal class ImmutableAdjacencyListNetwork private constructor(
     }
 
     override fun validateEdge(edge: Edge): Edge {
-        if (IndexedEdge.from(edge).id !in edgeValues.indices) throwIllegalEdge(edge)
+        if (IdentityIndexedEdge.from(edge).id !in edgeValues.indices) throwIllegalEdge(edge)
         return edge
     }
 
-    override val vertices: IndexedVertexSet = object : IndexedVertexSet, AbstractVertexSequencedSet() {
+    override val vertices: IdentityIndexedVertexSet = object : IdentityIndexedVertexSet, AbstractVertexSequencedSet() {
         override val size: Int get() = successors.size
     }
 
@@ -213,12 +214,12 @@ internal class ImmutableAdjacencyListNetwork private constructor(
     override fun getIncomingEdges(vertex: Vertex): EdgeSet = IncomingEdges(vertex)
     override fun getIncomingEdge(vertex: Vertex): Edge = predecessors.edge(vertex)
 
-    override val edges: IndexedEdgeSet = object : IndexedEdgeSet, AbstractEdgeSequencedSet() {
+    override val edges: IdentityIndexedEdgeSet = object : IdentityIndexedEdgeSet, AbstractEdgeSequencedSet() {
         override val size: Int get() = edgeValues.size
     }
 
-    override fun edgeSource(edge: IndexedEdge): Vertex = edgeValues[edge.id].source
-    override fun edgeTarget(edge: IndexedEdge): Vertex = edgeValues[edge.id].target
+    override fun edgeSource(edge: IdentityIndexedEdge): Vertex = edgeValues[edge.id].source
+    override fun edgeTarget(edge: IdentityIndexedEdge): Vertex = edgeValues[edge.id].target
 
     override fun containsEdge(source: Vertex, target: Vertex): Boolean = successors.isAdjacent(source, target)
 
@@ -226,14 +227,14 @@ internal class ImmutableAdjacencyListNetwork private constructor(
     override fun getEdges(source: Vertex, target: Vertex): EdgeSet = EdgesBetween(source, target)
 
     override fun createEdgeReference(edge: Edge): EdgeReference = super<InternalImmutableGraph>.createEdgeReference(edge)
-    override fun createEdgeReference(edge: IndexedEdge): EdgeReference = createEdgeReference(edge.toEdge())
+    override fun createEdgeReference(edge: IdentityIndexedEdge): EdgeReference = createEdgeReference(edge.toEdge())
 
     private inner class OutgoingEdges(private val vertex: Vertex) : AbstractEdgeSet() {
         private val edges = successors.edges(vertex)
 
         override val size: Int get() = edges.size
         override fun contains(element: Edge): Boolean {
-            val id = IndexedEdge.from(element).id
+            val id = IdentityIndexedEdge.from(element).id
             if (id !in edgeValues.indices) return false
             val value = edgeValues[id]
             return value.source == vertex || (!directed && value.target == vertex)
@@ -246,7 +247,7 @@ internal class ImmutableAdjacencyListNetwork private constructor(
 
         override val size: Int get() = edges.size
         override fun contains(element: Edge): Boolean {
-            val id = IndexedEdge.from(element).id
+            val id = IdentityIndexedEdge.from(element).id
             return id in edgeValues.indices && edgeValues[id].target == vertex
         }
         override fun iterator(): EdgeIterator = edges.iterator()
@@ -258,14 +259,14 @@ internal class ImmutableAdjacencyListNetwork private constructor(
 
         override val size: Int get() = edges.size
         override fun contains(element: Edge): Boolean {
-            val id = IndexedEdge.from(element).id
+            val id = IdentityIndexedEdge.from(element).id
             return id in edgeValues.indices && edgeValues[id] == edgeValue
         }
         override fun iterator(): EdgeIterator = edges.iterator()
     }
 
     companion object {
-        fun <G> copy(graph: G): ImmutableGraph where G : IndexedVertexGraph, G : IndexedEdgeGraph {
+        fun <G> copy(graph: G): ImmutableGraph where G : IdentityIndexedVertexGraph, G : IdentityIndexedEdgeGraph {
             val edgeValues = EdgeValueArray(graph.edges.size) { index ->
                 val edge = graph.edges[index]
                 EdgeValue(graph.directed, graph.edgeSource(edge), graph.edgeTarget(edge))

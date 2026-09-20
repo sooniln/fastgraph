@@ -3,64 +3,36 @@ package io.github.sooniln.fastgraph.internal
 import io.github.sooniln.fastcollect.*
 import io.github.sooniln.fastgraph.AbstractEdgeSet
 import io.github.sooniln.fastgraph.AbstractGraph
-import io.github.sooniln.fastgraph.AbstractMutableIndexedEdgeSet
-import io.github.sooniln.fastgraph.AbstractMutableIndexedVertexSet
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeChangeListener
-import io.github.sooniln.fastgraph.EdgeFunction
 import io.github.sooniln.fastgraph.EdgeIterator
 import io.github.sooniln.fastgraph.EdgeReference
 import io.github.sooniln.fastgraph.EdgeSet
-import io.github.sooniln.fastgraph.IndexedEdge
-import io.github.sooniln.fastgraph.IndexedEdgeGraph
-import io.github.sooniln.fastgraph.IndexedVertexGraph
-import io.github.sooniln.fastgraph.MutableEdgeKeyProperty
-import io.github.sooniln.fastgraph.MutableEdgeProperty
+import io.github.sooniln.fastgraph.IdentityIndexedEdge
+import io.github.sooniln.fastgraph.IdentityIndexedEdgeGraph
+import io.github.sooniln.fastgraph.IdentityIndexedVertexGraph
 import io.github.sooniln.fastgraph.MutableGraph
-import io.github.sooniln.fastgraph.MutableIndexedEdgeSet
-import io.github.sooniln.fastgraph.MutableIndexedVertexSet
-import io.github.sooniln.fastgraph.MutableVertexKeyProperty
-import io.github.sooniln.fastgraph.MutableVertexProperty
-import io.github.sooniln.fastgraph.PropertyType
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
-import io.github.sooniln.fastgraph.VertexFunction
 import io.github.sooniln.fastgraph.VertexReference
 import io.github.sooniln.fastgraph.VertexSet
 import io.github.sooniln.fastgraph.asVertexSet
-import io.github.sooniln.fastgraph.createEdgeKeyProperty
-import io.github.sooniln.fastgraph.createEdgeProperty
-import io.github.sooniln.fastgraph.createVertexKeyProperty
-import io.github.sooniln.fastgraph.createVertexProperty
 import io.github.sooniln.fastgraph.listeners.EdgeChangeListenerManager
 import io.github.sooniln.fastgraph.listeners.VertexChangeListenerManager
 import io.github.sooniln.fastgraph.references.EdgeReferenceManager
 import io.github.sooniln.fastgraph.references.VertexReferenceManager
+import io.github.sooniln.fastgraph.util.cheapLazy
 import io.github.sooniln.fastgraph.vertexSetOf
 
 internal class AdjacencyListNetwork(
     override val directed: Boolean,
     override val multiEdge: Boolean,
-) : AbstractGraph(), IndexedVertexGraph, IndexedEdgeGraph, MutableGraph {
+) : AbstractGraph(), IdentityIndexedVertexGraph, IdentityIndexedEdgeGraph, MutableGraph {
 
-    private val _predecessors = lazy {
-        check(directed)
-
-        val predecessors = ArrayList<AdjacencySet>(successors.size)
-        repeat(successors.size) {
-            predecessors.add(AdjacencySet())
-        }
-        for (index in successors.indices) {
-            val vertex = Vertex(index)
-            successors[vertex].foreachAdjacency { adjacencyVertex, edgeId ->
-                predecessors[adjacencyVertex].add(vertex, edgeId)
-            }
-        }
-        return@lazy predecessors
-    }
+    private val _predecessors = cheapLazy { check(directed); successors.transpose() }
 
     private val successors: ArrayList<AdjacencySet> = ArrayList()
-    private val predecessors: ArrayList<AdjacencySet> by _predecessors
+    private val predecessors: ArrayList<AdjacencySet> inline get() = _predecessors.value
     private val edgeValues = EdgeValueArrayList()
 
     private val vertexListeners = VertexChangeListenerManager()
@@ -75,7 +47,8 @@ internal class AdjacencyListNetwork(
     }
 
     override fun validateEdge(edge: Edge): Edge {
-        if (edge.edgeId !in 0..<edgeValues.size) throwIllegalEdge(edge)
+        val e = IdentityIndexedEdge.from(edge)
+        if (e.id !in 0..<edgeValues.size) throwIllegalEdge(edge)
         return edge
     }
 
@@ -111,25 +84,31 @@ internal class AdjacencyListNetwork(
         // remove outbound edges
         val outboundAdjacencies = successors[vertex]
         while (!outboundAdjacencies.isEmpty()) {
-            removeEdgeInternal(outboundAdjacencies.edgeIterator().next().edgeId)
+            removeEdgeInternal(outboundAdjacencies.edgeIterator().next())
         }
 
         // remove inbound edges
         if (directed) {
             val inboundAdjacencies = predecessors[vertex]
             while (!inboundAdjacencies.isEmpty()) {
-                removeEdgeInternal(inboundAdjacencies.edgeIterator().next().edgeId)
+                removeEdgeInternal(inboundAdjacencies.edgeIterator().next())
             }
         }
 
-        cleanupVertex(vertex)
+        // notify listeners before removing vertex so that the graph is still consistent
+        val lastVertex = Vertex(successors.lastIndex)
+        if (vertex != lastVertex) {
+            vertexListeners.notifyVertexReassigned(lastVertex, vertex)
+        } else {
+            vertexListeners.notifyVertexRemoved(vertex)
+        }
+
+        cleanupVertex(vertex, lastVertex)
     }
 
-    private fun cleanupVertex(vertex: Vertex) {
+    private fun cleanupVertex(vertex: Vertex, lastVertex: Vertex) {
         // we're going to swap the last vertex into the spot current occupied by the vertex to be removed. this means we
         // need to update all references to last vertex to point to its new location, and then do the swap.
-        val lastVertex = Vertex(successors.lastIndex)
-
         if (vertex != lastVertex) {
             // update edge adjacencies
             if (directed) {
@@ -186,12 +165,6 @@ internal class AdjacencyListNetwork(
         if (directed) {
             predecessors.remove(lastVertex)
         }
-
-        if (vertex != lastVertex) {
-            vertexListeners.notifyVertexReassigned(lastVertex, vertex)
-        } else {
-            vertexListeners.notifyVertexRemoved(vertex)
-        }
     }
 
     override fun addEdge(source: Vertex, target: Vertex): Edge {
@@ -219,12 +192,21 @@ internal class AdjacencyListNetwork(
         return edge
     }
 
-    override fun removeEdge(edge: Edge) = removeEdgeInternal(validateEdge(edge).edgeId)
+    override fun removeEdge(edge: Edge) = removeEdgeInternal(validateEdge(edge))
 
-    private fun removeEdgeInternal(edgeId: Int) {
+    private fun removeEdgeInternal(edge: Edge) {
+        val edgeId = IdentityIndexedEdge.from(edge).id
         val edgeValue = edgeValues[edgeId]
         val source = edgeValue.source
         val target = edgeValue.target
+
+        // listeners are notified first so that the graph is still consistent
+        val lastEdgeId = edgeValues.lastIndex
+        if (edgeId != lastEdgeId) {
+            edgeListeners.notifyEdgeReassigned(canonicalEdge(lastEdgeId), edge)
+        } else {
+            edgeListeners.notifyEdgeRemoved(edge)
+        }
 
         successors[source].remove(target, edgeId)
 
@@ -236,13 +218,10 @@ internal class AdjacencyListNetwork(
             predecessors[target].remove(source, edgeId)
         }
 
-        cleanupEdge(edgeId)
+        cleanupEdge(edgeId, lastEdgeId)
     }
 
-    private fun cleanupEdge(edgeId: Int) {
-        val edge = canonicalEdge(edgeId)
-        val lastEdgeId = edgeValues.lastIndex
-        val lastEdge = canonicalEdge(lastEdgeId)
+    private fun cleanupEdge(edgeId: Int, lastEdgeId: Int) {
         val lastEdgeValue = edgeValues[lastEdgeId]
 
         if (edgeId != lastEdgeId) {
@@ -258,10 +237,6 @@ internal class AdjacencyListNetwork(
             } else if (_predecessors.isInitialized()) {
                 predecessors[lastTarget].reassign(lastSource, lastEdgeId, edgeId)
             }
-
-            edgeListeners.notifyEdgeReassigned(lastEdge, edge)
-        } else {
-            edgeListeners.notifyEdgeRemoved(edge)
         }
 
         // shift last edge into the place of removed edge now that all references have been updated
@@ -269,8 +244,8 @@ internal class AdjacencyListNetwork(
         edgeValues.removeAt(lastEdgeId)
     }
 
-    override val vertices: MutableIndexedVertexSet =
-        object : AbstractMutableIndexedVertexSet(this@AdjacencyListNetwork) {
+    override val vertices: AbstractMutableIdentityIndexedVertexSet =
+        object : AbstractMutableIdentityIndexedVertexSet(this@AdjacencyListNetwork) {
             override val size: Int get() = successors.size
     }
 
@@ -285,19 +260,12 @@ internal class AdjacencyListNetwork(
     override fun getIncomingEdges(vertex: Vertex): EdgeSet = IncidentEdgeSet(false, vertex, predecessors[vertex])
     override fun getIncomingEdge(vertex: Vertex): Edge = predecessors[vertex].edge
 
-    override val edges: MutableIndexedEdgeSet = object : AbstractMutableIndexedEdgeSet(this@AdjacencyListNetwork) {
+    override val edges: AbstractMutableIdentityIndexedEdgeSet = object : AbstractMutableIdentityIndexedEdgeSet(this@AdjacencyListNetwork) {
         override val size: Int get() = edgeValues.size
-        override fun get(index: Int): Edge {
-            if (index !in indices) throw IndexOutOfBoundsException()
-            return canonicalEdge(index)
-        }
-        override fun indexOf(element: Edge): Int {
-            return if (element.id in indices) element.edgeId else -1
-        }
     }
 
-    override fun edgeSource(edge: IndexedEdge): Vertex = edgeValues[edge.id].source
-    override fun edgeTarget(edge: IndexedEdge): Vertex = edgeValues[edge.id].target
+    override fun edgeSource(edge: IdentityIndexedEdge): Vertex = edgeValues[edge.id].source
+    override fun edgeTarget(edge: IdentityIndexedEdge): Vertex = edgeValues[edge.id].target
 
     override fun registerVertexChangeListener(listener: VertexChangeListener) { vertexListeners.register(listener) }
     override fun unregisterVertexChangeListener(listener: VertexChangeListener) { vertexListeners.unregister(listener) }
@@ -316,7 +284,7 @@ internal class AdjacencyListNetwork(
         vertexRefs.getReference(validateVertex(vertex))
 
     override fun createEdgeReference(edge: Edge): EdgeReference = edgeRefs.getReference(validateEdge(edge))
-    override fun createEdgeReference(edge: IndexedEdge): EdgeReference = createEdgeReference(edge.toEdge())
+    override fun createEdgeReference(edge: IdentityIndexedEdge): EdgeReference = createEdgeReference(edge.toEdge())
 
     override fun trimToSize() {
         successors.trimToSize()
@@ -344,22 +312,22 @@ internal class AdjacencyListNetwork(
             get() = adjacencies.size
 
         override fun contains(element: Edge): Boolean {
-            validateEdge(element)
+            val edge = IdentityIndexedEdge.from(validateEdge(element))
 
             val target: Vertex
             val source: Vertex
             if (outgoing) {
-                source = edgeSource(element)
-                target = edgeTarget(element)
+                source = edgeSource(edge)
+                target = edgeTarget(edge)
             } else {
-                source = edgeTarget(element)
-                target = edgeSource(element)
+                source = edgeTarget(edge)
+                target = edgeSource(edge)
             }
 
             return if (!directed && target == vertex) {
-                adjacencies.contains(EdgeAdjacency(source, element.edgeId))
+                adjacencies.contains(EdgeAdjacency(source, edge.id))
             } else {
-                vertex == source && adjacencies.contains(EdgeAdjacency(target, element.edgeId))
+                vertex == source && adjacencies.contains(EdgeAdjacency(target, edge.id))
             }
         }
 
@@ -569,14 +537,23 @@ internal class AdjacencyListNetwork(
         private fun Int2IntHashMap.remove(vertex: Vertex) = remove(vertex.id)
     }
 
-    private operator fun ArrayList<AdjacencySet>.get(vertex: Vertex) = get(vertex.id)
-    private operator fun ArrayList<AdjacencySet>.set(vertex: Vertex, value: AdjacencySet) = set(vertex.id, value)
-    private fun ArrayList<AdjacencySet>.remove(vertex: Vertex) = removeAt(vertex.id)
-
     private companion object {
         private val INVALID_VERTEX = Vertex(-1)
 
-        private val Edge.edgeId: Int inline get() = id.toInt()
+        private operator fun ArrayList<AdjacencySet>.get(vertex: Vertex) = get(vertex.id)
+        private operator fun ArrayList<AdjacencySet>.set(vertex: Vertex, value: AdjacencySet) = set(vertex.id, value)
+        private fun ArrayList<AdjacencySet>.remove(vertex: Vertex) = removeAt(vertex.id)
+        private fun ArrayList<AdjacencySet>.transpose(): ArrayList<AdjacencySet> {
+            val transposed = ArrayList<AdjacencySet>(size)
+            repeat(size) { transposed.add(AdjacencySet()) }
+            for (index in 0..<size) {
+                val vertex = Vertex(index)
+                get(vertex).foreachAdjacency { adjacentVertex, edgeId ->
+                    transposed[adjacentVertex].add(vertex, edgeId)
+                }
+            }
+            return transposed
+        }
 
         private fun canonicalEdge(edgeId: Int): Edge = Edge(edgeId.toLong())
     }

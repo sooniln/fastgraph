@@ -8,6 +8,7 @@ import io.github.sooniln.fastcollect.removeOrElse
 import io.github.sooniln.fastcollect.replaceOrSet
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
+import io.github.sooniln.fastgraph.IdentityIndexedVertexGraph
 import io.github.sooniln.fastgraph.IndexedVertexGraph
 import io.github.sooniln.fastgraph.MutableVertexProperty
 import io.github.sooniln.fastgraph.PropertyType
@@ -23,8 +24,8 @@ import io.github.sooniln.fastcollect.Long2IntHashMap
 import io.github.sooniln.fastgraph.MutableVertexKeyProperty
 
 
-internal class LongArrayVertexProperty(
-    override val graph: IndexedVertexGraph,
+internal class LongIdentityIndexedVertexProperty(
+    override val graph: IdentityIndexedVertexGraph,
     defaultValueFunction: VertexFunction<Long>,
 ) : MutableVertexProperty<Long>, VertexChangeListener {
 
@@ -85,10 +86,72 @@ internal class LongArrayVertexProperty(
     private fun write(it: Long): Long { return it }
 }
 
-internal class ImmutableLongArrayVertexProperty<G>(
+internal class LongIndexedVertexProperty(
+    override val graph: IndexedVertexGraph,
+    defaultValueFunction: VertexFunction<Long>,
+) : MutableVertexProperty<Long>, VertexChangeListener {
+
+    private val property = LongArrayList()
+    private val initializer = defaultValueFunction
+
+    init {
+        property.ensureCapacity(graph.vertices.size)
+        for (vertex in graph.vertices) { onVertexAdded(vertex) }
+        graph.registerVertexChangeListener(this)
+    }
+
+    override val type: PropertyType<Long> get() = propertyTypeOf()
+
+    override fun get(vertex: Vertex): Long {
+        try {
+            return read(property[graph.vertices.indexOf(vertex)])
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalVertex(vertex, e)
+        }
+    }
+
+    override fun set(vertex: Vertex, value: Long) {
+        try {
+            property[graph.vertices.indexOf(vertex)] = write(value)
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalVertex(vertex, e)
+        }
+    }
+
+    override fun put(vertex: Vertex, value: Long): Long {
+        try {
+            return read(property.replace(graph.vertices.indexOf(vertex), write(value)))
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalVertex(vertex, e)
+        }
+    }
+
+    override fun onVertexAdded(vertex: Vertex) {
+        check(graph.vertices.indexOf(vertex) == property.size)
+        property.add(write(initializer.apply(vertex)))
+    }
+
+    override fun onVertexRemoved(vertex: Vertex) {
+        check(graph.vertices.indexOf(vertex) == property.lastIndex)
+        property.removeAt(property.lastIndex)
+    }
+
+    override fun onVertexReassigned(oldVertex: Vertex, newVertex: Vertex) {
+        check(graph.vertices.indexOf(oldVertex) == property.lastIndex)
+        property[graph.vertices.indexOf(newVertex)] = property.removeAt(property.lastIndex)
+    }
+
+    override fun ensureVertexCapacity(vertexCapacity: Int) = property.ensureCapacity(vertexCapacity)
+    override fun trimToSize() = property.trimToSize()
+
+    private fun read(it: Long): Long { return it }
+    private fun write(it: Long): Long { return it }
+}
+
+internal class ImmutableLongIdentityIndexedVertexProperty<G>(
     override val graph: G,
     defaultValueFunction: VertexFunction<Long>,
-) : MutableVertexProperty<Long> where G : ImmutableGraph, G : IndexedVertexGraph {
+) : MutableVertexProperty<Long> where G : ImmutableGraph, G : IdentityIndexedVertexGraph {
 
     private val property = LongArray(graph.vertices.size) { vertexId ->
         write(defaultValueFunction.apply(Vertex(vertexId)))
@@ -126,7 +189,49 @@ internal class ImmutableLongArrayVertexProperty<G>(
     private fun write(it: Long): Long { return it }
 }
 
-internal class LongMapVertexProperty(
+internal class ImmutableLongIndexedVertexProperty<G>(
+    override val graph: G,
+    defaultValueFunction: VertexFunction<Long>,
+) : MutableVertexProperty<Long> where G : ImmutableGraph, G : IndexedVertexGraph {
+
+    private val property = LongArray(graph.vertices.size) { index ->
+        write(defaultValueFunction.apply(graph.vertices[index]))
+    }
+
+    override val type: PropertyType<Long> get() = propertyTypeOf()
+
+    override fun get(vertex: Vertex): Long {
+        try {
+            return read(property[graph.vertices.indexOf(vertex)])
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalVertex(vertex, e)
+        }
+    }
+
+    override fun set(vertex: Vertex, value: Long) {
+        try {
+            property[graph.vertices.indexOf(vertex)] = write(value)
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalVertex(vertex, e)
+        }
+    }
+
+    override fun put(vertex: Vertex, value: Long): Long {
+        try {
+            val index = graph.vertices.indexOf(vertex)
+            val oldValue = read(property[index])
+            property[index] = write(value)
+            return oldValue
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalVertex(vertex, e)
+        }
+    }
+
+    private fun read(it: Long): Long { return it }
+    private fun write(it: Long): Long { return it }
+}
+
+internal class LongVertexProperty(
     override val graph: Graph,
     defaultValueFunction: VertexFunction<Long>
 ) : MutableVertexProperty<Long>, VertexChangeListener {
@@ -170,7 +275,7 @@ internal class LongMapVertexProperty(
     private fun write(it: Long): Long { return it }
 }
 
-internal class ImmutableLongMapVertexProperty(
+internal class ImmutableLongVertexProperty(
     override val graph: ImmutableGraph,
     defaultValueFunction: VertexFunction<Long>
 ) : MutableVertexProperty<Long> {

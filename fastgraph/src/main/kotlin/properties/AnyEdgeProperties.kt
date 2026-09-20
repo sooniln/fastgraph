@@ -9,13 +9,72 @@ import io.github.sooniln.fastgraph.EdgeChangeListener
 import io.github.sooniln.fastgraph.EdgeFunction
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
-import io.github.sooniln.fastgraph.IndexedEdge
+import io.github.sooniln.fastgraph.IdentityIndexedEdge
+import io.github.sooniln.fastgraph.IdentityIndexedEdgeGraph
 import io.github.sooniln.fastgraph.IndexedEdgeGraph
 import io.github.sooniln.fastgraph.MutableEdgeProperty
 import io.github.sooniln.fastgraph.PropertyType
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
 
-internal class ArrayEdgeProperty<T>(
+internal class AnyIdentityIndexedEdgeProperty<T>(
+    override val graph: IdentityIndexedEdgeGraph,
+    override val type: PropertyType<T>,
+    defaultValueFunction: EdgeFunction<T>,
+) : MutableEdgeProperty<T>, EdgeChangeListener {
+
+    private val property = ArrayList<T>()
+    private val initializer = defaultValueFunction
+
+    init {
+        property.ensureCapacity(graph.edges.size)
+        for (edge in graph.edges) { onEdgeAdded(edge) }
+        graph.registerEdgeChangeListener(this)
+    }
+
+    override fun get(edge: Edge): T {
+        try {
+            return property[IdentityIndexedEdge.from(edge).id]
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalEdge(graph, edge, e)
+        }
+    }
+
+    override fun set(edge: Edge, value: T) {
+        try {
+            property[IdentityIndexedEdge.from(edge).id] = value
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalEdge(graph, edge, e)
+        }
+    }
+
+    override fun put(edge: Edge, value: T): T {
+        try {
+            return property.set(IdentityIndexedEdge.from(edge).id, value)
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalEdge(graph, edge, e)
+        }
+    }
+
+    override fun onEdgeAdded(edge: Edge) {
+        check(IdentityIndexedEdge.from(edge).id == property.size)
+        property.add(initializer.apply(edge))
+    }
+
+    override fun onEdgeRemoved(edge: Edge) {
+        check(IdentityIndexedEdge.from(edge).id == property.lastIndex)
+        property.removeAt(IdentityIndexedEdge.from(edge).id)
+    }
+
+    override fun onEdgeReassigned(oldEdge: Edge, newEdge: Edge) {
+        check(IdentityIndexedEdge.from(oldEdge).id == property.lastIndex)
+        property[IdentityIndexedEdge.from(newEdge).id] = property.removeAt(IdentityIndexedEdge.from(oldEdge).id)
+    }
+
+    override fun ensureEdgeCapacity(edgeCapacity: Int) = property.ensureCapacity(edgeCapacity)
+    override fun trimToSize() = property.trimToSize()
+}
+
+internal class AnyIndexedEdgeProperty<T>(
     override val graph: IndexedEdgeGraph,
     override val type: PropertyType<T>,
     defaultValueFunction: EdgeFunction<T>,
@@ -32,7 +91,7 @@ internal class ArrayEdgeProperty<T>(
 
     override fun get(edge: Edge): T {
         try {
-            return property[IndexedEdge.from(edge).id]
+            return property[graph.edges.indexOf(edge)]
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
@@ -40,7 +99,7 @@ internal class ArrayEdgeProperty<T>(
 
     override fun set(edge: Edge, value: T) {
         try {
-            property[IndexedEdge.from(edge).id] = value
+            property[graph.edges.indexOf(edge)] = value
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
@@ -48,32 +107,73 @@ internal class ArrayEdgeProperty<T>(
 
     override fun put(edge: Edge, value: T): T {
         try {
-            return property.set(IndexedEdge.from(edge).id, value)
+            return property.set(graph.edges.indexOf(edge), value)
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
     }
 
     override fun onEdgeAdded(edge: Edge) {
-        check(IndexedEdge.from(edge).id == property.size)
+        check(graph.edges.indexOf(edge) == property.size)
         property.add(initializer.apply(edge))
     }
 
     override fun onEdgeRemoved(edge: Edge) {
-        check(IndexedEdge.from(edge).id == property.lastIndex)
-        property.removeAt(IndexedEdge.from(edge).id)
+        check(graph.edges.indexOf(edge) == property.lastIndex)
+        property.removeAt(property.lastIndex)
     }
 
     override fun onEdgeReassigned(oldEdge: Edge, newEdge: Edge) {
-        check(IndexedEdge.from(oldEdge).id == property.lastIndex)
-        property[IndexedEdge.from(newEdge).id] = property.removeAt(IndexedEdge.from(oldEdge).id)
+        check(graph.edges.indexOf(oldEdge) == property.lastIndex)
+        property[graph.edges.indexOf(newEdge)] = property.removeAt(property.lastIndex)
     }
 
     override fun ensureEdgeCapacity(edgeCapacity: Int) = property.ensureCapacity(edgeCapacity)
     override fun trimToSize() = property.trimToSize()
 }
 
-internal class ImmutableArrayEdgeProperty<G, T>(
+internal class ImmutableAnyIdentityIndexedEdgeProperty<G, T>(
+    override val graph: G,
+    override val type: PropertyType<T>,
+    defaultValueFunction: EdgeFunction<T>,
+) : MutableEdgeProperty<T> where G : ImmutableGraph, G : IdentityIndexedEdgeGraph {
+
+    private val property = ArrayList<T>()
+
+    init {
+        property.ensureCapacity(graph.edges.size)
+        for (edge in graph.edges) {
+            assert(IdentityIndexedEdge.from(edge).id == property.size)
+            property.add(defaultValueFunction.apply(edge))
+        }
+    }
+
+    override fun get(edge: Edge): T {
+        try {
+            return property[IdentityIndexedEdge.from(edge).id]
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalEdge(graph, edge, e)
+        }
+    }
+
+    override fun set(edge: Edge, value: T) {
+        try {
+            property[IdentityIndexedEdge.from(edge).id] = value
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalEdge(graph, edge, e)
+        }
+    }
+
+    override fun put(edge: Edge, value: T): T {
+        try {
+            return property.set(IdentityIndexedEdge.from(edge).id, value)
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalEdge(graph, edge, e)
+        }
+    }
+}
+
+internal class ImmutableAnyIndexedEdgeProperty<G, T>(
     override val graph: G,
     override val type: PropertyType<T>,
     defaultValueFunction: EdgeFunction<T>,
@@ -84,14 +184,14 @@ internal class ImmutableArrayEdgeProperty<G, T>(
     init {
         property.ensureCapacity(graph.edges.size)
         for (edge in graph.edges) {
-            assert(IndexedEdge.from(edge).id == property.size)
+            assert(graph.edges.indexOf(edge) == property.size)
             property.add(defaultValueFunction.apply(edge))
         }
     }
 
     override fun get(edge: Edge): T {
         try {
-            return property[IndexedEdge.from(edge).id]
+            return property[graph.edges.indexOf(edge)]
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
@@ -99,7 +199,7 @@ internal class ImmutableArrayEdgeProperty<G, T>(
 
     override fun set(edge: Edge, value: T) {
         try {
-            property[IndexedEdge.from(edge).id] = value
+            property[graph.edges.indexOf(edge)] = value
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
@@ -107,14 +207,14 @@ internal class ImmutableArrayEdgeProperty<G, T>(
 
     override fun put(edge: Edge, value: T): T {
         try {
-            return property.set(IndexedEdge.from(edge).id, value)
+            return property.set(graph.edges.indexOf(edge), value)
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
     }
 }
 
-internal class MapEdgeProperty<T>(
+internal class AnyEdgeProperty<T>(
     override val graph: Graph,
     override val type: PropertyType<T>,
     defaultValueFunction: EdgeFunction<T>
@@ -153,7 +253,7 @@ internal class MapEdgeProperty<T>(
     override fun trimToSize() = property.trimToSize()
 }
 
-internal class ImmutableMapEdgeProperty<T>(
+internal class ImmutableAnyEdgeProperty<T>(
     override val graph: ImmutableGraph,
     override val type: PropertyType<T>,
     defaultValueFunction: EdgeFunction<T>

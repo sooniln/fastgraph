@@ -5,44 +5,63 @@
 
 package io.github.sooniln.fastgraph
 
-import io.github.sooniln.fastgraph.properties.ArrayVertexKeyProperty
-import io.github.sooniln.fastgraph.properties.ArrayVertexProperty
-import io.github.sooniln.fastgraph.properties.BooleanArrayVertexProperty
-import io.github.sooniln.fastgraph.properties.BooleanMapVertexProperty
-import io.github.sooniln.fastgraph.properties.ByteArrayVertexProperty
-import io.github.sooniln.fastgraph.properties.ByteMapVertexProperty
-import io.github.sooniln.fastgraph.properties.DoubleArrayVertexProperty
-import io.github.sooniln.fastgraph.properties.DoubleMapVertexProperty
-import io.github.sooniln.fastgraph.properties.FloatArrayVertexProperty
-import io.github.sooniln.fastgraph.properties.FloatMapVertexProperty
-import io.github.sooniln.fastgraph.properties.ImmutableArrayVertexProperty
-import io.github.sooniln.fastgraph.properties.ImmutableBooleanArrayVertexProperty
-import io.github.sooniln.fastgraph.properties.ImmutableBooleanMapVertexProperty
-import io.github.sooniln.fastgraph.properties.ImmutableByteArrayVertexProperty
-import io.github.sooniln.fastgraph.properties.ImmutableByteMapVertexProperty
-import io.github.sooniln.fastgraph.properties.ImmutableDoubleArrayVertexProperty
-import io.github.sooniln.fastgraph.properties.ImmutableDoubleMapVertexProperty
-import io.github.sooniln.fastgraph.properties.ImmutableFloatArrayVertexProperty
-import io.github.sooniln.fastgraph.properties.ImmutableFloatMapVertexProperty
-import io.github.sooniln.fastgraph.properties.ImmutableIntArrayVertexProperty
-import io.github.sooniln.fastgraph.properties.ImmutableIntMapVertexProperty
-import io.github.sooniln.fastgraph.properties.ImmutableLongArrayVertexProperty
-import io.github.sooniln.fastgraph.properties.ImmutableLongMapVertexProperty
-import io.github.sooniln.fastgraph.properties.ImmutableMapVertexProperty
-import io.github.sooniln.fastgraph.properties.ImmutableVertexArrayVertexProperty
-import io.github.sooniln.fastgraph.properties.ImmutableVertexMapVertexProperty
-import io.github.sooniln.fastgraph.properties.IntArrayVertexKeyProperty
-import io.github.sooniln.fastgraph.properties.IntArrayVertexProperty
-import io.github.sooniln.fastgraph.properties.IntMapVertexKeyProperty
-import io.github.sooniln.fastgraph.properties.IntMapVertexProperty
-import io.github.sooniln.fastgraph.properties.LongArrayVertexKeyProperty
-import io.github.sooniln.fastgraph.properties.LongArrayVertexProperty
-import io.github.sooniln.fastgraph.properties.LongMapVertexKeyProperty
-import io.github.sooniln.fastgraph.properties.LongMapVertexProperty
-import io.github.sooniln.fastgraph.properties.MapVertexKeyProperty
-import io.github.sooniln.fastgraph.properties.MapVertexProperty
-import io.github.sooniln.fastgraph.properties.VertexArrayVertexProperty
-import io.github.sooniln.fastgraph.properties.VertexMapVertexProperty
+import io.github.sooniln.fastgraph.properties.AnyIdentityIndexedVertexKeyProperty
+import io.github.sooniln.fastgraph.properties.AnyIdentityIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.AnyIndexedVertexKeyProperty
+import io.github.sooniln.fastgraph.properties.AnyIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.AnyVertexKeyProperty
+import io.github.sooniln.fastgraph.properties.AnyVertexProperty
+import io.github.sooniln.fastgraph.properties.BooleanIdentityIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.BooleanIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.BooleanVertexProperty
+import io.github.sooniln.fastgraph.properties.ByteIdentityIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.ByteIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.ByteVertexProperty
+import io.github.sooniln.fastgraph.properties.DoubleIdentityIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.DoubleIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.DoubleVertexProperty
+import io.github.sooniln.fastgraph.properties.FloatIdentityIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.FloatIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.FloatVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableAnyIdentityIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableAnyIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableAnyVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableBooleanIdentityIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableBooleanIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableBooleanVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableByteIdentityIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableByteIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableByteVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableDoubleIdentityIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableDoubleIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableDoubleVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableFloatIdentityIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableFloatIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableFloatVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableIntIdentityIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableIntIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableIntVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableLongIdentityIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableLongIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableLongVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableVertexIdentityIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableVertexIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.ImmutableVertexVertexProperty
+import io.github.sooniln.fastgraph.properties.IntIdentityIndexedVertexKeyProperty
+import io.github.sooniln.fastgraph.properties.IntIdentityIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.IntIndexedVertexKeyProperty
+import io.github.sooniln.fastgraph.properties.IntIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.IntVertexKeyProperty
+import io.github.sooniln.fastgraph.properties.IntVertexProperty
+import io.github.sooniln.fastgraph.properties.LongIdentityIndexedVertexKeyProperty
+import io.github.sooniln.fastgraph.properties.LongIdentityIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.LongIndexedVertexKeyProperty
+import io.github.sooniln.fastgraph.properties.LongIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.LongVertexKeyProperty
+import io.github.sooniln.fastgraph.properties.LongVertexProperty
+import io.github.sooniln.fastgraph.properties.VertexIdentityIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.VertexIndexedVertexProperty
+import io.github.sooniln.fastgraph.properties.VertexVertexProperty
 import kotlin.reflect.typeOf
 
 /**
@@ -83,7 +102,7 @@ public interface VertexProperty<V> {
 
 /** See [VertexProperty.get]. */
 @JvmSynthetic
-public operator fun <V> VertexProperty<V>.get(vertexReference: VertexReference): V = get(vertexReference.unstable)
+public operator fun <V> VertexProperty<out V>.get(vertexReference: VertexReference): V = get(vertexReference.unstable)
 
 /** A mutable specialization of VertexProperty. */
 @Suppress("INAPPLICABLE_JVM_NAME")
@@ -109,7 +128,7 @@ public interface MutableVertexProperty<V> : VertexProperty<V> {
 
 /** See [MutableVertexProperty.set]. */
 @JvmSynthetic
-public operator fun <V> MutableVertexProperty<V>.set(vertexReference: VertexReference, value: V): Unit =
+public operator fun <V> MutableVertexProperty<in V>.set(vertexReference: VertexReference, value: V): Unit =
     set(vertexReference.unstable, value)
 
 /** See [MutableVertexProperty.put]. */
@@ -150,191 +169,283 @@ public fun <T> createVertexProperty(
     return if (graph is ImmutableGraph) {
         if (graph.isEmpty()) {
             emptyVertexProperty(graph, type)
+        } else if (graph is IdentityIndexedVertexGraph) {
+            when (type.kType) {
+                typeOf<Boolean>() ->
+                    ImmutableBooleanIdentityIndexedVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Boolean>
+                    ) as MutableVertexProperty<T>
+
+                typeOf<Byte>() ->
+                    ImmutableByteIdentityIndexedVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Byte>
+                    ) as MutableVertexProperty<T>
+
+                typeOf<Int>() ->
+                    ImmutableIntIdentityIndexedVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Int>
+                    ) as MutableVertexProperty<T>
+
+                typeOf<Long>() ->
+                    ImmutableLongIdentityIndexedVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Long>
+                    ) as MutableVertexProperty<T>
+
+                typeOf<Float>() ->
+                    ImmutableFloatIdentityIndexedVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Float>
+                    ) as MutableVertexProperty<T>
+
+                typeOf<Double>() ->
+                    ImmutableDoubleIdentityIndexedVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Double>
+                    ) as MutableVertexProperty<T>
+
+                typeOf<Vertex>() ->
+                    ImmutableVertexIdentityIndexedVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Vertex>
+                    ) as MutableVertexProperty<T>
+
+                else -> ImmutableAnyIdentityIndexedVertexProperty(graph, type, defaultValueFunction)
+            }
         } else if (graph is IndexedVertexGraph) {
             when (type.kType) {
                 typeOf<Boolean>() ->
-                    ImmutableBooleanArrayVertexProperty(
+                    ImmutableBooleanIndexedVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Boolean>
                     ) as MutableVertexProperty<T>
 
                 typeOf<Byte>() ->
-                    ImmutableByteArrayVertexProperty(
+                    ImmutableByteIndexedVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Byte>
                     ) as MutableVertexProperty<T>
 
                 typeOf<Int>() ->
-                    ImmutableIntArrayVertexProperty(
+                    ImmutableIntIndexedVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Int>
                     ) as MutableVertexProperty<T>
 
                 typeOf<Long>() ->
-                    ImmutableLongArrayVertexProperty(
+                    ImmutableLongIndexedVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Long>
                     ) as MutableVertexProperty<T>
 
                 typeOf<Float>() ->
-                    ImmutableFloatArrayVertexProperty(
+                    ImmutableFloatIndexedVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Float>
                     ) as MutableVertexProperty<T>
 
                 typeOf<Double>() ->
-                    ImmutableDoubleArrayVertexProperty(
+                    ImmutableDoubleIndexedVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Double>
                     ) as MutableVertexProperty<T>
 
                 typeOf<Vertex>() ->
-                    ImmutableVertexArrayVertexProperty(
+                    ImmutableVertexIndexedVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Vertex>
                     ) as MutableVertexProperty<T>
 
-                else -> ImmutableArrayVertexProperty(graph, type, defaultValueFunction)
+                else -> ImmutableAnyIndexedVertexProperty(graph, type, defaultValueFunction)
             }
         } else {
             when (type.kType) {
                 typeOf<Boolean>() ->
-                    ImmutableBooleanMapVertexProperty(
+                    ImmutableBooleanVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Boolean>
                     ) as MutableVertexProperty<T>
 
                 typeOf<Byte>() ->
-                    ImmutableByteMapVertexProperty(
+                    ImmutableByteVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Byte>
                     ) as MutableVertexProperty<T>
 
                 typeOf<Int>() ->
-                    ImmutableIntMapVertexProperty(
+                    ImmutableIntVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Int>
                     ) as MutableVertexProperty<T>
 
                 typeOf<Long>() ->
-                    ImmutableLongMapVertexProperty(
+                    ImmutableLongVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Long>
                     ) as MutableVertexProperty<T>
 
                 typeOf<Float>() ->
-                    ImmutableFloatMapVertexProperty(
+                    ImmutableFloatVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Float>
                     ) as MutableVertexProperty<T>
 
                 typeOf<Double>() ->
-                    ImmutableDoubleMapVertexProperty(
+                    ImmutableDoubleVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Double>
                     ) as MutableVertexProperty<T>
 
                 typeOf<Vertex>() ->
-                    ImmutableVertexMapVertexProperty(
+                    ImmutableVertexVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Vertex>
                     ) as MutableVertexProperty<T>
 
-                else -> ImmutableMapVertexProperty(graph, type, defaultValueFunction)
+                else -> ImmutableAnyVertexProperty(graph, type, defaultValueFunction)
             }
         }
     } else {
-        if (graph is IndexedVertexGraph) {
+        if (graph is IdentityIndexedVertexGraph) {
             when (type.kType) {
                 typeOf<Boolean>() ->
-                    BooleanArrayVertexProperty(
+                    BooleanIdentityIndexedVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Boolean>
                     ) as MutableVertexProperty<T>
 
                 typeOf<Byte>() ->
-                    ByteArrayVertexProperty(
+                    ByteIdentityIndexedVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Byte>
                     ) as MutableVertexProperty<T>
 
                 typeOf<Int>() ->
-                    IntArrayVertexProperty(
+                    IntIdentityIndexedVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Int>
                     ) as MutableVertexProperty<T>
 
                 typeOf<Long>() ->
-                    LongArrayVertexProperty(
+                    LongIdentityIndexedVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Long>
                     ) as MutableVertexProperty<T>
 
                 typeOf<Float>() ->
-                    FloatArrayVertexProperty(
+                    FloatIdentityIndexedVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Float>
                     ) as MutableVertexProperty<T>
 
                 typeOf<Double>() ->
-                    DoubleArrayVertexProperty(
+                    DoubleIdentityIndexedVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Double>
                     ) as MutableVertexProperty<T>
 
                 typeOf<Vertex>() ->
-                    VertexArrayVertexProperty(
+                    VertexIdentityIndexedVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Vertex>
                     ) as MutableVertexProperty<T>
 
-                else -> ArrayVertexProperty(graph, type, defaultValueFunction)
+                else -> AnyIdentityIndexedVertexProperty(graph, type, defaultValueFunction)
+            }
+        } else if (graph is IndexedVertexGraph) {
+            when (type.kType) {
+                typeOf<Boolean>() ->
+                    BooleanIndexedVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Boolean>
+                    ) as MutableVertexProperty<T>
+
+                typeOf<Byte>() ->
+                    ByteIndexedVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Byte>
+                    ) as MutableVertexProperty<T>
+
+                typeOf<Int>() ->
+                    IntIndexedVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Int>
+                    ) as MutableVertexProperty<T>
+
+                typeOf<Long>() ->
+                    LongIndexedVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Long>
+                    ) as MutableVertexProperty<T>
+
+                typeOf<Float>() ->
+                    FloatIndexedVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Float>
+                    ) as MutableVertexProperty<T>
+
+                typeOf<Double>() ->
+                    DoubleIndexedVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Double>
+                    ) as MutableVertexProperty<T>
+
+                typeOf<Vertex>() ->
+                    VertexIndexedVertexProperty(
+                        graph,
+                        defaultValueFunction as VertexFunction<Vertex>
+                    ) as MutableVertexProperty<T>
+
+                else -> AnyIndexedVertexProperty(graph, type, defaultValueFunction)
             }
         } else {
             when (type.kType) {
                 typeOf<Boolean>() ->
-                    BooleanMapVertexProperty(
+                    BooleanVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Boolean>
                     ) as MutableVertexProperty<T>
 
                 typeOf<Byte>() ->
-                    ByteMapVertexProperty(
+                    ByteVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Byte>
                     ) as MutableVertexProperty<T>
 
                 typeOf<Int>() ->
-                    IntMapVertexProperty(
+                    IntVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Int>
                     ) as MutableVertexProperty<T>
 
                 typeOf<Long>() ->
-                    LongMapVertexProperty(
+                    LongVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Long>
                     ) as MutableVertexProperty<T>
 
                 typeOf<Float>() ->
-                    FloatMapVertexProperty(
+                    FloatVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Float>
                     ) as MutableVertexProperty<T>
 
                 typeOf<Double>() ->
-                    DoubleMapVertexProperty(
+                    DoubleVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Double>
                     ) as MutableVertexProperty<T>
 
                 typeOf<Vertex>() ->
-                    VertexMapVertexProperty(
+                    VertexVertexProperty(
                         graph,
                         defaultValueFunction as VertexFunction<Vertex>
                     ) as MutableVertexProperty<T>
 
-                else -> MapVertexProperty(graph, type, defaultValueFunction)
+                else -> AnyVertexProperty(graph, type, defaultValueFunction)
             }
         }
     }
@@ -384,17 +495,23 @@ public interface MutableVertexKeyProperty<V> : VertexKeyProperty<V>, MutableVert
 @Suppress("UNCHECKED_CAST")
 @JvmName("createVertexKeyProperty")
 public fun <T> createVertexKeyProperty(graph: Graph, type: PropertyType<T>): MutableVertexKeyProperty<T> {
-    return if (graph is IndexedVertexGraph) {
+    return if (graph is IdentityIndexedVertexGraph) {
         when (type.kType) {
-            typeOf<Int>() -> IntArrayVertexKeyProperty(graph) as MutableVertexKeyProperty<T>
-            typeOf<Long>() -> LongArrayVertexKeyProperty(graph) as MutableVertexKeyProperty<T>
-            else -> ArrayVertexKeyProperty(graph, type)
+            typeOf<Int>() -> IntIdentityIndexedVertexKeyProperty(graph) as MutableVertexKeyProperty<T>
+            typeOf<Long>() -> LongIdentityIndexedVertexKeyProperty(graph) as MutableVertexKeyProperty<T>
+            else -> AnyIdentityIndexedVertexKeyProperty(graph, type)
+        }
+    } else if (graph is IndexedVertexGraph) {
+        when (type.kType) {
+            typeOf<Int>() -> IntIndexedVertexKeyProperty(graph) as MutableVertexKeyProperty<T>
+            typeOf<Long>() -> LongIndexedVertexKeyProperty(graph) as MutableVertexKeyProperty<T>
+            else -> AnyIndexedVertexKeyProperty(graph, type)
         }
     } else {
         when (type.kType) {
-            typeOf<Int>() -> IntMapVertexKeyProperty(graph) as MutableVertexKeyProperty<T>
-            typeOf<Long>() -> LongMapVertexKeyProperty(graph) as MutableVertexKeyProperty<T>
-            else -> MapVertexKeyProperty(graph, type)
+            typeOf<Int>() -> IntVertexKeyProperty(graph) as MutableVertexKeyProperty<T>
+            typeOf<Long>() -> LongVertexKeyProperty(graph) as MutableVertexKeyProperty<T>
+            else -> AnyVertexKeyProperty(graph, type)
         }
     }
 }
@@ -405,7 +522,7 @@ public fun <T> createVertexKeyProperty(graph: Graph, type: PropertyType<T>): Mut
  * any data, and references the input property indefinitely.
  */
 @JvmName("map")
-public fun <V, O> map(property: VertexProperty<V>, type: PropertyType<O>, transform: (V) -> O): VertexProperty<O> {
+public fun <V, O> map(property: VertexProperty<out V>, type: PropertyType<O>, transform: (V) -> O): VertexProperty<out O> {
     return object : VertexProperty<O> {
         override val graph: Graph get() = property.graph
         override val type: PropertyType<O> get() = type
@@ -416,13 +533,13 @@ public fun <V, O> map(property: VertexProperty<V>, type: PropertyType<O>, transf
 /** See [map]. */
 @JvmSynthetic
 @JvmName("#vertexPropertyMap")
-public fun <V, O> VertexProperty<V>.map(type: PropertyType<O>, transform: (V) -> O): VertexProperty<O> {
+public fun <V, O> VertexProperty<out V>.map(type: PropertyType<O>, transform: (V) -> O): VertexProperty<out O> {
     return map(this, type, transform)
 }
 
 /** See [map]. */
 @JvmSynthetic
-public inline fun <V, reified O> VertexProperty<V>.map(noinline transform: (V) -> O): VertexProperty<O> {
+public inline fun <V, reified O> VertexProperty<out V>.map(noinline transform: (V) -> O): VertexProperty<out O> {
     return map(this, propertyTypeOf(), transform)
 }
 
@@ -469,12 +586,30 @@ public inline fun <V, reified O> MutableVertexProperty<V>.map(
 }
 
 /**
- * Convenience function that sets the value of this property to the value from the given property for every vertex in
- * the graph.
+ * Convenience function that sets the value of [other] to the value of this property for every vertex in [graph]. This
+ * differs from [copyFrom] in which graph has its vertices iterated. If both properties belong to the same graph, then
+ * the two methods are interchangeable.
+ *
+ * Note that if the properties are from different graphs, this is only a meaningful operation if there is some
+ * meaningful connection between the graphs.
  */
 public fun <E> VertexProperty<out E>.copyInto(other: MutableVertexProperty<in E>) {
     for (vertex in graph.vertices) {
         other[vertex] = get(vertex)
+    }
+}
+
+/**
+ * Convenience function that sets the value of [other] to the value of this property for every vertex in [graph]. This
+ * differs from [copyInto] in which graph has its vertices iterated. If both properties belong to the same graph, then
+ * the two methods are interchangeable.
+ *
+ * Note that if the properties are from different graphs, this is only a meaningful operation if there is some
+ * meaningful connection between the graphs.
+ */
+public fun <E> MutableVertexProperty<in E>.copyFrom(other: VertexProperty<out E>) {
+    for (vertex in graph.vertices) {
+        set(vertex, other[vertex])
     }
 }
 

@@ -6,8 +6,8 @@ package io.github.sooniln.fastgraph.io.graphml
 
 import io.github.sooniln.fastgraph.EdgeProperty
 import io.github.sooniln.fastgraph.Graph
-import io.github.sooniln.fastgraph.IndexedEdgeGraph
-import io.github.sooniln.fastgraph.IndexedVertexGraph
+import io.github.sooniln.fastgraph.IdentityIndexedEdgeGraph
+import io.github.sooniln.fastgraph.IdentityIndexedVertexGraph
 import io.github.sooniln.fastgraph.MutableEdgeProperty
 import io.github.sooniln.fastgraph.MutableGraph
 import io.github.sooniln.fastgraph.MutableVertexProperty
@@ -394,8 +394,8 @@ public fun writeGraphML(
     writer.writeAttribute("parse.nodes", graph.graph.vertices.size.toString())
     writer.writeAttribute("parse.edges", graph.graph.edges.size.toString())
     writer.writeAttribute("parse.order", "nodesfirst")
-    if (graph.graph is IndexedVertexGraph) writer.writeAttribute("parse.nodeids", "canonical")
-    if (graph.graph is IndexedEdgeGraph) writer.writeAttribute("parse.edgeids", "canonical")
+    if (graph.graph is IdentityIndexedVertexGraph) writer.writeAttribute("parse.nodeids", "canonical")
+    if (graph.graph is IdentityIndexedEdgeGraph) writer.writeAttribute("parse.edgeids", "canonical")
 
     for ((name, value) in graph.graphAttributes) {
         writer.writeStartElement("data")

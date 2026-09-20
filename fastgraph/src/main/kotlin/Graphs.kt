@@ -482,21 +482,18 @@ public interface VertexChangeListener {
     public fun onVertexAdded(vertex: Vertex)
 
     /**
-     * Invoked after the vertex is removed from the graph. The graph is in a consistent state with the vertex not
-     * present.
+     * Invoked before the vertex is removed from the graph. The graph is in a consistent state with the vertex present.
      */
     @JvmName("onVertexRemoved")
     public fun onVertexRemoved(vertex: Vertex)
 
     /**
-     * Invoked after a vertex ID is re-assigned. The caller guarantees that [oldVertex] != [newVertex]. This indicates
-     * that [oldVertex] is having its ID re-assigned to that of [newVertex]. The effect of this method should be the
-     * same as if: (1) all references to `newVertex.id` are removed (if any exist) - the same as if
-     * `onVertexRemoved(newVertex.id)` was invoked (2) all references to `oldVertex.id` are updated to `newVertex.id`
-     * (3) no references to `oldVertex.id` should be present anywhere after completion of this method.
-     *
-     * When invoked, the graph is MAY NOT be in a consistent state, so interaction with the graph within this method is
-     * forbidden and should not be attempted.
+     * Invoked before a vertex ID is re-assigned. The caller guarantees that [oldVertex] != [newVertex]. This indicates
+     * that [newVertex] is being removed from the graph and [oldVertex] is having its ID re-assigned to that of
+     * [newVertex]. The effect of this method should be the same as if: (1) all references to `newVertex.id` are
+     * removed (if any exist) - the same as if `onVertexRemoved(newVertex.id)` was invoked (2) all references to
+     * `oldVertex.id` are updated to `newVertex.id` (3) no references to `oldVertex.id` should be present anywhere after
+     * completion of this method.
      */
     @JvmName("onVertexReassigned")
     public fun onVertexReassigned(oldVertex: Vertex, newVertex: Vertex)
@@ -521,7 +518,7 @@ public interface EdgeChangeListener {
     public fun onEdgeAdded(edge: Edge)
 
     /**
-     * Invoked after the edge is removed from the graph. The graph is in a consistent state with the edge not present.
+     * Invoked before the edge is removed from the graph. The graph is in a consistent state with the edge present.
      */
     @JvmName("onEdgeRemoved")
     public fun onEdgeRemoved(edge: Edge)
@@ -532,8 +529,6 @@ public interface EdgeChangeListener {
      * (1) all references to `newEdge.id` are removed (if any exist) - the same as if `onEdgeRemoved(newEdge.id)` was
      * invoked (2) all references to `oldEdge.id` are updated to `newEdge.id` (3) no references to `oldEdge.id` should
      * be present anywhere after completion of this method.
-     *
-     * When invoked, the graph is in a consistent state with [oldEdge] present ([newEdge] may or may not be present).
      */
     @JvmName("onEdgeReassigned")
     public fun onEdgeReassigned(oldEdge: Edge, newEdge: Edge)
@@ -613,41 +608,59 @@ public inline fun <reified T> Graph.createEdgeProperty(defaultValue: T): Mutable
 
 /**
  * A graph which guarantees that all vertices in the graph can be associated with an index from `0` to
- * `vertices.size - 1`, and that [Vertex.id] is the same as the index. This makes vertices accessible by index,
- * and an index can be retrieved for each vertex. In addition, [vertices] MUST iterate vertices in index order. If
- * applied to a [MutableGraph] this implies that when a vertex is added or removed the graph must re-order vertices in
- * order to ensure the invariants are met.
+ * `vertices.size - 1`. The index of a vertex is defined via `vertices.indexOf(vertex)` and the vertex for an index
+ * via `vertices[index]`. In addition, [vertices] MUST iterate vertices in index order. If applied to a [MutableGraph]
+ * this implies that when a vertex is removed the graph must re-order vertices in order to keep indices contiguous.
+ *
+ * See [IdentityIndexedVertexGraph] for the stronger guarantee that the index of a vertex is its [Vertex.id].
  */
 public interface IndexedVertexGraph : Graph {
     override val vertices: IndexedVertexSet
 }
 
 /**
- * A graph which guarantees that all edges in the graph can be associated with an index from `0` to `edges.size - 1`,
- * and [Edge.id].toInt() is the same as the index. This makes edges accessible by index, and an index can be
- * retrieved for each edge. In addition, [edges] must iterate edges in index order. If applied to a [MutableGraph] this
- * implies that when an edge is added or removed the graph must re-order edges in order to ensure the invariants are
- * met.
+ * An [IndexedVertexGraph] which additionally guarantees that the index of every vertex is its [Vertex.id], i.e.
+ * `vertices[index] == Vertex(index)` and `vertices.indexOf(vertex) == vertex.id`.
+ */
+public interface IdentityIndexedVertexGraph : IndexedVertexGraph {
+    override val vertices: IdentityIndexedVertexSet
+}
+
+/**
+ * A graph which guarantees that all edges in the graph can be associated with an index from `0` to `edges.size - 1`.
+ * The index of an edge is obtained via `edges.indexOf(edge)`, and the edge for an index via `edges[index]`. In
+ * addition, [edges] MUST iterate edges in index order. If applied to a [MutableGraph] this implies that when an edge is
+ * removed the graph must re-order edges in order to keep indices contiguous.
+ *
+ * See [IdentityIndexedEdgeGraph] for the stronger guarantee that the index of an edge is its [Edge.id].
+ */
+public interface IndexedEdgeGraph : Graph {
+    override val edges: IndexedEdgeSet
+}
+
+/**
+ * An [IndexedEdgeGraph] which additionally guarantees that the index of every edge is its [Edge.id], i.e.
+ * `edges[index] == Edge(index)` and `edges.indexOf(edge) == edge.id`.
  *
  * This interface is incompatible with [CanonicalEdgeGraph].
  */
 @Suppress("INAPPLICABLE_JVM_NAME")
-public interface IndexedEdgeGraph : Graph {
-    override val edges: IndexedEdgeSet
+public interface IdentityIndexedEdgeGraph : IndexedEdgeGraph {
+    override val edges: IdentityIndexedEdgeSet
 
     @JvmName("edgeSource")
-    override fun edgeSource(edge: Edge): Vertex = edgeSource(IndexedEdge.from(edge))
+    override fun edgeSource(edge: Edge): Vertex = edgeSource(IdentityIndexedEdge.from(edge))
     @JvmName("edgeTarget")
-    override fun edgeTarget(edge: Edge): Vertex = edgeTarget(IndexedEdge.from(edge))
+    override fun edgeTarget(edge: Edge): Vertex = edgeTarget(IdentityIndexedEdge.from(edge))
     @JvmName("createEdgeReference")
-    override fun createEdgeReference(edge: Edge): EdgeReference = createEdgeReference(IndexedEdge.from(edge))
+    override fun createEdgeReference(edge: Edge): EdgeReference = createEdgeReference(IdentityIndexedEdge.from(edge))
 
     @JvmName("edgeSource")
-    public fun edgeSource(edge: IndexedEdge): Vertex
+    public fun edgeSource(edge: IdentityIndexedEdge): Vertex
     @JvmName("edgeTarget")
-    public fun edgeTarget(edge: IndexedEdge): Vertex
+    public fun edgeTarget(edge: IdentityIndexedEdge): Vertex
     @JvmName("createEdgeReference")
-    public fun createEdgeReference(edge: IndexedEdge): EdgeReference
+    public fun createEdgeReference(edge: IdentityIndexedEdge): EdgeReference
 }
 
 /**
@@ -656,7 +669,7 @@ public interface IndexedEdgeGraph : Graph {
  * faster than [edgeOpposite] for directed graphs.
  */
 @JvmName("edgeSource")
-public fun IndexedEdgeGraph.edgeSource(edge: IndexedEdge, target: Vertex): Vertex {
+public fun IdentityIndexedEdgeGraph.edgeSource(edge: IdentityIndexedEdge, target: Vertex): Vertex {
     if (directed) {
         val source = edgeSource(edge)
         assert(source != target)
@@ -672,7 +685,7 @@ public fun IndexedEdgeGraph.edgeSource(edge: IndexedEdge, target: Vertex): Verte
  * faster than [edgeOpposite].
  */
 @JvmSynthetic
-public fun IndexedEdgeGraph.edgeSource(edge: IndexedEdge, target: VertexReference): Vertex = edgeSource(edge, target.unstable)
+public fun IdentityIndexedEdgeGraph.edgeSource(edge: IdentityIndexedEdge, target: VertexReference): Vertex = edgeSource(edge, target.unstable)
 
 /**
  * For a directed graph, this is equivalent to [Graph.edgeTarget]. For an undirected graph this returns the vertex
@@ -680,7 +693,7 @@ public fun IndexedEdgeGraph.edgeSource(edge: IndexedEdge, target: VertexReferenc
  * faster than [edgeOpposite] for directed graphs.
  */
 @JvmName("edgeTarget")
-public fun IndexedEdgeGraph.edgeTarget(edge: IndexedEdge, source: Vertex): Vertex {
+public fun IdentityIndexedEdgeGraph.edgeTarget(edge: IdentityIndexedEdge, source: Vertex): Vertex {
     if (directed) {
         val target = edgeTarget(edge)
         assert(source != target)
@@ -696,7 +709,7 @@ public fun IndexedEdgeGraph.edgeTarget(edge: IndexedEdge, source: Vertex): Verte
  * faster than [edgeOpposite].
  */
 @JvmSynthetic
-public fun IndexedEdgeGraph.edgeTarget(edge: IndexedEdge, source: VertexReference): Vertex = edgeTarget(edge, source.unstable)
+public fun IdentityIndexedEdgeGraph.edgeTarget(edge: IdentityIndexedEdge, source: VertexReference): Vertex = edgeTarget(edge, source.unstable)
 
 /**
  * Returns the vertex of the given edge that is opposite the given vertex. I.e., the source vertex is returned if the
@@ -706,7 +719,7 @@ public fun IndexedEdgeGraph.edgeTarget(edge: IndexedEdge, source: VertexReferenc
  * than this method.
  */
 @JvmName("edgeOpposite")
-public fun IndexedEdgeGraph.edgeOpposite(edge: IndexedEdge, other: Vertex): Vertex {
+public fun IdentityIndexedEdgeGraph.edgeOpposite(edge: IdentityIndexedEdge, other: Vertex): Vertex {
     val target = edgeTarget(edge)
     val source = edgeSource(edge)
     if (other == target) {
@@ -727,23 +740,13 @@ public fun IndexedEdgeGraph.edgeOpposite(edge: IndexedEdge, other: Vertex): Vert
  * the source/target distinction does not exist.
  */
 @JvmSynthetic
-public fun IndexedEdgeGraph.edgeOpposite(edge: IndexedEdge, other: VertexReference): Vertex = edgeOpposite(edge, other.unstable)
+public fun IdentityIndexedEdgeGraph.edgeOpposite(edge: IdentityIndexedEdge, other: VertexReference): Vertex = edgeOpposite(edge, other.unstable)
 
 /**
- * A graph which guarantees that all edges in the graph encode their vertex endpoints directly into the edge id in the
- * following manner:
+ * A graph which guarantees that all edges in the graph encode their vertex endpoints directly into the edge id, without
+ * requiring any additional storage.
  *
- *   * If the graph is directed, the source vertex id is encoded in the upper 32 bits and the target vertex id is
- *     encoded in the lower 32 bits.
- *   * If the
- *
- * can be associated with an index from `0` to `edges.size - 1`,
- * and [Edge.id].toInt() is the same as the index. This makes edges accessible by index, and an index can be
- * retrieved for each edge. In addition, [edges] must iterate edges in index order. If applied to a [MutableGraph] this
- * implies that when an edge is added or removed the graph must re-order edges in order to ensure the invariants are
- * met.
- *
- * This interface is incompatible with [CanonicalEdgeGraph].
+ * This interface is incompatible with [IdentityIndexedEdgeGraph].
  */
 @Suppress("INAPPLICABLE_JVM_NAME")
 public interface CanonicalEdgeGraph : Graph {

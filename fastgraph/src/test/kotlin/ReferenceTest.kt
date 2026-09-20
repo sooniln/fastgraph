@@ -69,7 +69,7 @@ class ReferenceTest {
 
         val ref = graph.createVertexReference(v1)
 
-        context(graph as IndexedEdgeGraph) {
+        context(graph as IndexedVertexGraph) {
             assertThat(ref.index).isEqualTo(1)
         }
     }

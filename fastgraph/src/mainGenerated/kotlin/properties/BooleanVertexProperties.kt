@@ -8,6 +8,7 @@ import io.github.sooniln.fastcollect.removeOrElse
 import io.github.sooniln.fastcollect.replaceOrSet
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
+import io.github.sooniln.fastgraph.IdentityIndexedVertexGraph
 import io.github.sooniln.fastgraph.IndexedVertexGraph
 import io.github.sooniln.fastgraph.MutableVertexProperty
 import io.github.sooniln.fastgraph.PropertyType
@@ -18,8 +19,8 @@ import io.github.sooniln.fastgraph.propertyTypeOf
 import io.github.sooniln.fastgraph.internal.throwIllegalVertex
 
 
-internal class BooleanArrayVertexProperty(
-    override val graph: IndexedVertexGraph,
+internal class BooleanIdentityIndexedVertexProperty(
+    override val graph: IdentityIndexedVertexGraph,
     defaultValueFunction: VertexFunction<Boolean>,
 ) : MutableVertexProperty<Boolean>, VertexChangeListener {
 
@@ -80,10 +81,72 @@ internal class BooleanArrayVertexProperty(
     private fun write(it: Boolean): Byte { return if (it) 1 else 0 }
 }
 
-internal class ImmutableBooleanArrayVertexProperty<G>(
+internal class BooleanIndexedVertexProperty(
+    override val graph: IndexedVertexGraph,
+    defaultValueFunction: VertexFunction<Boolean>,
+) : MutableVertexProperty<Boolean>, VertexChangeListener {
+
+    private val property = ByteArrayList()
+    private val initializer = defaultValueFunction
+
+    init {
+        property.ensureCapacity(graph.vertices.size)
+        for (vertex in graph.vertices) { onVertexAdded(vertex) }
+        graph.registerVertexChangeListener(this)
+    }
+
+    override val type: PropertyType<Boolean> get() = propertyTypeOf()
+
+    override fun get(vertex: Vertex): Boolean {
+        try {
+            return read(property[graph.vertices.indexOf(vertex)])
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalVertex(vertex, e)
+        }
+    }
+
+    override fun set(vertex: Vertex, value: Boolean) {
+        try {
+            property[graph.vertices.indexOf(vertex)] = write(value)
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalVertex(vertex, e)
+        }
+    }
+
+    override fun put(vertex: Vertex, value: Boolean): Boolean {
+        try {
+            return read(property.replace(graph.vertices.indexOf(vertex), write(value)))
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalVertex(vertex, e)
+        }
+    }
+
+    override fun onVertexAdded(vertex: Vertex) {
+        check(graph.vertices.indexOf(vertex) == property.size)
+        property.add(write(initializer.apply(vertex)))
+    }
+
+    override fun onVertexRemoved(vertex: Vertex) {
+        check(graph.vertices.indexOf(vertex) == property.lastIndex)
+        property.removeAt(property.lastIndex)
+    }
+
+    override fun onVertexReassigned(oldVertex: Vertex, newVertex: Vertex) {
+        check(graph.vertices.indexOf(oldVertex) == property.lastIndex)
+        property[graph.vertices.indexOf(newVertex)] = property.removeAt(property.lastIndex)
+    }
+
+    override fun ensureVertexCapacity(vertexCapacity: Int) = property.ensureCapacity(vertexCapacity)
+    override fun trimToSize() = property.trimToSize()
+
+    private fun read(it: Byte): Boolean { return it != 0.toByte() }
+    private fun write(it: Boolean): Byte { return if (it) 1 else 0 }
+}
+
+internal class ImmutableBooleanIdentityIndexedVertexProperty<G>(
     override val graph: G,
     defaultValueFunction: VertexFunction<Boolean>,
-) : MutableVertexProperty<Boolean> where G : ImmutableGraph, G : IndexedVertexGraph {
+) : MutableVertexProperty<Boolean> where G : ImmutableGraph, G : IdentityIndexedVertexGraph {
 
     private val property = ByteArray(graph.vertices.size) { vertexId ->
         write(defaultValueFunction.apply(Vertex(vertexId)))
@@ -121,7 +184,49 @@ internal class ImmutableBooleanArrayVertexProperty<G>(
     private fun write(it: Boolean): Byte { return if (it) 1 else 0 }
 }
 
-internal class BooleanMapVertexProperty(
+internal class ImmutableBooleanIndexedVertexProperty<G>(
+    override val graph: G,
+    defaultValueFunction: VertexFunction<Boolean>,
+) : MutableVertexProperty<Boolean> where G : ImmutableGraph, G : IndexedVertexGraph {
+
+    private val property = ByteArray(graph.vertices.size) { index ->
+        write(defaultValueFunction.apply(graph.vertices[index]))
+    }
+
+    override val type: PropertyType<Boolean> get() = propertyTypeOf()
+
+    override fun get(vertex: Vertex): Boolean {
+        try {
+            return read(property[graph.vertices.indexOf(vertex)])
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalVertex(vertex, e)
+        }
+    }
+
+    override fun set(vertex: Vertex, value: Boolean) {
+        try {
+            property[graph.vertices.indexOf(vertex)] = write(value)
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalVertex(vertex, e)
+        }
+    }
+
+    override fun put(vertex: Vertex, value: Boolean): Boolean {
+        try {
+            val index = graph.vertices.indexOf(vertex)
+            val oldValue = read(property[index])
+            property[index] = write(value)
+            return oldValue
+        } catch (e: IndexOutOfBoundsException) {
+            throwIllegalVertex(vertex, e)
+        }
+    }
+
+    private fun read(it: Byte): Boolean { return it != 0.toByte() }
+    private fun write(it: Boolean): Byte { return if (it) 1 else 0 }
+}
+
+internal class BooleanVertexProperty(
     override val graph: Graph,
     defaultValueFunction: VertexFunction<Boolean>
 ) : MutableVertexProperty<Boolean>, VertexChangeListener {
@@ -165,7 +270,7 @@ internal class BooleanMapVertexProperty(
     private fun write(it: Boolean): Byte { return if (it) 1 else 0 }
 }
 
-internal class ImmutableBooleanMapVertexProperty(
+internal class ImmutableBooleanVertexProperty(
     override val graph: ImmutableGraph,
     defaultValueFunction: VertexFunction<Boolean>
 ) : MutableVertexProperty<Boolean> {

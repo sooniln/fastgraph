@@ -8,6 +8,7 @@ package io.github.sooniln.fastgraph
 import io.github.sooniln.fastcollect.Int2IntHashMap
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
 import io.github.sooniln.fastgraph.internal.throwIllegalVertex
+import io.github.sooniln.fastgraph.paths.ParentPathTreeBuilder
 
 
 /**
@@ -20,30 +21,60 @@ import io.github.sooniln.fastgraph.internal.throwIllegalVertex
  * thus takes linear time with respect to the path length) and assembles a [Path] object.
  */
 @Suppress("INAPPLICABLE_JVM_NAME")
-public interface PathTree : ImmutableGraph {
+public interface PathTree : ImmutableGraph, IndexedVertexGraph, IndexedEdgeGraph {
     override val directed: Boolean get() = true
 
     @get:JvmName("getStartVertex")
     public val startVertex: Vertex
 
     /**
-     * Vertices are ordered in the order of discovery when this PathTree was created (i.e. `vertices[0]` will always be
+     * Vertices are indexed in the order of discovery when this PathTree was created (i.e. `vertices[0]` will always be
      * [startVertex]).
      */
-    override val vertices: VertexSequencedSet
+    override val vertices: IndexedVertexSet
 
     /**
-     * Edges are ordered in the order of discovery when this PathTree was created.
+     * Edges are indexed in the order of discovery when this PathTree was created.
      */
-    override val edges: EdgeSequencedSet
+    override val edges: IndexedEdgeSet
 
-    /** Returns the number of edges in the path from [source] to [endVertex]. */
-    @JvmName("getPathLength")
-    public fun getPathLength(endVertex: Vertex): Int
+    /** A property for the number of edges in a path from [startVertex] to the given vertex. */
+    public val pathLengthProperty: VertexProperty<Int>
 
     /** Creates a new [Path] representing the path from [startVertex] to [endVertex]. */
     @JvmName("materializePath")
     public fun materializePath(endVertex: Vertex): Path
+}
+
+/**
+ * Builds up a [PathTree] one vertex at a time, so that any algorithm which discovers paths by walking edges can
+ * produce one. The tree is rooted at the source given to [buildPathTree] and grows outwards from it; a vertex becomes
+ * part of the tree as soon as it is given a parent.
+ */
+@Suppress("INAPPLICABLE_JVM_NAME")
+public interface PathTreeBuilder {
+
+    /**
+     * Records that [child] is reached from [parent] through [edge], adding [child] to the tree if it is not already
+     * part of it. [parent] must already be part of the tree.
+     *
+     * Calling this again for a [child] which is already in the tree replaces the parent it was previously given, which
+     * lets algorithms that only settle on a path once the search has progressed (such as Dijkstra's algorithm or A*)
+     * report path improvements.
+     */
+    @JvmName("setParent")
+    public fun setParent(parent: Vertex, edge: Edge, child: Vertex)
+}
+
+/**
+ * Builds a [PathTree] rooted at [source], whose paths are described by the calls the given [builder] makes to
+ * [PathTreeBuilder.setParent]. Throws [IllegalStateException] if a cycle is formed by the paths.
+ */
+@JvmName("buildPathTree")
+public fun Graph.buildPathTree(source: Vertex, builder: PathTreeBuilder.() -> Unit): PathTree {
+    val pathTreeBuilder = ParentPathTreeBuilder(this, source)
+    pathTreeBuilder.builder()
+    return pathTreeBuilder.build()
 }
 
 /**
@@ -68,18 +99,14 @@ public fun Walk.isClosed(): Boolean = startVertex == endVertex
 public fun Walk.isOpen(): Boolean = startVertex != endVertex
 
 /**
- * An ordered sequence of vertices and edges, where vertices may be repeated but edges may not be repeated. Note that
- * for efficiency reasons this constraint is generally not runtime-enforced and the client is expected to enforce this
- * themselves.
+ * An ordered sequence of vertices and edges, where vertices may be repeated but edges may not be repeated.
  */
 public interface Trail : Walk {
     override val edges: EdgeSequencedSet
 }
 
 /**
- * An ordered sequence of vertices and edges, where neither vertices nor edges may be repeated. Note that for
- * efficiency reasons this constraint is generally not runtime-enforced and the client is expected to enforce this
- * themselves.
+ * An ordered sequence of vertices and edges, where neither vertices nor edges may be repeated.
  */
 public interface Path : Trail {
     override val vertices: VertexSequencedSet

@@ -10,20 +10,21 @@ import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeIterator
 import io.github.sooniln.fastgraph.EdgeSet
 import io.github.sooniln.fastgraph.ImmutableGraph
-import io.github.sooniln.fastgraph.IndexedVertexGraph
-import io.github.sooniln.fastgraph.IndexedVertexSet
+import io.github.sooniln.fastgraph.IdentityIndexedVertexGraph
+import io.github.sooniln.fastgraph.IdentityIndexedVertexSet
 import io.github.sooniln.fastgraph.InternalImmutableGraph
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexIterator
 import io.github.sooniln.fastgraph.VertexSet
 import io.github.sooniln.fastgraph.edgeSetOf
 import io.github.sooniln.fastgraph.emptyEdgeSet
+import io.github.sooniln.fastgraph.util.cheapLazy
 
 internal class ImmutableAdjacencyListGraph private constructor(
     override val directed: Boolean,
     private val successors: Adjacencies,
     private val numEdges: Int,
-) : AbstractGraph(), IndexedVertexGraph, CanonicalEdgeGraph, InternalImmutableGraph {
+) : AbstractGraph(), IdentityIndexedVertexGraph, CanonicalEdgeGraph, InternalImmutableGraph {
 
     // neighbors of vertex i are targets[offsets[i]..<offsets[i + 1]], sorted ascending
     private class Adjacencies private constructor(private val offsets: IntArray, private val targets: IntArray) {
@@ -114,7 +115,7 @@ internal class ImmutableAdjacencyListGraph private constructor(
         }
 
         companion object {
-            fun <G> createSuccessors(graph: G): Adjacencies where G : IndexedVertexGraph, G : CanonicalEdgeGraph {
+            fun <G> createSuccessors(graph: G): Adjacencies where G : IdentityIndexedVertexGraph, G : CanonicalEdgeGraph {
                 val numVertices = graph.vertices.size
                 val offsets = IntArray(numVertices + 1)
                 for (vertexId in 0..<numVertices) {
@@ -133,7 +134,7 @@ internal class ImmutableAdjacencyListGraph private constructor(
         }
     }
 
-    private val predecessors: Adjacencies by lazy { check(directed); successors.transpose() }
+    private val predecessors: Adjacencies by cheapLazy { check(directed); successors.transpose() }
 
     override fun validateVertex(vertex: Vertex): Vertex {
         if (vertex.id !in 0..<successors.size) throwIllegalVertex(vertex)
@@ -147,7 +148,7 @@ internal class ImmutableAdjacencyListGraph private constructor(
         return edge
     }
 
-    override val vertices: IndexedVertexSet = object : IndexedVertexSet, AbstractVertexSequencedSet() {
+    override val vertices: IdentityIndexedVertexSet = object : IdentityIndexedVertexSet, AbstractVertexSequencedSet() {
         override val size: Int get() = successors.size
     }
 
@@ -223,7 +224,7 @@ internal class ImmutableAdjacencyListGraph private constructor(
     }
 
     companion object {
-        fun <G> copy(graph: G): ImmutableGraph where G : IndexedVertexGraph, G : CanonicalEdgeGraph {
+        fun <G> copy(graph: G): ImmutableGraph where G : IdentityIndexedVertexGraph, G : CanonicalEdgeGraph {
             return ImmutableAdjacencyListGraph(graph.directed, Adjacencies.createSuccessors(graph), graph.edges.size)
         }
     }

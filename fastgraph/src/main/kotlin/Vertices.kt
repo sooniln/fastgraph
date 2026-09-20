@@ -299,9 +299,33 @@ public interface MutableVertexSequencedSet : VertexSequencedSet, MutableVertexSe
     override fun iterator(): MutableVertexIterator
 }
 
-/** An ordered set of vertices where the [Vertex.id] of each vertex is in [0, size). */
+/**
+ * An ordered set of vertices where every vertex is associated with an index in [0, size). The index of a vertex is
+ * obtained via [indexOf], and the vertex for an index via [get].
+ */
 @Suppress("INAPPLICABLE_JVM_NAME")
 public interface IndexedVertexSet : VertexSequencedSet {
+    @JvmName("indexOf")
+    abstract override fun indexOf(element: Vertex): Int
+
+    @JvmName("contains")
+    override fun contains(element: Vertex): Boolean = indexOf(element) != -1
+
+    @JvmName("lastIndexOf")
+    override fun lastIndexOf(element: Vertex): Int = indexOf(element)
+}
+
+/** An [IndexedVertexSet] with an iterator that allows for removal. */
+public interface MutableIndexedVertexSet : IndexedVertexSet, MutableVertexSequencedSet {
+    override fun iterator(): MutableVertexIterator
+}
+
+/**
+ * An [IndexedVertexSet] where the index of each vertex is its [Vertex.id], i.e. `get(index) == Vertex(index)` and
+ * `indexOf(vertex) == vertex.id`.
+ */
+@Suppress("INAPPLICABLE_JVM_NAME")
+public interface IdentityIndexedVertexSet : IndexedVertexSet {
     @JvmName("get")
     override fun get(index: Int): Vertex {
         if (index !in 0..<size) throw IndexOutOfBoundsException()
@@ -313,16 +337,10 @@ public interface IndexedVertexSet : VertexSequencedSet {
 
     @JvmName("indexOf")
     override fun indexOf(element: Vertex): Int = if (element.id in 0..<size) element.id else -1
-
-    @JvmName("lastIndexOf")
-    override fun lastIndexOf(element: Vertex): Int = indexOf(element)
 }
 
-/**
- * An ordered set of vertices where the [Vertex.id] of each vertex is in [0, size) with an iterator that allows for
- * removal.
- */
-public interface MutableIndexedVertexSet : IndexedVertexSet, MutableVertexSequencedSet {
+/** An [IdentityIndexedVertexSet] with an iterator that allows for removal. */
+public interface MutableIdentityIndexedVertexSet : IdentityIndexedVertexSet, MutableIndexedVertexSet {
     override fun iterator(): MutableVertexIterator
 }
 
@@ -350,9 +368,9 @@ private object EmptyVertexIterator : MutableVertexIterator {
     override fun remove() = throw IllegalStateException()
 }
 
-public fun emptyVertexSet(): IndexedVertexSet = EmptyVertexSet
+public fun emptyVertexSet(): IdentityIndexedVertexSet = EmptyVertexSet
 
-private object EmptyVertexSet : MutableIndexedVertexSet, AbstractVertexSet() {
+private object EmptyVertexSet : IdentityIndexedVertexSet, MutableIndexedVertexSet, AbstractVertexSet() {
     override val size: Int get() = 0
     override fun get(index: Int): Vertex = throw IndexOutOfBoundsException()
     override fun contains(element: Vertex): Boolean = false
@@ -410,36 +428,6 @@ public abstract class AbstractVertexSet : VertexSet {
 /** Provides a skeletal implementation of the [VertexSequencedSet] interface. */
 public abstract class AbstractVertexSequencedSet : VertexSequencedSet, AbstractVertexSet() {
     override fun iterator(): VertexIterator = super.iterator()
-}
-
-/** Provides a skeletal implementation of the [MutableIndexedVertexSet] interface. */
-internal abstract class AbstractMutableIndexedVertexSet(private val graph: MutableGraph) : MutableIndexedVertexSet, AbstractVertexSequencedSet() {
-    override fun iterator(): MutableVertexIterator = object : MutableVertexIterator {
-        private var index = 0
-        private var previous = -1
-
-        override fun hasNext(): Boolean = index < size
-        override fun next(): Vertex {
-            if (!hasNext()) throw NoSuchElementException()
-            previous = index++
-            return Vertex(previous)
-        }
-
-        override fun remove() {
-            check(previous != -1)
-            graph.removeVertex(Vertex(previous))
-            index = previous
-            previous = -1
-        }
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (other is IndexedVertexSet) {
-            return equalsSequenced(other)
-        }
-
-        return super.equals(other)
-    }
 }
 
 private class SingletonVertexSet(private val vertexId: Int) : AbstractVertexSet() {

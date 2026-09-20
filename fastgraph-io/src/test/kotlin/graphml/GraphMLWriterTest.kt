@@ -122,8 +122,8 @@ class GraphMLWriterTest {
     }
 
     @Test
-    fun canonicalNodeIdsClaimedWhenIndexedVertexGraph() {
-        // mutableGraph(indexEdges = false) implements IndexedVertexGraph but not IndexedEdgeGraph.
+    fun canonicalNodeIdsClaimedWhenIdentityIndexedVertexGraph() {
+        // mutableGraph(indexEdges = false) implements IdentityIndexedVertexGraph but not IdentityIndexedEdgeGraph.
         val graph = mutableGraph(directed = true)
         val a = graph.addVertex()
 
@@ -142,8 +142,8 @@ class GraphMLWriterTest {
     }
 
     @Test
-    fun canonicalEdgeIdsClaimedWhenIndexedEdgeGraph() {
-        // mutableGraph(indexEdges = true) implements both IndexedVertexGraph and IndexedEdgeGraph.
+    fun canonicalEdgeIdsClaimedWhenIdentityIndexedEdgeGraph() {
+        // mutableGraph(indexEdges = true) implements both IdentityIndexedVertexGraph and IdentityIndexedEdgeGraph.
         val graph = mutableGraph(directed = true, indexEdges = true)
         val a = graph.addVertex()
         val b = graph.addVertex()

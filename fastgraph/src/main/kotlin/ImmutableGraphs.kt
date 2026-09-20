@@ -108,9 +108,9 @@ public fun Graph.toImmutableGraph(): ImmutableGraph {
         return emptyImmutableGraph(directed)
     }
 
-    if (this is IndexedVertexGraph) {
+    if (this is IdentityIndexedVertexGraph) {
         if (this is CanonicalEdgeGraph) return ImmutableAdjacencyListGraph.copy(this)
-        if (this is IndexedEdgeGraph) return ImmutableAdjacencyListNetwork.copy(this)
+        if (this is IdentityIndexedEdgeGraph) return ImmutableAdjacencyListNetwork.copy(this)
         throw UnsupportedOperationException("Creating immutable copies of graphs with opaque edge identifiers is currently unsupported")
     }
 
@@ -197,7 +197,7 @@ public inline fun <reified V, reified E> buildImmutableValueGraph(
     return buildImmutableValueGraph(directed, { null }, { null }, multiEdge, indexEdges, builder)
 }
 
-private class EmptyGraph(override val directed: Boolean) : ImmutableGraph, IndexedVertexGraph, IndexedEdgeGraph {
+private class EmptyGraph(override val directed: Boolean) : ImmutableGraph, IdentityIndexedVertexGraph, IdentityIndexedEdgeGraph {
     companion object {
         val DIRECTED = EmptyGraph(true)
         val UNDIRECTED = EmptyGraph(false)
@@ -206,7 +206,7 @@ private class EmptyGraph(override val directed: Boolean) : ImmutableGraph, Index
     override val multiEdge: Boolean
         get() = false
 
-    override val vertices: IndexedVertexSet
+    override val vertices: IdentityIndexedVertexSet
         get() = emptyVertexSet()
 
     override fun outDegree(vertex: Vertex): Int = throw IllegalArgumentException()
@@ -221,11 +221,11 @@ private class EmptyGraph(override val directed: Boolean) : ImmutableGraph, Index
 
     override fun incomingEdges(vertex: Vertex): EdgeSet = throw IllegalArgumentException()
 
-    override val edges: IndexedEdgeSet
+    override val edges: IdentityIndexedEdgeSet
         get() = emptyEdgeSet()
 
-    override fun edgeSource(edge: IndexedEdge): Vertex = throw IllegalArgumentException()
-    override fun edgeTarget(edge: IndexedEdge): Vertex = throw IllegalArgumentException()
+    override fun edgeSource(edge: IdentityIndexedEdge): Vertex = throw IllegalArgumentException()
+    override fun edgeTarget(edge: IdentityIndexedEdge): Vertex = throw IllegalArgumentException()
 
     override fun hasEdge(source: Vertex, target: Vertex): Boolean = throw IllegalArgumentException()
 
@@ -257,5 +257,5 @@ private class EmptyGraph(override val directed: Boolean) : ImmutableGraph, Index
 
     override fun createVertexReference(vertex: Vertex): VertexReference = throw IllegalArgumentException()
     override fun createEdgeReference(edge: Edge): EdgeReference = throw IllegalArgumentException()
-    override fun createEdgeReference(edge: IndexedEdge): EdgeReference = throw IllegalArgumentException()
+    override fun createEdgeReference(edge: IdentityIndexedEdge): EdgeReference = throw IllegalArgumentException()
 }

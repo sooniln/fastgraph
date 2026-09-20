@@ -5,44 +5,63 @@
 
 package io.github.sooniln.fastgraph
 
-import io.github.sooniln.fastgraph.properties.ArrayEdgeKeyProperty
-import io.github.sooniln.fastgraph.properties.ArrayEdgeProperty
-import io.github.sooniln.fastgraph.properties.BooleanArrayEdgeProperty
-import io.github.sooniln.fastgraph.properties.BooleanMapEdgeProperty
-import io.github.sooniln.fastgraph.properties.ByteArrayEdgeProperty
-import io.github.sooniln.fastgraph.properties.ByteMapEdgeProperty
-import io.github.sooniln.fastgraph.properties.DoubleArrayEdgeProperty
-import io.github.sooniln.fastgraph.properties.DoubleMapEdgeProperty
-import io.github.sooniln.fastgraph.properties.EdgeArrayEdgeProperty
-import io.github.sooniln.fastgraph.properties.EdgeMapEdgeProperty
-import io.github.sooniln.fastgraph.properties.FloatArrayEdgeProperty
-import io.github.sooniln.fastgraph.properties.FloatMapEdgeProperty
-import io.github.sooniln.fastgraph.properties.ImmutableArrayEdgeProperty
-import io.github.sooniln.fastgraph.properties.ImmutableBooleanArrayEdgeProperty
-import io.github.sooniln.fastgraph.properties.ImmutableBooleanMapEdgeProperty
-import io.github.sooniln.fastgraph.properties.ImmutableByteArrayEdgeProperty
-import io.github.sooniln.fastgraph.properties.ImmutableByteMapEdgeProperty
-import io.github.sooniln.fastgraph.properties.ImmutableDoubleArrayEdgeProperty
-import io.github.sooniln.fastgraph.properties.ImmutableDoubleMapEdgeProperty
-import io.github.sooniln.fastgraph.properties.ImmutableEdgeArrayEdgeProperty
-import io.github.sooniln.fastgraph.properties.ImmutableEdgeMapEdgeProperty
-import io.github.sooniln.fastgraph.properties.ImmutableFloatArrayEdgeProperty
-import io.github.sooniln.fastgraph.properties.ImmutableFloatMapEdgeProperty
-import io.github.sooniln.fastgraph.properties.ImmutableIntArrayEdgeProperty
-import io.github.sooniln.fastgraph.properties.ImmutableIntMapEdgeProperty
-import io.github.sooniln.fastgraph.properties.ImmutableLongArrayEdgeProperty
-import io.github.sooniln.fastgraph.properties.ImmutableLongMapEdgeProperty
-import io.github.sooniln.fastgraph.properties.ImmutableMapEdgeProperty
-import io.github.sooniln.fastgraph.properties.IntArrayEdgeKeyProperty
-import io.github.sooniln.fastgraph.properties.IntArrayEdgeProperty
-import io.github.sooniln.fastgraph.properties.IntMapEdgeKeyProperty
-import io.github.sooniln.fastgraph.properties.IntMapEdgeProperty
-import io.github.sooniln.fastgraph.properties.LongArrayEdgeKeyProperty
-import io.github.sooniln.fastgraph.properties.LongArrayEdgeProperty
-import io.github.sooniln.fastgraph.properties.LongMapEdgeKeyProperty
-import io.github.sooniln.fastgraph.properties.LongMapEdgeProperty
-import io.github.sooniln.fastgraph.properties.MapEdgeKeyProperty
-import io.github.sooniln.fastgraph.properties.MapEdgeProperty
+import io.github.sooniln.fastgraph.properties.AnyEdgeKeyProperty
+import io.github.sooniln.fastgraph.properties.AnyEdgeProperty
+import io.github.sooniln.fastgraph.properties.AnyIdentityIndexedEdgeKeyProperty
+import io.github.sooniln.fastgraph.properties.AnyIdentityIndexedEdgeProperty
+import io.github.sooniln.fastgraph.properties.AnyIndexedEdgeKeyProperty
+import io.github.sooniln.fastgraph.properties.AnyIndexedEdgeProperty
+import io.github.sooniln.fastgraph.properties.BooleanEdgeProperty
+import io.github.sooniln.fastgraph.properties.BooleanIdentityIndexedEdgeProperty
+import io.github.sooniln.fastgraph.properties.BooleanIndexedEdgeProperty
+import io.github.sooniln.fastgraph.properties.ByteEdgeProperty
+import io.github.sooniln.fastgraph.properties.ByteIdentityIndexedEdgeProperty
+import io.github.sooniln.fastgraph.properties.ByteIndexedEdgeProperty
+import io.github.sooniln.fastgraph.properties.DoubleEdgeProperty
+import io.github.sooniln.fastgraph.properties.DoubleIdentityIndexedEdgeProperty
+import io.github.sooniln.fastgraph.properties.DoubleIndexedEdgeProperty
+import io.github.sooniln.fastgraph.properties.EdgeEdgeProperty
+import io.github.sooniln.fastgraph.properties.EdgeIdentityIndexedEdgeProperty
+import io.github.sooniln.fastgraph.properties.EdgeIndexedEdgeProperty
+import io.github.sooniln.fastgraph.properties.FloatEdgeProperty
+import io.github.sooniln.fastgraph.properties.FloatIdentityIndexedEdgeProperty
+import io.github.sooniln.fastgraph.properties.FloatIndexedEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableAnyEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableAnyIdentityIndexedEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableAnyIndexedEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableBooleanEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableBooleanIdentityIndexedEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableBooleanIndexedEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableByteEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableByteIdentityIndexedEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableByteIndexedEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableDoubleEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableDoubleIdentityIndexedEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableDoubleIndexedEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableEdgeEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableEdgeIdentityIndexedEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableEdgeIndexedEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableFloatEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableFloatIdentityIndexedEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableFloatIndexedEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableIntEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableIntIdentityIndexedEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableIntIndexedEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableLongEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableLongIdentityIndexedEdgeProperty
+import io.github.sooniln.fastgraph.properties.ImmutableLongIndexedEdgeProperty
+import io.github.sooniln.fastgraph.properties.IntEdgeKeyProperty
+import io.github.sooniln.fastgraph.properties.IntEdgeProperty
+import io.github.sooniln.fastgraph.properties.IntIdentityIndexedEdgeKeyProperty
+import io.github.sooniln.fastgraph.properties.IntIdentityIndexedEdgeProperty
+import io.github.sooniln.fastgraph.properties.IntIndexedEdgeKeyProperty
+import io.github.sooniln.fastgraph.properties.IntIndexedEdgeProperty
+import io.github.sooniln.fastgraph.properties.LongEdgeKeyProperty
+import io.github.sooniln.fastgraph.properties.LongEdgeProperty
+import io.github.sooniln.fastgraph.properties.LongIdentityIndexedEdgeKeyProperty
+import io.github.sooniln.fastgraph.properties.LongIdentityIndexedEdgeProperty
+import io.github.sooniln.fastgraph.properties.LongIndexedEdgeKeyProperty
+import io.github.sooniln.fastgraph.properties.LongIndexedEdgeProperty
 import kotlin.reflect.typeOf
 
 /**
@@ -83,7 +102,7 @@ public interface EdgeProperty<E> {
 
 /** See [EdgeProperty.get]. */
 @JvmSynthetic
-public operator fun <E> EdgeProperty<E>.get(edgeReference: EdgeReference): E = get(edgeReference.unstable)
+public operator fun <E> EdgeProperty<out E>.get(edgeReference: EdgeReference): E = get(edgeReference.unstable)
 
 /** A mutable specialization of [EdgeProperty]. */
 @Suppress("INAPPLICABLE_JVM_NAME")
@@ -108,7 +127,7 @@ public interface MutableEdgeProperty<E> : EdgeProperty<E> {
 
 /** See [MutableEdgeProperty.set]. */
 @JvmSynthetic
-public operator fun <E> MutableEdgeProperty<E>.set(edgeReference: EdgeReference, value: E): Unit =
+public operator fun <E> MutableEdgeProperty<in E>.set(edgeReference: EdgeReference, value: E): Unit =
     set(edgeReference.unstable, value)
 
 /** See [MutableEdgeProperty.put]. */
@@ -149,191 +168,283 @@ public fun <T> createEdgeProperty(
     return if (graph is ImmutableGraph) {
         if (graph.isEmpty()) {
             emptyEdgeProperty(graph, type)
+        } else if (graph is IdentityIndexedEdgeGraph) {
+            when (type.kType) {
+                typeOf<Boolean>() ->
+                    ImmutableBooleanIdentityIndexedEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Boolean>
+                    ) as MutableEdgeProperty<T>
+
+                typeOf<Byte>() ->
+                    ImmutableByteIdentityIndexedEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Byte>
+                    ) as MutableEdgeProperty<T>
+
+                typeOf<Int>() ->
+                    ImmutableIntIdentityIndexedEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Int>
+                    ) as MutableEdgeProperty<T>
+
+                typeOf<Long>() ->
+                    ImmutableLongIdentityIndexedEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Long>
+                    ) as MutableEdgeProperty<T>
+
+                typeOf<Float>() ->
+                    ImmutableFloatIdentityIndexedEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Float>
+                    ) as MutableEdgeProperty<T>
+
+                typeOf<Double>() ->
+                    ImmutableDoubleIdentityIndexedEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Double>
+                    ) as MutableEdgeProperty<T>
+
+                typeOf<Edge>() ->
+                    ImmutableEdgeIdentityIndexedEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Edge>
+                    ) as MutableEdgeProperty<T>
+
+                else -> ImmutableAnyIdentityIndexedEdgeProperty(graph, type, defaultValueFunction)
+            }
         } else if (graph is IndexedEdgeGraph) {
             when (type.kType) {
                 typeOf<Boolean>() ->
-                    ImmutableBooleanArrayEdgeProperty(
+                    ImmutableBooleanIndexedEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Boolean>
                     ) as MutableEdgeProperty<T>
 
                 typeOf<Byte>() ->
-                    ImmutableByteArrayEdgeProperty(
+                    ImmutableByteIndexedEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Byte>
                     ) as MutableEdgeProperty<T>
 
                 typeOf<Int>() ->
-                    ImmutableIntArrayEdgeProperty(
+                    ImmutableIntIndexedEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Int>
                     ) as MutableEdgeProperty<T>
 
                 typeOf<Long>() ->
-                    ImmutableLongArrayEdgeProperty(
+                    ImmutableLongIndexedEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Long>
                     ) as MutableEdgeProperty<T>
 
                 typeOf<Float>() ->
-                    ImmutableFloatArrayEdgeProperty(
+                    ImmutableFloatIndexedEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Float>
                     ) as MutableEdgeProperty<T>
 
                 typeOf<Double>() ->
-                    ImmutableDoubleArrayEdgeProperty(
+                    ImmutableDoubleIndexedEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Double>
                     ) as MutableEdgeProperty<T>
 
                 typeOf<Edge>() ->
-                    ImmutableEdgeArrayEdgeProperty(
+                    ImmutableEdgeIndexedEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Edge>
                     ) as MutableEdgeProperty<T>
 
-                else -> ImmutableArrayEdgeProperty(graph, type, defaultValueFunction)
+                else -> ImmutableAnyIndexedEdgeProperty(graph, type, defaultValueFunction)
             }
         } else {
             when (type.kType) {
                 typeOf<Boolean>() ->
-                    ImmutableBooleanMapEdgeProperty(
+                    ImmutableBooleanEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Boolean>
                     ) as MutableEdgeProperty<T>
 
                 typeOf<Byte>() ->
-                    ImmutableByteMapEdgeProperty(
+                    ImmutableByteEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Byte>
                     ) as MutableEdgeProperty<T>
 
                 typeOf<Int>() ->
-                    ImmutableIntMapEdgeProperty(
+                    ImmutableIntEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Int>
                     ) as MutableEdgeProperty<T>
 
                 typeOf<Long>() ->
-                    ImmutableLongMapEdgeProperty(
+                    ImmutableLongEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Long>
                     ) as MutableEdgeProperty<T>
 
                 typeOf<Float>() ->
-                    ImmutableFloatMapEdgeProperty(
+                    ImmutableFloatEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Float>
                     ) as MutableEdgeProperty<T>
 
                 typeOf<Double>() ->
-                    ImmutableDoubleMapEdgeProperty(
+                    ImmutableDoubleEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Double>
                     ) as MutableEdgeProperty<T>
 
                 typeOf<Edge>() ->
-                    ImmutableEdgeMapEdgeProperty(
+                    ImmutableEdgeEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Edge>
                     ) as MutableEdgeProperty<T>
 
-                else -> ImmutableMapEdgeProperty(graph, type, defaultValueFunction)
+                else -> ImmutableAnyEdgeProperty(graph, type, defaultValueFunction)
             }
         }
     } else {
-        if (graph is IndexedEdgeGraph) {
+        if (graph is IdentityIndexedEdgeGraph) {
             when (type.kType) {
                 typeOf<Boolean>() ->
-                    BooleanArrayEdgeProperty(
+                    BooleanIdentityIndexedEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Boolean>
                     ) as MutableEdgeProperty<T>
 
                 typeOf<Byte>() ->
-                    ByteArrayEdgeProperty(
+                    ByteIdentityIndexedEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Byte>
                     ) as MutableEdgeProperty<T>
 
                 typeOf<Int>() ->
-                    IntArrayEdgeProperty(
+                    IntIdentityIndexedEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Int>
                     ) as MutableEdgeProperty<T>
 
                 typeOf<Long>() ->
-                    LongArrayEdgeProperty(
+                    LongIdentityIndexedEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Long>
                     ) as MutableEdgeProperty<T>
 
                 typeOf<Float>() ->
-                    FloatArrayEdgeProperty(
+                    FloatIdentityIndexedEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Float>
                     ) as MutableEdgeProperty<T>
 
                 typeOf<Double>() ->
-                    DoubleArrayEdgeProperty(
+                    DoubleIdentityIndexedEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Double>
                     ) as MutableEdgeProperty<T>
 
                 typeOf<Edge>() ->
-                    EdgeArrayEdgeProperty(
+                    EdgeIdentityIndexedEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Edge>
                     ) as MutableEdgeProperty<T>
 
-                else -> ArrayEdgeProperty(graph, type, defaultValueFunction)
+                else -> AnyIdentityIndexedEdgeProperty(graph, type, defaultValueFunction)
+            }
+        } else if (graph is IndexedEdgeGraph) {
+            when (type.kType) {
+                typeOf<Boolean>() ->
+                    BooleanIndexedEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Boolean>
+                    ) as MutableEdgeProperty<T>
+
+                typeOf<Byte>() ->
+                    ByteIndexedEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Byte>
+                    ) as MutableEdgeProperty<T>
+
+                typeOf<Int>() ->
+                    IntIndexedEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Int>
+                    ) as MutableEdgeProperty<T>
+
+                typeOf<Long>() ->
+                    LongIndexedEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Long>
+                    ) as MutableEdgeProperty<T>
+
+                typeOf<Float>() ->
+                    FloatIndexedEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Float>
+                    ) as MutableEdgeProperty<T>
+
+                typeOf<Double>() ->
+                    DoubleIndexedEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Double>
+                    ) as MutableEdgeProperty<T>
+
+                typeOf<Edge>() ->
+                    EdgeIndexedEdgeProperty(
+                        graph,
+                        defaultValueFunction as EdgeFunction<Edge>
+                    ) as MutableEdgeProperty<T>
+
+                else -> AnyIndexedEdgeProperty(graph, type, defaultValueFunction)
             }
         } else {
             when (type.kType) {
                 typeOf<Boolean>() ->
-                    BooleanMapEdgeProperty(
+                    BooleanEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Boolean>
                     ) as MutableEdgeProperty<T>
 
                 typeOf<Byte>() ->
-                    ByteMapEdgeProperty(
+                    ByteEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Byte>
                     ) as MutableEdgeProperty<T>
 
                 typeOf<Int>() ->
-                    IntMapEdgeProperty(
+                    IntEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Int>
                     ) as MutableEdgeProperty<T>
 
                 typeOf<Long>() ->
-                    LongMapEdgeProperty(
+                    LongEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Long>
                     ) as MutableEdgeProperty<T>
 
                 typeOf<Float>() ->
-                    FloatMapEdgeProperty(
+                    FloatEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Float>
                     ) as MutableEdgeProperty<T>
 
                 typeOf<Double>() ->
-                    DoubleMapEdgeProperty(
+                    DoubleEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Double>
                     ) as MutableEdgeProperty<T>
 
                 typeOf<Edge>() ->
-                    EdgeMapEdgeProperty(
+                    EdgeEdgeProperty(
                         graph,
                         defaultValueFunction as EdgeFunction<Edge>
                     ) as MutableEdgeProperty<T>
 
-                else -> MapEdgeProperty(graph, type, defaultValueFunction)
+                else -> AnyEdgeProperty(graph, type, defaultValueFunction)
             }
         }
     }
@@ -383,17 +494,23 @@ public interface MutableEdgeKeyProperty<E> : EdgeKeyProperty<E>, MutableEdgeProp
 @Suppress("UNCHECKED_CAST")
 @JvmName("createEdgeKeyProperty")
 public fun <T> createEdgeKeyProperty(graph: Graph, type: PropertyType<T>): MutableEdgeKeyProperty<T> {
-    return if (graph is IndexedEdgeGraph) {
+    return if (graph is IdentityIndexedEdgeGraph) {
         when (type.kType) {
-            typeOf<Int>() -> IntArrayEdgeKeyProperty(graph) as MutableEdgeKeyProperty<T>
-            typeOf<Long>() -> LongArrayEdgeKeyProperty(graph) as MutableEdgeKeyProperty<T>
-            else -> ArrayEdgeKeyProperty(graph, type)
+            typeOf<Int>() -> IntIdentityIndexedEdgeKeyProperty(graph) as MutableEdgeKeyProperty<T>
+            typeOf<Long>() -> LongIdentityIndexedEdgeKeyProperty(graph) as MutableEdgeKeyProperty<T>
+            else -> AnyIdentityIndexedEdgeKeyProperty(graph, type)
+        }
+    } else if (graph is IndexedEdgeGraph) {
+        when (type.kType) {
+            typeOf<Int>() -> IntIndexedEdgeKeyProperty(graph) as MutableEdgeKeyProperty<T>
+            typeOf<Long>() -> LongIndexedEdgeKeyProperty(graph) as MutableEdgeKeyProperty<T>
+            else -> AnyIndexedEdgeKeyProperty(graph, type)
         }
     } else {
         when (type.kType) {
-            typeOf<Int>() -> IntMapEdgeKeyProperty(graph) as MutableEdgeKeyProperty<T>
-            typeOf<Long>() -> LongMapEdgeKeyProperty(graph) as MutableEdgeKeyProperty<T>
-            else -> MapEdgeKeyProperty(graph, type)
+            typeOf<Int>() -> IntEdgeKeyProperty(graph) as MutableEdgeKeyProperty<T>
+            typeOf<Long>() -> LongEdgeKeyProperty(graph) as MutableEdgeKeyProperty<T>
+            else -> AnyEdgeKeyProperty(graph, type)
         }
     }
 }
@@ -404,7 +521,7 @@ public fun <T> createEdgeKeyProperty(graph: Graph, type: PropertyType<T>): Mutab
  * data, and references the input property indefinitely.
  */
 @JvmName("map")
-public fun <E, O> map(property: EdgeProperty<E>, type: PropertyType<O>, transform: (E) -> O): EdgeProperty<O> {
+public fun <E, O> map(property: EdgeProperty<out E>, type: PropertyType<O>, transform: (E) -> O): EdgeProperty<out O> {
     return object : EdgeProperty<O> {
         override val graph: Graph get() = property.graph
         override val type: PropertyType<O> get() = type
@@ -415,13 +532,13 @@ public fun <E, O> map(property: EdgeProperty<E>, type: PropertyType<O>, transfor
 /** See [map]. */
 @JvmSynthetic
 @JvmName("#map")
-public fun <E, O> EdgeProperty<E>.map(type: PropertyType<O>, transform: (E) -> O): EdgeProperty<O> {
+public fun <E, O> EdgeProperty<out E>.map(type: PropertyType<O>, transform: (E) -> O): EdgeProperty<out O> {
     return map(this, type, transform)
 }
 
 /** See [map]. */
 @JvmSynthetic
-public inline fun <E, reified O> EdgeProperty<E>.map(noinline transform: (E) -> O): EdgeProperty<O> {
+public inline fun <E, reified O> EdgeProperty<out E>.map(noinline transform: (E) -> O): EdgeProperty<out O> {
     return map(this, propertyTypeOf(), transform)
 }
 
@@ -468,12 +585,30 @@ public inline fun <E, reified O> MutableEdgeProperty<E>.map(
 }
 
 /**
- * Convenience function that sets the value of this property to the value from the given property for every edge in the
- * graph.
+ * Convenience function that sets the value of [other] to the value of this property for every edge in [graph]. This
+ * differs from [copyFrom] in which graph has its edges iterated. If both properties belong to the same graph, then
+ * the two methods are interchangeable.
+ *
+ * Note that if the properties are from different graphs, this is only a meaningful operation if there is some
+ * meaningful connection between the graphs.
  */
 public fun <E> EdgeProperty<out E>.copyInto(other: MutableEdgeProperty<in E>) {
     for (edge in graph.edges) {
         other[edge] = get(edge)
+    }
+}
+
+/**
+ * Convenience function that sets the value of [other] to the value of this property for every edge in [graph]. This
+ * differs from [copyInto] in which graph has its edges iterated. If both properties belong to the same graph, then
+ * the two methods are interchangeable.
+ *
+ * Note that if the properties are from different graphs, this is only a meaningful operation if there is some
+ * meaningful connection between the graphs.
+ */
+public fun <E> MutableEdgeProperty<in E>.copyFrom(other: EdgeProperty<out E>) {
+    for (edge in graph.edges) {
+        set(edge, other[edge])
     }
 }
 
