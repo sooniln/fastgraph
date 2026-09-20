@@ -92,8 +92,8 @@ public interface Graph {
     public fun successors(vertex: Vertex): VertexSet
 
     /**
-     * Returns the single vertex that can be reached from the given vertex by traversing the single outgoing edge. If
-     * there are no outgoing edges or more than one outgoing edge, then [IllegalStateException] is thrown. Throws
+     * Returns the single vertex that can be reached from the given vertex by traversing outgoing edges. If there is
+     * not exactly one such vertex (see [successors]), then [IllegalStateException] is thrown. Throws
      * [IllegalArgumentException] if passed a vertex that is not in this graph.
      */
     @JvmName("successor")
@@ -114,8 +114,8 @@ public interface Graph {
     public fun predecessors(vertex: Vertex): VertexSet
 
     /**
-     * Returns the single vertex that can be reached from the given vertex by traversing the single incoming edge. If
-     * there are no incoming edges or more than one incoming edge, then [IllegalStateException] is thrown. Throws
+     * Returns the single vertex that can be reached from the given vertex by traversing incoming edges. If there is
+     * not exactly one such vertex (see [predecessors]), then [IllegalStateException] is thrown. Throws
      * [IllegalArgumentException] if passed a vertex that is not in this graph.
      */
     @JvmName("predecessor")

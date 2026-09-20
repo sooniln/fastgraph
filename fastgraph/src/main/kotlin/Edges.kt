@@ -53,7 +53,7 @@ public value class Edge(public val id: Long) {
     public fun source(target: Vertex): Vertex = graph.edgeSource(this, target)
 
     /**
-     * See [edgeSource].
+     * See [edgeTarget].
      */
     @JvmSynthetic
     context(graph: Graph)
@@ -125,7 +125,7 @@ public value class IdentityIndexedEdge(public val id: Int) {
     public fun source(target: Vertex): Vertex = graph.edgeSource(this, target)
 
     /**
-     * See [edgeSource].
+     * See [edgeTarget].
      */
     @JvmSynthetic
     context(graph: IdentityIndexedEdgeGraph)
@@ -195,7 +195,7 @@ public value class CanonicalEdge(public val id: Long) {
     public fun source(target: Vertex): Vertex = graph.edgeSource(Edge(id), target)
 
     /**
-     * See [edgeSource].
+     * See [edgeTarget].
      */
     @JvmSynthetic
     context(graph: CanonicalEdgeGraph)
@@ -477,7 +477,7 @@ public interface IdentityIndexedEdgeSet : IndexedEdgeSet {
     override fun indexOf(element: Edge): Int = if (element.id in 0..<size) element.id.toInt() else -1
 }
 
-/** An [IndexedEdgeSet] with an iterator that allows for removal. */
+/** An [IdentityIndexedEdgeSet] with an iterator that allows for removal. */
 public interface MutableIdentityIndexedEdgeSet : IdentityIndexedEdgeSet, MutableIndexedEdgeSet {
     override fun iterator(): MutableEdgeIterator
 }

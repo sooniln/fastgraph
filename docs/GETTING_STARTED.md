@@ -56,14 +56,14 @@ for (edge in graph.incomingEdges(myVertex)) {
 }
 
 val otherVertex = ...
-if (graph.containsEdge(myVertex, otherVertex)) {
+if (graph.hasEdge(myVertex, otherVertex)) {
     ...
 }
-for (edge in graph.getEdges(myVertex, otherVertex)) {
+for (edge in graph.edges(myVertex, otherVertex)) {
     ...
 }
 
-val edge = graph.getEdge(myVertex, otherVertex)
+val edge = graph.edge(myVertex, otherVertex)
 val sourceVertex = graph.edgeSource(edge)
 val targetVertex = graph.edgeTarget(edge)
 ```
@@ -90,7 +90,7 @@ context(graph) {
     }
 
     val otherVertex = ...
-    val edge = graph.getEdge(myVertex, otherVertex)
+    val edge = myVertex.edgeTo(otherVertex)
     val (sourceVertex, targetVertex) = edge
 }
 ```
@@ -120,12 +120,12 @@ val myEdge = ...
 edgeWeight[myEdge] = 5.0f
 println(edgeWeight[myEdge])
 
-// context APIs can also be used for a more convenient form
-context(vertexId, edgeWeight) {
-    myVertex.property = 99
-    myEdge.property = 5.0f
-    println(myVertex.property)
-    println(myEdge.property)
+// a ValueGraph bundles a graph with one vertex property and one edge property, and offers context APIs for reading
+// the bundled values in a more convenient form
+val valueGraph = valueGraph(graph, vertexId, edgeWeight)
+context(valueGraph) {
+    println(myVertex.value)
+    println(myEdge.value)
 }
 ```
 
@@ -176,7 +176,7 @@ fun bfs(graph: Graph, start: Vertex) {
     val visited = graph.createVertexProperty { false }
 
     queue.add(start)
-    visited.add(start)
+    visited[start] = true
 
     println("BFS Traversal starting from vertex " + start + ":")
     while (!queue.isEmpty()) {
@@ -276,12 +276,12 @@ however, is that `VertexReference` and `EdgeReference` are more expensive in ter
 and `Edge`, and should thus generally be used sparingly and only when actually necessary.
 
 A stable reference can be obtained via `Graph.createVertexReference()` and `Graph.createEdgeReference()` (or via the
-context APIs `Vertex.createReference()` and `Edge.createReference()`). For example:
+context APIs `Vertex.createReference()` and `Edge.reference()`). For example:
 
 ```kotlin
 val mutableGraph = mutableGraph(directed = false)
 
-context(graph) {
+context(mutableGraph) {
     val vertex1Ref = mutableGraph.addVertex().createReference()
     val vertex2Ref = mutableGraph.addVertex().createReference()
 
@@ -304,29 +304,36 @@ FastGraph provides an `ImmutableGraph` representation which conforms to standard
 * **Integrity**: `ImmutableGraph` cannot be implemented outside the fastgraph package (which would allow these
   guarantees to be violated).
 
-Immutable graphs can be constructed via the `immutableGraph()` factory method and `ImmutableGraphBuilder`. For example:
+Immutable graphs can be constructed via the `buildImmutableGraph()`/`buildImmutableValueGraph()` helper methods, or by
+copying an existing graph with `toImmutableGraph()`. For example:
 
 ```kotlin
 // to construct an immutable graph with no vertex or edge properties
-val graph = immutableGraph<String, Nothing>(directed = false) {
+val graph: ImmutableGraph = buildImmutableGraph(directed = false) {
     ensureVertexCapacity(3)
     ensureEdgeCapacity(3)
-    addEdge("vertex1", "vertex2")
-    addEdge("vertex2", "vertex3")
-    addEdge("vertex3", "vertex1")
+    val vertex1 = addVertex()
+    val vertex2 = addVertex()
+    val vertex3 = addVertex()
+    addEdge(vertex1, vertex2)
+    addEdge(vertex2, vertex3)
+    addEdge(vertex3, vertex1)
 }
 
-// to construct an immutable graph with vertex or edge properties
-val (graph, vertexName, edgeWeight) = immutableGraphBuilder<String, Float>(directed = false)
-    .withVertexProperty()
-    .withEdgeProperty()
-    .buildPropertyGraph {
+// to construct an immutable graph with vertex and edge properties
+val valueGraph: ImmutableValueGraph<String, Float> =
+    buildImmutableValueGraph(directed = false, vertexDefaultValue = "", edgeDefaultValue = 0f) {
         ensureVertexCapacity(3)
         ensureEdgeCapacity(3)
         addEdge("vertex1", "vertex2", 1f)
         addEdge("vertex2", "vertex3", 2f)
         addEdge("vertex3", "vertex1", 1f)
     }
+val vertexName: VertexProperty<String> = valueGraph.vertexProperty
+val edgeWeight: EdgeProperty<Float> = valueGraph.edgeProperty
+
+// to copy an existing graph into an immutable graph
+val copy: ImmutableGraph = mutableGraph.toImmutableGraph()
 ```
 
 `ImmutableGraph` is the most CPU and memory efficient of all graph representations for the most part, and should be
@@ -354,8 +361,8 @@ Internally, FastGraph generally chooses between two implementations of the `Grap
       memory
       used by a graph and properties, even if more memory is required by the topology.
 
-Graph factory methods such as `mutableGraph()` and `immutableGraph()` generally allow for hints such `optimizeEdges`
-which can force the use of a network implementation.
+Graph factory methods such as `mutableGraph()` and `buildImmutableGraph()` accept the `multiEdge` and `indexEdges`
+hints, either of which forces the use of a network implementation.
 
 ### Memory Saving Tricks
 

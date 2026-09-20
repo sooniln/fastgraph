@@ -156,7 +156,8 @@ private fun parseGraphML(
         "undirected" -> false
         else -> throw IllegalArgumentException("invalid edgedefault \"$edgeDefault\"")
     }
-    // GraphML-ParseInfo: only parse.nodes is used, purely to pre-size the node-id lookup map.
+
+    // GraphML-ParseInfo: parse.nodes/parse.edges are only used as capacity hints.
     val numVertices = reader.getAttributeValue(null, "parse.nodes")?.toIntOrNull()
     val numEdges = reader.getAttributeValue(null, "parse.edges")?.toIntOrNull()
 
@@ -330,8 +331,8 @@ private fun XMLStreamReader.skipElement() {
 
 /**
  * Writes [graph] as a GraphML document to [outputStream]. The [outputStream] is not closed by this function - that
- * remains the caller's responsibility. Graph properties types that are unsupported natively by the GraphML format
- * (boolean, int, long, float, double, string) will be serialized as strings.
+ * remains the caller's responsibility. Properties whose types are not supported natively by the GraphML format (anything
+ * other than boolean, int, long, float, double, or string) are serialized as strings via `toString()`.
  */
 public fun writeGraphML(
     outputStream: OutputStream,

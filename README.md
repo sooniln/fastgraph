@@ -58,8 +58,8 @@ vertices and edges?
 
 ```kotlin
 val graph: MutableGraph = mutableGraph(directed = false)
-val vertexName: VertexProperty<String> = graph.createVertexProperty() { "" }
-val edgeWeight: EdgeProperty<Float> = graph.createEdgeProperty() { 0f }
+val vertexName: MutableVertexProperty<String> = graph.createVertexProperty { "" }
+val edgeWeight: MutableEdgeProperty<Float> = graph.createEdgeProperty { 0f }
 
 val vertex1: Vertex = graph.addVertex()
 vertexName[vertex1] = "vertex1"
@@ -78,26 +78,27 @@ edgeWeight[edge3] = 1.9f
 
 Now we've created a `String` property for vertices (with a default value of `""`) and `float` property for edges (with a
 default value of `0f`). This is all getting a bit verbose however - is there an easier way to initialize a graph and
-vertex/edge properties? Yes, we can use the `buildGraph()` helper method to achieve the exact same thing:
+vertex/edge properties? Yes, we can use the `buildValueGraph()` helper method to achieve the exact same thing:
 
 ```kotlin
-val graph: MutableGraph = mutableGraph(directed = false)
-val vertexName: VertexProperty<String> = graph.createVertexProperty() { "" }
-val edgeWeight: EdgeProperty<Float> = graph.createEdgeProperty() { 0f }
+val valueGraph: MutableValueGraph<String, Float> =
+    buildValueGraph(directed = false, vertexDefaultValue = "", edgeDefaultValue = 0f) {
+        addEdge("vertex1", "vertex2", 1.0f)
+        addEdge("vertex2", "vertex3", 1.5f)
+        addEdge("vertex3", "vertex1", 1.9f)
+    }
 
-buildGraph(graph, vertexName, edgeWeight) {
-    addEdge("vertex1", "vertex2", 1.0f)
-    addEdge("vertex2", "vertex3", 1.5f)
-    addEdge("vertex3", "vertex1", 1.9f)
-}
+val graph: MutableGraph = valueGraph.graph
+val vertexName: MutableVertexProperty<String> = valueGraph.vertexProperty
+val edgeWeight: MutableEdgeProperty<Float> = valueGraph.edgeProperty
 ```
 
-The `addEdge` method exposed by `buildGraph` can create new vertices with the given property value if they don't exist
-already, and then link the vertices with a new edge (with the given edge property value).
+The `addEdge` method exposed by `buildValueGraph` can create new vertices with the given property value if they don't
+exist already, and then link the vertices with a new edge (with the given edge property value).
 
 > [!NOTE]
 > The grouping of a graph with a single vertex property and a single edge property is common enough that there is an
-> interface specifically to represent this grouping - `ValueGraph`.
+> interface specifically to represent this grouping - `ValueGraph` (which is what `buildValueGraph` returns).
 
 Once we've constructed a graph, we can access and traverse the graph structure easily:
 
@@ -121,7 +122,7 @@ for (edge in graph.edges) {
 
 // iterate over all vertices that can be reached via outgoing edge from myVertex
 val myVertex = graph.vertices.first()
-for (vertex in graph.successors(vertex)) {
+for (vertex in graph.successors(myVertex)) {
     ...
 }
 ```

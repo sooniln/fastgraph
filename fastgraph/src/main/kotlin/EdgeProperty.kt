@@ -671,7 +671,7 @@ internal fun <T> emptyEdgeProperty(graph: ImmutableGraph, type: PropertyType<T>)
     }
 }
 
-/** Returns an empty edge property to be associated with an empty [ImmutableGraph]. */
+/** Returns an empty edge key property to be associated with an empty [ImmutableGraph]. */
 internal fun <T> emptyEdgeKeyProperty(graph: ImmutableGraph, type: PropertyType<T>): MutableEdgeKeyProperty<T> {
     require(graph.edges.isEmpty())
 
