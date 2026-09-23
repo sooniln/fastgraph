@@ -1,5 +1,8 @@
 package io.github.sooniln.fastgraph
 
+import io.github.sooniln.fastgraph.filtered.filter
+import io.github.sooniln.fastgraph.properties.PropertyType
+import io.github.sooniln.fastgraph.properties.propertyTypeOf
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -309,7 +312,7 @@ class KeyPropertyTest {
             e12 = addEdge(v1, v2)
             e22 = addEdge(v2, v2)
         }
-        assertThat(graph).isNotInstanceOf(IndexedEdgeGraph::class.java)
+        assertThat(graph.edges).isNotInstanceOf(IndexedEdgeSet::class.java)
         val property = graph.createEdgeKeyProperty(case.type)
         assertThat(property.graph).isSameAs(graph)
         property[e01] = case.keyAt(0)

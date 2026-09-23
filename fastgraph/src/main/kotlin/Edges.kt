@@ -23,67 +23,13 @@ import kotlin.math.min
  * invalidated if a mutation is made to the owning graph. Individual graph implementations should make explicit
  * guarantees on when an edge identifier is invalidated, but in the absence of stronger guarantees clients must assume
  * that any mutation of the graph topology (i.e. adding a vertex/edge, removing a vertex/edge) invalidates all
- * unstable references. [Graph] instances offer [Graph.createEdgeReference] to obtain a stable [EdgeReference] from an
+ * unstable references. [Graph] instances offer [Graph.createEdgeReference] to obtain a stable [io.github.sooniln.fastgraph.references.EdgeReference] from an
  * unstable reference. Stable references are guaranteed to never be invalidated, but may be more expensive to maintain
  * than unstable references, and thus should be used sparingly.
  */
 @Suppress("INAPPLICABLE_JVM_NAME")
 @JvmInline
 public value class Edge(public val id: Long) {
-
-    /**
-     * See [Graph.edgeSource].
-     */
-    @get:JvmSynthetic
-    context(graph: Graph)
-    public val source: Vertex inline get() = graph.edgeSource(this)
-
-    /**
-     * See [Graph.edgeTarget].
-     */
-    @get:JvmSynthetic
-    context(graph: Graph)
-    public val target: Vertex inline get() = graph.edgeTarget(this)
-
-    /**
-     * See [edgeSource].
-     */
-    @JvmSynthetic
-    context(graph: Graph)
-    public fun source(target: Vertex): Vertex = graph.edgeSource(this, target)
-
-    /**
-     * See [edgeTarget].
-     */
-    @JvmSynthetic
-    context(graph: Graph)
-    public fun target(source: Vertex): Vertex = graph.edgeTarget(this, source)
-
-    /**
-     * See [Graph.edgeOpposite].
-     */
-    @JvmSynthetic
-    context(graph: Graph)
-    public fun opposite(other: Vertex): Vertex = graph.edgeOpposite(this, other)
-
-    /**
-     * See [Graph.createEdgeReference].
-     */
-    @JvmSynthetic
-    context(graph: Graph)
-    public fun reference(): EdgeReference = graph.createEdgeReference(this)
-
-    @get:JvmSynthetic
-    context(graph: ValueGraph<*, E>)
-    public val <E> value: E inline get() = graph.edgeValues[this]
-
-    @JvmSynthetic
-    context(graph: Graph)
-    public operator fun component1(): Vertex = source
-
-    @JvmSynthetic
-    context(graph: Graph)
-    public operator fun component2(): Vertex = target
 
     @JvmName("toString")
     override fun toString(): String = "Edge($id)"
@@ -92,7 +38,7 @@ public value class Edge(public val id: Long) {
 /**
  * A unique identity-indexed edge identifier. Every edge in a graph is assigned a consecutive integer [id] in [0,
  * graph.edges.size), which is also its index in `graph.edges`. An [Edge] may only be converted to an
- * [IdentityIndexedEdge] if it belongs to a [Graph] that implements [IdentityIndexedEdgeGraph].
+ * [IdentityIndexedEdge] if it belongs to an [IdentityIndexedEdgeSet].
  *
  * This class is primarily intended for internal usage while implementing a graph, but may find other uses occasionally.
  */
@@ -102,56 +48,6 @@ public value class IdentityIndexedEdge(public val id: Int) {
 
     @JvmName("toEdge")
     public fun toEdge(): Edge = Edge(id.toLong())
-
-    /**
-     * See [Graph.edgeSource].
-     */
-    @get:JvmSynthetic
-    context(graph: IdentityIndexedEdgeGraph)
-    public val source: Vertex inline get() = graph.edgeSource(this)
-
-    /**
-     * See [Graph.edgeTarget].
-     */
-    @get:JvmSynthetic
-    context(graph: IdentityIndexedEdgeGraph)
-    public val target: Vertex inline get() = graph.edgeTarget(this)
-
-    /**
-     * See [edgeSource].
-     */
-    @JvmSynthetic
-    context(graph: IdentityIndexedEdgeGraph)
-    public fun source(target: Vertex): Vertex = graph.edgeSource(this, target)
-
-    /**
-     * See [edgeTarget].
-     */
-    @JvmSynthetic
-    context(graph: IdentityIndexedEdgeGraph)
-    public fun target(source: Vertex): Vertex = graph.edgeTarget(this, source)
-
-    /**
-     * See [Graph.edgeOpposite].
-     */
-    @JvmSynthetic
-    context(graph: IdentityIndexedEdgeGraph)
-    public fun opposite(other: Vertex): Vertex = graph.edgeOpposite(this, other)
-
-    /**
-     * See [Graph.createEdgeReference].
-     */
-    @JvmSynthetic
-    context(graph: IdentityIndexedEdgeGraph)
-    public fun reference(): EdgeReference = graph.createEdgeReference(this)
-
-    @JvmSynthetic
-    context(graph: IdentityIndexedEdgeGraph)
-    public operator fun component1(): Vertex = source
-
-    @JvmSynthetic
-    context(graph: IdentityIndexedEdgeGraph)
-    public operator fun component2(): Vertex = target
 
     @JvmName("toString")
     override fun toString(): String = "Edge($id)"
@@ -166,7 +62,7 @@ public value class IdentityIndexedEdge(public val id: Int) {
  * A unique canonical edge identifier. The source and target vertex of the edge are encoded directly into the edge [id]
  * itself, so that it is possible to retrieve them without referencing the owning graph. A CanonicalEdge cannot be used
  * with multi-edge graphs, since the edge is defined only by its source and target vertex. An [Edge] may only be
- * converted to a [CanonicalEdge] if it belongs to a [Graph] that implements [CanonicalEdgeGraph].
+ * converted to a [CanonicalEdge] if it belongs to a [CanonicalEdgeSet].
  *
  * This class is primarily intended for internal usage while implementing a graph, but may find other uses occasionally.
  */
@@ -188,20 +84,6 @@ public value class CanonicalEdge(public val id: Long) {
     public val target: Vertex inline get() = Vertex(id.toInt())
 
     /**
-     * See [edgeSource].
-     */
-    @JvmSynthetic
-    context(graph: CanonicalEdgeGraph)
-    public fun source(target: Vertex): Vertex = graph.edgeSource(Edge(id), target)
-
-    /**
-     * See [edgeTarget].
-     */
-    @JvmSynthetic
-    context(graph: CanonicalEdgeGraph)
-    public fun target(source: Vertex): Vertex = graph.edgeTarget(Edge(id), source)
-
-    /**
      * See [Graph.edgeOpposite].
      */
     @JvmSynthetic
@@ -218,13 +100,6 @@ public value class CanonicalEdge(public val id: Long) {
             return target
         }
     }
-
-    /**
-     * See [Graph.createEdgeReference].
-     */
-    @JvmSynthetic
-    context(graph: CanonicalEdgeGraph)
-    public fun reference(): EdgeReference = graph.createEdgeReference(Edge(id))
 
     @JvmSynthetic
     public operator fun component1(): Vertex = source
@@ -399,6 +274,52 @@ public interface EdgeSequencedCollection : EdgeCollection, RandomAccess {
 
 public val EdgeSequencedCollection.lastIndex: Int get() = size - 1
 
+// the following methods shadow the equivalent Iterable<Edge> methods from the standard library in order to avoid Edge
+// boxing/unboxing, and associated performance penalties. note that clients outside this package must import these
+// methods explicitly, otherwise the standard library versions will be used.
+
+/** Returns true if at least one edge matches the given predicate. */
+public inline fun EdgeCollection.any(predicate: (Edge) -> Boolean): Boolean {
+    for (edge in this) {
+        if (predicate(edge)) return true
+    }
+    return false
+}
+
+/** Returns true if all edges match the given predicate. */
+public inline fun EdgeCollection.all(predicate: (Edge) -> Boolean): Boolean {
+    for (edge in this) {
+        if (!predicate(edge)) return false
+    }
+    return true
+}
+
+/** Returns true if no edges match the given predicate. */
+public inline fun EdgeCollection.none(predicate: (Edge) -> Boolean): Boolean {
+    for (edge in this) {
+        if (predicate(edge)) return false
+    }
+    return true
+}
+
+/** Returns the number of edges matching the given predicate. */
+public inline fun EdgeCollection.count(predicate: (Edge) -> Boolean): Int {
+    var count = 0
+    for (edge in this) {
+        if (predicate(edge)) ++count
+    }
+    return count
+}
+
+/** Returns the first edge matching the given predicate. Throws [NoSuchElementException] if no such edge exists. */
+@JvmName("first")
+public inline fun EdgeCollection.first(predicate: (Edge) -> Boolean): Edge {
+    for (edge in this) {
+        if (predicate(edge)) return edge
+    }
+    throw NoSuchElementException("No edge matching the predicate.")
+}
+
 /** A read-only set of edges. */
 @Suppress("INAPPLICABLE_JVM_NAME")
 public interface EdgeSet : EdgeCollection, Set<Edge> {
@@ -440,8 +361,16 @@ public interface MutableEdgeSequencedSet : EdgeSequencedSet, MutableEdgeSet {
 }
 
 /**
- * An ordered set of edges where every edge is associated with an index in [0, size), such that [get] and [indexOf]
- * are both constant time. The index of an edge is obtained via [indexOf], and the edge for an index via [get].
+ * An ordered set of edges where every edge is associated with an index in [0, size). The index of an edge is obtained
+ * via [indexOf], and the edge for an index via [get]. This set MUST iterate edges in index order. Both [get] and
+ * [indexOf] are strongly expected to run in constant time - if they do not this must be extensively documented.
+ *
+ * If an edge is removed from the IndexedEdgeSet, this implies that the remaining edges must be re-ordered in order to
+ * keep indices in the range [0, size). The most common method of doing so is to assign the last edge the index of the
+ * removed edge, but this is not guaranteed by this interface, and the actual method is determined by the
+ * implementation.
+ *
+ * See [IdentityIndexedEdgeSet] for the stronger guarantee that the index of an edge is its [Edge.id].
  */
 @Suppress("INAPPLICABLE_JVM_NAME")
 public interface IndexedEdgeSet : EdgeSequencedSet {
@@ -462,7 +391,8 @@ public interface MutableIndexedEdgeSet : IndexedEdgeSet, MutableEdgeSequencedSet
 
 /**
  * An [IndexedEdgeSet] where the index of each edge is its [Edge.id], i.e. `get(index) == Edge(index)` and
- * `indexOf(edge) == edge.id`.
+ * `indexOf(edge) == edge.id`. Every edge in this set may be converted to an [IdentityIndexedEdge] via
+ * [IdentityIndexedEdge.from].
  */
 @Suppress("INAPPLICABLE_JVM_NAME")
 public interface IdentityIndexedEdgeSet : IndexedEdgeSet {
@@ -483,6 +413,16 @@ public interface IdentityIndexedEdgeSet : IndexedEdgeSet {
 public interface MutableIdentityIndexedEdgeSet : IdentityIndexedEdgeSet, MutableIndexedEdgeSet {
     override fun iterator(): MutableEdgeIterator
 }
+
+/**
+ * A set of edges where every edge encodes its vertex endpoints directly into the edge id. Every edge in this set may be
+ * converted to a [CanonicalEdge] via [CanonicalEdge.from]. A graph whose [Graph.edges] is a CanonicalEdgeSet can never
+ * contain multi-edges, since an edge is defined only by its source and target vertex.
+ */
+public interface CanonicalEdgeSet : EdgeSet
+
+/** A [CanonicalEdgeSet] with an iterator that allows for removal. */
+public interface MutableCanonicalEdgeSet : CanonicalEdgeSet, MutableEdgeSet
 
 // KT-33565: suppression and generics can be removed once fixed
 @Suppress("FINAL_UPPER_BOUND")
@@ -522,9 +462,9 @@ private class SingletonEdgeIterator(private val edge: Edge) : EdgeIterator {
     }
 }
 
-public fun emptyEdgeSet(): IdentityIndexedEdgeSet = EmptyEdgeSet
+public fun emptyEdgeSet(): EmptyEdgeSet = EmptyEdgeSet
 
-private object EmptyEdgeSet : IdentityIndexedEdgeSet, MutableIndexedEdgeSet, AbstractEdgeSet() {
+public object EmptyEdgeSet : AbstractEdgeSet(), MutableIdentityIndexedEdgeSet, MutableCanonicalEdgeSet {
     override val size: Int get() = 0
     override fun get(index: Int): Edge = throw IndexOutOfBoundsException()
     override fun contains(element: Edge): Boolean = false

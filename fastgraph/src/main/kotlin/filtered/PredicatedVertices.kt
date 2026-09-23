@@ -1,31 +1,18 @@
 package io.github.sooniln.fastgraph.filtered
 
-import io.github.sooniln.fastgraph.AbstractVertexSet
-import io.github.sooniln.fastgraph.Graph
-import io.github.sooniln.fastgraph.MutableVertexKeyProperty
-import io.github.sooniln.fastgraph.MutableVertexProperty
-import io.github.sooniln.fastgraph.PropertyType
-import io.github.sooniln.fastgraph.Vertex
-import io.github.sooniln.fastgraph.VertexChangeListener
-import io.github.sooniln.fastgraph.VertexFunction
-import io.github.sooniln.fastgraph.VertexIterator
-import io.github.sooniln.fastgraph.VertexPredicate
-import io.github.sooniln.fastgraph.VertexReference
+import io.github.sooniln.fastgraph.*
+import io.github.sooniln.fastgraph.properties.MutableVertexKeyProperty
+import io.github.sooniln.fastgraph.properties.MutableVertexProperty
+import io.github.sooniln.fastgraph.properties.PropertyType
+import io.github.sooniln.fastgraph.references.VertexReference
 import java.lang.ref.WeakReference
 
 internal class PredicatedVertices(
     private val parent: Graph,
     private val predicate: VertexPredicate,
-) : FilteredVertices, AbstractVertexSet() {
+) : FilteredVertices() {
 
     private val properties = ArrayList<WeakReference<PredicatedVertexProperty<*>>>()
-
-    // TODO: figure out a way to avoid lateinit?
-    private lateinit var graph: Graph
-
-    override fun bind(graph: Graph) {
-        this.graph = graph
-    }
 
     override val size: Int get() {
         var size = 0
@@ -72,6 +59,7 @@ internal class PredicatedVertices(
     }
 
     override fun <T> createVertexProperty(
+        graph: Graph,
         type: PropertyType<T>,
         defaultValueFunction: VertexFunction<T>
     ): MutableVertexProperty<T> {
@@ -80,11 +68,11 @@ internal class PredicatedVertices(
         return property
     }
 
-    override fun <T> createVertexKeyProperty(type: PropertyType<T>): MutableVertexKeyProperty<T> {
+    override fun <T> createVertexKeyProperty(graph: Graph, type: PropertyType<T>): MutableVertexKeyProperty<T> {
         throw UnsupportedOperationException("A graph with filtered vertices cannot support vertex key properties")
     }
 
-    override fun createVertexReference(vertex: Vertex): VertexReference {
+    override fun createVertexReference(graph: Graph, vertex: Vertex): VertexReference {
         throw UnsupportedOperationException("A graph with filtered vertices cannot support vertex references")
     }
 

@@ -6,17 +6,14 @@ import io.github.sooniln.fastcollect.removeOrElse
 import io.github.sooniln.fastcollect.replaceOrSet
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
-import io.github.sooniln.fastgraph.IdentityIndexedVertexGraph
-import io.github.sooniln.fastgraph.IndexedVertexGraph
-import io.github.sooniln.fastgraph.MutableVertexProperty
-import io.github.sooniln.fastgraph.PropertyType
+import io.github.sooniln.fastgraph.IndexedVertexSet
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
 import io.github.sooniln.fastgraph.VertexFunction
 import io.github.sooniln.fastgraph.internal.throwIllegalVertex
 
 internal class AnyIdentityIndexedVertexProperty<T>(
-    override val graph: IdentityIndexedVertexGraph,
+    override val graph: Graph,
     override val type: PropertyType<T>,
     defaultValueFunction: VertexFunction<T>,
 ) : MutableVertexProperty<T>, VertexChangeListener {
@@ -74,7 +71,8 @@ internal class AnyIdentityIndexedVertexProperty<T>(
 }
 
 internal class AnyIndexedVertexProperty<T>(
-    override val graph: IndexedVertexGraph,
+    override val graph: Graph,
+    private val vertices: IndexedVertexSet,
     override val type: PropertyType<T>,
     defaultValueFunction: VertexFunction<T>,
 ) : MutableVertexProperty<T>, VertexChangeListener {
@@ -83,14 +81,14 @@ internal class AnyIndexedVertexProperty<T>(
     private val initializer = defaultValueFunction
 
     init {
-        property.ensureCapacity(graph.vertices.size)
-        for (vertex in graph.vertices) { onVertexAdded(vertex) }
+        property.ensureCapacity(vertices.size)
+        for (vertex in vertices) { onVertexAdded(vertex) }
         graph.registerVertexChangeListener(this)
     }
 
     override fun get(vertex: Vertex): T {
         try {
-            return property[graph.vertices.indexOf(vertex)]
+            return property[vertices.indexOf(vertex)]
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
         }
@@ -98,7 +96,7 @@ internal class AnyIndexedVertexProperty<T>(
 
     override fun set(vertex: Vertex, value: T) {
         try {
-            property[graph.vertices.indexOf(vertex)] = value
+            property[vertices.indexOf(vertex)] = value
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
         }
@@ -106,36 +104,36 @@ internal class AnyIndexedVertexProperty<T>(
 
     override fun put(vertex: Vertex, value: T): T {
         try {
-            return property.set(graph.vertices.indexOf(vertex), value)
+            return property.set(vertices.indexOf(vertex), value)
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
         }
     }
 
     override fun onVertexAdded(vertex: Vertex) {
-        check(graph.vertices.indexOf(vertex) == property.size)
+        check(vertices.indexOf(vertex) == property.size)
         property.add(initializer.apply(vertex))
     }
 
     override fun onVertexRemoved(vertex: Vertex) {
-        check(graph.vertices.indexOf(vertex) == property.lastIndex)
+        check(vertices.indexOf(vertex) == property.lastIndex)
         property.removeAt(property.lastIndex)
     }
 
     override fun onVertexReassigned(oldVertex: Vertex, newVertex: Vertex) {
-        check(graph.vertices.indexOf(oldVertex) == property.lastIndex)
-        property[graph.vertices.indexOf(newVertex)] = property.removeAt(property.lastIndex)
+        check(vertices.indexOf(oldVertex) == property.lastIndex)
+        property[vertices.indexOf(newVertex)] = property.removeAt(property.lastIndex)
     }
 
     override fun ensureVertexCapacity(vertexCapacity: Int) = property.ensureCapacity(vertexCapacity)
     override fun trimToSize() = property.trimToSize()
 }
 
-internal class ImmutableAnyIdentityIndexedVertexProperty<G, T>(
-    override val graph: G,
+internal class ImmutableAnyIdentityIndexedVertexProperty<T>(
+    override val graph: ImmutableGraph,
     override val type: PropertyType<T>,
     defaultValueFunction: VertexFunction<T>,
-) : MutableVertexProperty<T> where G : ImmutableGraph, G : IdentityIndexedVertexGraph {
+) : MutableVertexProperty<T> {
 
     private val property = ArrayList<T>()
 
@@ -172,25 +170,26 @@ internal class ImmutableAnyIdentityIndexedVertexProperty<G, T>(
     }
 }
 
-internal class ImmutableAnyIndexedVertexProperty<G, T>(
-    override val graph: G,
+internal class ImmutableAnyIndexedVertexProperty<T>(
+    override val graph: ImmutableGraph,
+    private val vertices: IndexedVertexSet,
     override val type: PropertyType<T>,
     defaultValueFunction: VertexFunction<T>,
-) : MutableVertexProperty<T> where G : ImmutableGraph, G : IndexedVertexGraph {
+) : MutableVertexProperty<T> {
 
     private val property = ArrayList<T>()
 
     init {
-        property.ensureCapacity(graph.vertices.size)
-        for (vertex in graph.vertices) {
-            assert(graph.vertices.indexOf(vertex) == property.size)
+        property.ensureCapacity(vertices.size)
+        for (vertex in vertices) {
+            assert(vertices.indexOf(vertex) == property.size)
             property.add(defaultValueFunction.apply(vertex))
         }
     }
 
     override fun get(vertex: Vertex): T {
         try {
-            return property[graph.vertices.indexOf(vertex)]
+            return property[vertices.indexOf(vertex)]
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
         }
@@ -198,7 +197,7 @@ internal class ImmutableAnyIndexedVertexProperty<G, T>(
 
     override fun set(vertex: Vertex, value: T) {
         try {
-            property[graph.vertices.indexOf(vertex)] = value
+            property[vertices.indexOf(vertex)] = value
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
         }
@@ -206,7 +205,7 @@ internal class ImmutableAnyIndexedVertexProperty<G, T>(
 
     override fun put(vertex: Vertex, value: T): T {
         try {
-            return property.set(graph.vertices.indexOf(vertex), value)
+            return property.set(vertices.indexOf(vertex), value)
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
         }

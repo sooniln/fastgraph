@@ -1,5 +1,6 @@
 package io.github.sooniln.fastgraph
 
+import io.github.sooniln.fastgraph.properties.PropertyType
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -8,14 +9,14 @@ import org.junit.jupiter.params.provider.MethodSource
 import kotlin.reflect.typeOf
 
 /**
- * Exercises the array-backed properties for [IndexedVertexGraph]/[IndexedEdgeGraph] implementations which are *not*
+ * Exercises the array-backed properties for [IndexedVertexSet]/[IndexedEdgeSet] graphs which are *not*
  * identity indexed, i.e. where the index of a vertex/edge is unrelated to its id. No such mutable graph ships with
  * the library, so a minimal fake is used which follows the change-listener contract: listeners are notified before
  * the mutation, and a non-last removal is reported as a re-assignment of the last index.
  */
 class IndexedPropertyTest {
 
-    private class FakeIndexedGraph : IndexedVertexGraph, IndexedEdgeGraph, Graph by mutableGraph(true) {
+    private class FakeIndexedGraph : Graph by mutableGraph(true) {
         private val vertexIds = ArrayList<Int>()
         private val vertexIndices = HashMap<Int, Int>()
         private val edgeIds = ArrayList<Long>()
@@ -41,13 +42,17 @@ class IndexedPropertyTest {
         override fun unregisterEdgeChangeListener(listener: EdgeChangeListener) { edgeListeners.remove(listener) }
 
         override fun <T> createVertexProperty(type: PropertyType<T>, defaultValueFunction: VertexFunction<T>) =
-            createVertexProperty(this, type, defaultValueFunction)
+            io.github.sooniln.fastgraph.properties.createVertexProperty(this, type, defaultValueFunction)
         override fun <T> createEdgeProperty(type: PropertyType<T>, defaultValueFunction: EdgeFunction<T>) =
-            createEdgeProperty(this, type, defaultValueFunction)
+            _root_ide_package_.io.github.sooniln.fastgraph.properties.createEdgeProperty(
+                this,
+                type,
+                defaultValueFunction
+            )
         override fun <T> createVertexKeyProperty(type: PropertyType<T>) =
-            createVertexKeyProperty(this, type)
+            io.github.sooniln.fastgraph.properties.createVertexKeyProperty(this, type)
         override fun <T> createEdgeKeyProperty(type: PropertyType<T>) =
-            createEdgeKeyProperty(this, type)
+            _root_ide_package_.io.github.sooniln.fastgraph.properties.createEdgeKeyProperty(this, type)
 
         fun addVertex(id: Int): Vertex {
             vertexIndices[id] = vertexIds.size
@@ -238,19 +243,20 @@ class IndexedPropertyTest {
     fun builtInGraphsAreIdentityIndexed() {
         for (directed in listOf(true, false)) {
             for (multiEdge in listOf(true, false)) {
-                assertThat(mutableGraph(directed, multiEdge)).isInstanceOf(IdentityIndexedVertexGraph::class.java)
-                assertThat(mutableGraph(directed, multiEdge, indexEdges = true))
-                    .isInstanceOf(IdentityIndexedVertexGraph::class.java)
-                    .isInstanceOf(IdentityIndexedEdgeGraph::class.java)
-                assertThat(buildImmutableGraph(directed, multiEdge) { addVertex() })
-                    .isInstanceOf(IdentityIndexedVertexGraph::class.java)
-                assertThat(buildImmutableGraph(directed, multiEdge, indexEdges = true) { addVertex() })
-                    .isInstanceOf(IdentityIndexedVertexGraph::class.java)
-                    .isInstanceOf(IdentityIndexedEdgeGraph::class.java)
+                assertThat(mutableGraph(directed, multiEdge).vertices)
+                    .isInstanceOf(IdentityIndexedVertexSet::class.java)
+                val indexed = mutableGraph(directed, multiEdge, indexEdges = true)
+                assertThat(indexed.vertices).isInstanceOf(IdentityIndexedVertexSet::class.java)
+                assertThat(indexed.edges).isInstanceOf(IdentityIndexedEdgeSet::class.java)
+                assertThat(buildImmutableGraph(directed, multiEdge) { addVertex() }.vertices)
+                    .isInstanceOf(IdentityIndexedVertexSet::class.java)
+                val immutableIndexed = buildImmutableGraph(directed, multiEdge, indexEdges = true) { addVertex() }
+                assertThat(immutableIndexed.vertices).isInstanceOf(IdentityIndexedVertexSet::class.java)
+                assertThat(immutableIndexed.edges).isInstanceOf(IdentityIndexedEdgeSet::class.java)
             }
-            assertThat(emptyImmutableGraph(directed))
-                .isInstanceOf(IdentityIndexedVertexGraph::class.java)
-                .isInstanceOf(IdentityIndexedEdgeGraph::class.java)
+            val empty = emptyImmutableGraph(directed)
+            assertThat(empty.vertices).isInstanceOf(IdentityIndexedVertexSet::class.java)
+            assertThat(empty.edges).isInstanceOf(IdentityIndexedEdgeSet::class.java)
         }
     }
 }

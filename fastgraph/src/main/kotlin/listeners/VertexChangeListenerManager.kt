@@ -4,6 +4,7 @@ import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
 import java.lang.ref.WeakReference
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.function.Predicate
 
 internal class VertexChangeListenerManager {
     private val listeners = CopyOnWriteArrayList<WeakReference<VertexChangeListener>>()
@@ -12,41 +13,23 @@ internal class VertexChangeListenerManager {
         val ref = WeakReference(listener)
 
         synchronized(listeners) {
-            var index = 0
-            var size = listeners.size
-            while (index < size) {
-                val l = listeners[index].get()
-                if (l == null) {
-                    val old = listeners.removeAt(--size)
-                    if (index != size) {
-                        listeners[index] = old
-                    }
-                } else if (l === listener) {
+            listeners.removeIf(Predicate {
+                val l = it.get()
+                if (l === listener) {
                     throw IllegalArgumentException("listener already registered: $listener")
-                } else {
-                    ++index
                 }
-            }
-
+                return@Predicate l == null
+            })
             listeners.add(ref)
         }
     }
 
     fun unregister(listener: VertexChangeListener) {
         synchronized(listeners) {
-            var index = 0
-            var size = listeners.size
-            while (index < listeners.size) {
-                val l = listeners[index].get()
-                if (l == null || l === listener) {
-                    val old = listeners.removeAt(--size)
-                    if (index != size) {
-                        listeners[index] = old
-                    }
-                } else {
-                    ++index
-                }
-            }
+            listeners.removeIf(Predicate {
+                val l = it.get()
+                return@Predicate l == null || l === listener
+            })
         }
     }
 

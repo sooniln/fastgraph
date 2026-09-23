@@ -2,12 +2,12 @@ package io.github.sooniln.fastgraph.io
 
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.Graph
-import io.github.sooniln.fastgraph.MutableEdgeProperty
-import io.github.sooniln.fastgraph.MutableVertexKeyProperty
-import io.github.sooniln.fastgraph.MutableVertexProperty
-import io.github.sooniln.fastgraph.PropertyType
+import io.github.sooniln.fastgraph.properties.MutableEdgeProperty
+import io.github.sooniln.fastgraph.properties.MutableVertexKeyProperty
+import io.github.sooniln.fastgraph.properties.MutableVertexProperty
+import io.github.sooniln.fastgraph.properties.PropertyType
 import io.github.sooniln.fastgraph.Vertex
-import io.github.sooniln.fastgraph.propertyTypeOf
+import io.github.sooniln.fastgraph.properties.propertyTypeOf
 
 @OptIn(ExperimentalStdlibApi::class)
 public class PropertyBinding<out T>(

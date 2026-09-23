@@ -6,15 +6,12 @@ import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeChangeListener
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.IdentityIndexedEdge
-import io.github.sooniln.fastgraph.IdentityIndexedEdgeGraph
-import io.github.sooniln.fastgraph.IndexedEdgeGraph
-import io.github.sooniln.fastgraph.MutableEdgeKeyProperty
-import io.github.sooniln.fastgraph.PropertyType
+import io.github.sooniln.fastgraph.IndexedEdgeSet
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
 
 @Suppress("UNCHECKED_CAST")
 internal class AnyIdentityIndexedEdgeKeyProperty<T>(
-    override val graph: IdentityIndexedEdgeGraph,
+    override val graph: Graph,
     override val type: PropertyType<T>,
 ) : MutableEdgeKeyProperty<T>, EdgeChangeListener {
 
@@ -52,7 +49,7 @@ internal class AnyIdentityIndexedEdgeKeyProperty<T>(
         val existingId = index[value]
         if (existingId != null) {
             if (existingId == edge.id) return
-            val existingEdge = IdentityIndexedEdge(existingId)
+            val existingEdge = IdentityIndexedEdge(existingId).toEdge()
             throw IllegalArgumentException("\"$value\" is already associated with $existingEdge (${graph.edgeSource(existingEdge)} -> ${graph.edgeTarget(existingEdge)})")
         }
 
@@ -108,7 +105,8 @@ internal class AnyIdentityIndexedEdgeKeyProperty<T>(
 
 @Suppress("UNCHECKED_CAST")
 internal class AnyIndexedEdgeKeyProperty<T>(
-    override val graph: IndexedEdgeGraph,
+    override val graph: Graph,
+    private val edges: IndexedEdgeSet,
     override val type: PropertyType<T>,
 ) : MutableEdgeKeyProperty<T>, EdgeChangeListener {
 
@@ -116,15 +114,15 @@ internal class AnyIndexedEdgeKeyProperty<T>(
     private val index = HashMap<T, Int>()
 
     init {
-        keys.ensureCapacity(graph.edges.size)
-        for (edge in graph.edges) { onEdgeAdded(edge) }
+        keys.ensureCapacity(edges.size)
+        for (edge in edges) { onEdgeAdded(edge) }
         graph.registerEdgeChangeListener(this)
     }
 
     private fun checkComplete() {
         check(index.size == keys.size) {
-            "edges have no key: ${graph.edges.filter {
-                val i = graph.edges.indexOf(it)
+            "edges have no key: ${edges.filter {
+                val i = edges.indexOf(it)
                 index[keys[i] as T] != i
             }}"
         }
@@ -133,18 +131,18 @@ internal class AnyIndexedEdgeKeyProperty<T>(
     override fun get(edge: Edge): T {
         checkComplete()
         try {
-            return keys[graph.edges.indexOf(edge)] as T
+            return keys[edges.indexOf(edge)] as T
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
     }
 
     override fun set(edge: Edge, value: T) {
-        val edgeIndex = graph.edges.indexOf(edge)
+        val edgeIndex = edges.indexOf(edge)
         val existingIndex = index[value]
         if (existingIndex != null) {
             if (existingIndex == edgeIndex) return
-            val existingEdge = graph.edges[existingIndex]
+            val existingEdge = edges[existingIndex]
             throw IllegalArgumentException("\"$value\" is already associated with $existingEdge (${graph.edgeSource(existingEdge)} -> ${graph.edgeTarget(existingEdge)})")
         }
 
@@ -170,23 +168,23 @@ internal class AnyIndexedEdgeKeyProperty<T>(
 
     override fun getEdge(key: T): Edge {
         checkComplete()
-        return graph.edges[index.getValue(key)]
+        return edges[index.getValue(key)]
     }
 
     override fun onEdgeAdded(edge: Edge) {
-        check(graph.edges.indexOf(edge) == keys.size)
+        check(edges.indexOf(edge) == keys.size)
         keys.add(null)
     }
 
     override fun onEdgeRemoved(edge: Edge) {
-        val edgeIndex = graph.edges.indexOf(edge)
+        val edgeIndex = edges.indexOf(edge)
         check(edgeIndex == keys.lastIndex)
         index.remove(keys.removeAt(edgeIndex) as T, edgeIndex)
     }
 
     override fun onEdgeReassigned(oldEdge: Edge, newEdge: Edge) {
-        val oldIndex = graph.edges.indexOf(oldEdge)
-        val newIndex = graph.edges.indexOf(newEdge)
+        val oldIndex = edges.indexOf(oldEdge)
+        val newIndex = edges.indexOf(newEdge)
         check(oldIndex == keys.lastIndex)
         index.remove(keys[newIndex] as T, newIndex)
         val moved = keys.removeAt(oldIndex) as T

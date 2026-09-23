@@ -79,12 +79,14 @@ tasks.register<Sync>("GenerateMain") {
                 listOf(
                     mapOf("Type" to "Int"),
                     mapOf("Type" to "Long"),
+                    mapOf("Type" to "Edge", "StorageType" to "Long", "ReadLambda" to "{ return Edge(it) }", "WriteLambda" to "{ return it.id }"),
                 )) { expansion -> "properties/${expansion["Type"]}EdgeKeyProperties.kt" },
             TemplateInstantiation(
                 "VertexKeyProperties.kte",
                 listOf(
                     mapOf("Type" to "Int"),
                     mapOf("Type" to "Long"),
+                    mapOf("Type" to "Vertex", "StorageType" to "Int", "ReadLambda" to "{ return Vertex(it) }", "WriteLambda" to "{ return it.id }"),
                 )) { expansion -> "properties/${expansion["Type"]}VertexKeyProperties.kt" },
         ))
 }

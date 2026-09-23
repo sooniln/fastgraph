@@ -1,5 +1,9 @@
 package io.github.sooniln.fastgraph
 
+import io.github.sooniln.fastgraph.filtered.filter
+import io.github.sooniln.fastgraph.paths.Path
+import io.github.sooniln.fastgraph.paths.PathForest
+import io.github.sooniln.fastgraph.paths.buildPathForest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -14,7 +18,7 @@ class CollectionTest {
 
     private lateinit var mutable: MutableGraph
     private lateinit var immutable: ImmutableGraph
-    private lateinit var tree: PathTree
+    private lateinit var tree: PathForest
     private lateinit var path: Path
     private var v0 = Vertex(-1)
     private var v1 = Vertex(-1)
@@ -23,24 +27,26 @@ class CollectionTest {
     private var e12 = Edge(-1)
     private var e02 = Edge(-1)
 
-    // v0 -> v1 -> v2, v0 -> v2; the path tree reaches v2 before v1 so that its index order differs from the graphs'
+    // v0 -> v1, v2 -> v1, v0 -> v2; the path tree reaches v2 before v1 so that its index order differs from the graphs'
     private fun construct(directed: Boolean, indexEdges: Boolean) {
         mutable = buildGraph(directed, indexEdges = indexEdges) {
             v0 = addVertex()
             v1 = addVertex()
             v2 = addVertex()
             e01 = addEdge(v0, v1)
-            e12 = addEdge(v1, v2)
+            e12 = addEdge(v2, v1)
             e02 = addEdge(v0, v2)
         }
         immutable = mutable.toImmutableGraph()
-        tree = mutable.buildPathTree(v0) {
-            setParent(v0, e02, v2)
-            setParent(v0, e01, v1)
+        tree = mutable.buildPathForest {
+            addRoot(v0)
+            setParentEdge(v2, e02)
+            setParentEdge(v1, e01)
         }
-        path = mutable.buildPathTree(v0) {
-            setParent(v0, e02, v2)
-            setParent(v2, e12, v1)
+        path = mutable.buildPathForest {
+            addRoot(v0)
+            setParentEdge(v2, e02)
+            setParentEdge(v1, e12)
         }.materializePath(v1)
     }
 
@@ -129,10 +135,8 @@ class CollectionTest {
 
         assertThat(mutableVertices.equalsSequenced(immutableVertices)).isTrue
         assertThat(immutableVertices.equalsSequenced(mutableVertices)).isTrue
-        // the tree reached v2 before v1
-        assertThat(tree.vertices).containsExactly(v0, v2, v1)
-        assertThat(mutableVertices.equalsSequenced(tree.vertices)).isFalse
-        assertThat(tree.vertices.equalsSequenced(mutableVertices)).isFalse
+        assertThat(tree.vertices).containsExactlyInAnyOrder(v0, v2, v1)
+        // the path reached v2 before v1
         assertThat(mutableVertices.equalsSequenced(path.vertices)).isFalse
         assertThat(tree.vertices == mutableVertices).isTrue
 
@@ -140,9 +144,8 @@ class CollectionTest {
         val immutableEdges = immutable.edges as EdgeSequencedSet
         assertThat(mutableEdges.equalsSequenced(immutableEdges)).isTrue
         assertThat(immutableEdges.equalsSequenced(mutableEdges)).isTrue
-        assertThat(tree.edges).containsExactly(e02, e01)
-        assertThat(tree.edges.equalsSequenced(path.edges)).isFalse
-        assertThat(mutableEdges.equalsSequenced(tree.edges)).isFalse
+        assertThat(tree.edges).containsExactlyInAnyOrder(e02, e01)
+        assertThat(mutableEdges.equalsSequenced(path.edges)).isFalse
     }
 
     // --- factories ----------------------------------------------------------------------------------------------------
@@ -346,10 +349,10 @@ class CollectionTest {
     fun collectionToString(directed: Boolean) {
         construct(directed, indexEdges = true)
 
-        // sets print in braces, in index order for indexed sets
+        // sets print in braces, in index order for indexed sets (a path forest indexes its roots last)
         assertThat(mutable.vertices.toString()).isEqualTo("{Vertex(0x0), Vertex(0x1), Vertex(0x2)}")
         assertThat(immutable.vertices.toString()).isEqualTo("{Vertex(0x0), Vertex(0x1), Vertex(0x2)}")
-        assertThat(tree.vertices.toString()).isEqualTo("{Vertex(0x0), Vertex(0x2), Vertex(0x1)}")
+        assertThat(tree.vertices.toString()).isEqualTo("{Vertex(0x2), Vertex(0x1), Vertex(0x0)}")
         assertThat(mutable.edges.toString()).isEqualTo("{${e01}, ${e12}, ${e02}}")
         assertThat(immutable.edges.toString()).isEqualTo("{${e01}, ${e12}, ${e02}}")
         assertThat(tree.edges.toString()).isEqualTo("{${e02}, ${e01}}")
@@ -415,42 +418,35 @@ class CollectionTest {
         val e1 = mutable.addEdge(v1, v0)
         assertThat(e0).isEqualTo(IdentityIndexedEdge(0).toEdge())
         assertThat(e1).isEqualTo(IdentityIndexedEdge(1).toEdge())
-        val graph = mutable as IdentityIndexedEdgeGraph
-        context(graph) {
-            val ie1 = IdentityIndexedEdge.from(e1)
-            assertThat(ie1.source).isEqualTo(v1)
-            assertThat(ie1.target).isEqualTo(v0)
-            assertThat(ie1.opposite(v0)).isEqualTo(v1)
-            assertThat(ie1.source(v0)).isEqualTo(v1)
-            assertThat(ie1.target(v1)).isEqualTo(v0)
-            assertThat(ie1.reference().unstable).isEqualTo(e1)
-            val (source, target) = ie1
-            assertThat(source).isEqualTo(v1)
-            assertThat(target).isEqualTo(v0)
-        }
-        assertThat(graph.edgeSource(IdentityIndexedEdge(0), v1)).isEqualTo(v0)
-        assertThat(graph.edgeTarget(IdentityIndexedEdge(0), v0)).isEqualTo(v1)
-        assertThat(graph.edgeOpposite(IdentityIndexedEdge(0), v0)).isEqualTo(v1)
-        assertThrows<IllegalArgumentException> { graph.edgeOpposite(IdentityIndexedEdge(0), Vertex(5)) }
+        assertThat(mutable.edges).isInstanceOf(IdentityIndexedEdgeSet::class.java)
+        val ie1 = IdentityIndexedEdge.from(e1)
+        assertThat(mutable.edgeSource(ie1.toEdge())).isEqualTo(v1)
+        assertThat(mutable.edgeTarget(ie1.toEdge())).isEqualTo(v0)
+        assertThat(mutable.edgeOpposite(ie1.toEdge(), v0)).isEqualTo(v1)
+        assertThat(mutable.edgeSource(ie1.toEdge(), v0)).isEqualTo(v1)
+        assertThat(mutable.edgeTarget(ie1.toEdge(), v1)).isEqualTo(v0)
+        assertThat(mutable.createEdgeReference(ie1.toEdge()).unstable).isEqualTo(e1)
+        assertThat(mutable.edgeSource(IdentityIndexedEdge(0).toEdge(), v1)).isEqualTo(v0)
+        assertThat(mutable.edgeTarget(IdentityIndexedEdge(0).toEdge(), v0)).isEqualTo(v1)
+        assertThat(mutable.edgeOpposite(IdentityIndexedEdge(0).toEdge(), v0)).isEqualTo(v1)
+        assertThrows<IllegalArgumentException> { mutable.edgeOpposite(IdentityIndexedEdge(0).toEdge(), Vertex(5)) }
     }
 
     @Test
-    fun canonicalEdgeContextMembers() {
+    fun canonicalEdgeAccessors() {
         val mutable = mutableGraph(false)
         val v0 = mutable.addVertex()
         val v1 = mutable.addVertex()
         val edge = mutable.addEdge(v0, v1)
-        val graph = mutable as CanonicalEdgeGraph
+        assertThat(mutable.edges).isInstanceOf(CanonicalEdgeSet::class.java)
 
-        context(graph) {
-            val canonical = CanonicalEdge.from(edge)
-            assertThat(canonical.source(v0)).isEqualTo(v1)
-            assertThat(canonical.target(v0)).isEqualTo(v1)
-            assertThat(canonical.reference().unstable).isEqualTo(edge)
-        }
-        assertThat(graph.edgeSource(edge, v0)).isEqualTo(v1)
-        assertThat(graph.edgeTarget(edge, v0)).isEqualTo(v1)
-        assertThat(graph.edgeSource(edge, graph.createVertexReference(v1))).isEqualTo(v0)
-        assertThat(graph.edgeTarget(edge, graph.createVertexReference(v1))).isEqualTo(v0)
+        val canonical = CanonicalEdge.from(edge)
+        assertThat(mutable.edgeSource(canonical.toEdge(), v0)).isEqualTo(v1)
+        assertThat(mutable.edgeTarget(canonical.toEdge(), v0)).isEqualTo(v1)
+        assertThat(mutable.createEdgeReference(canonical.toEdge()).unstable).isEqualTo(edge)
+        assertThat(mutable.edgeSource(edge, v0)).isEqualTo(v1)
+        assertThat(mutable.edgeTarget(edge, v0)).isEqualTo(v1)
+        assertThat(mutable.edgeSource(edge, mutable.createVertexReference(v1))).isEqualTo(v0)
+        assertThat(mutable.edgeTarget(edge, mutable.createVertexReference(v1))).isEqualTo(v0)
     }
 }

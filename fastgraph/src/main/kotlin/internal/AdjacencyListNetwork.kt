@@ -6,15 +6,16 @@ import io.github.sooniln.fastgraph.AbstractGraph
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeChangeListener
 import io.github.sooniln.fastgraph.EdgeIterator
-import io.github.sooniln.fastgraph.EdgeReference
+import io.github.sooniln.fastgraph.references.EdgeReference
 import io.github.sooniln.fastgraph.EdgeSet
+import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.IdentityIndexedEdge
-import io.github.sooniln.fastgraph.IdentityIndexedEdgeGraph
-import io.github.sooniln.fastgraph.IdentityIndexedVertexGraph
+import io.github.sooniln.fastgraph.IdentityIndexedEdgeSet
+import io.github.sooniln.fastgraph.IdentityIndexedVertexSet
 import io.github.sooniln.fastgraph.MutableGraph
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
-import io.github.sooniln.fastgraph.VertexReference
+import io.github.sooniln.fastgraph.references.VertexReference
 import io.github.sooniln.fastgraph.VertexSet
 import io.github.sooniln.fastgraph.asVertexSet
 import io.github.sooniln.fastgraph.listeners.EdgeChangeListenerManager
@@ -22,12 +23,13 @@ import io.github.sooniln.fastgraph.listeners.VertexChangeListenerManager
 import io.github.sooniln.fastgraph.references.EdgeReferenceManager
 import io.github.sooniln.fastgraph.references.VertexReferenceManager
 import io.github.sooniln.fastgraph.util.cheapLazy
+import io.github.sooniln.fastgraph.util.cheapSynchronizedLazy
 import io.github.sooniln.fastgraph.vertexSetOf
 
 internal class AdjacencyListNetwork(
     override val directed: Boolean,
     override val multiEdge: Boolean,
-) : AbstractGraph(), IdentityIndexedVertexGraph, IdentityIndexedEdgeGraph, MutableGraph {
+) : AbstractGraph<EdgeSet>(), MutableGraph {
 
     private val _predecessors = cheapLazy { check(directed); successors.transpose() }
 
@@ -38,15 +40,15 @@ internal class AdjacencyListNetwork(
     private val vertexListeners = VertexChangeListenerManager()
     private val edgeListeners = EdgeChangeListenerManager()
 
-    private val vertexRefs = VertexReferenceManager(this)
-    private val edgeRefs = EdgeReferenceManager(this)
+    private val vertexRefs by cheapSynchronizedLazy { VertexReferenceManager(this) }
+    private val edgeRefs by cheapSynchronizedLazy { EdgeReferenceManager(this) }
 
     override fun validateVertex(vertex: Vertex): Vertex {
         if (vertex.id !in successors.indices) throwIllegalVertex(vertex)
         return vertex
     }
 
-    override fun validateEdge(edge: Edge): Edge {
+    private fun validateEdge(edge: Edge): Edge {
         val e = IdentityIndexedEdge(Math.toIntExact(edge.id))
         if (e.id !in 0..<edgeValues.size) throwIllegalEdge(edge)
         return edge
@@ -264,8 +266,8 @@ internal class AdjacencyListNetwork(
         override val size: Int get() = edgeValues.size
     }
 
-    override fun edgeSource(edge: IdentityIndexedEdge): Vertex = edgeValues[edge.id].source
-    override fun edgeTarget(edge: IdentityIndexedEdge): Vertex = edgeValues[edge.id].target
+    override fun edgeSource(edge: Edge): Vertex = edgeValues[edge.id.toInt()].source
+    override fun edgeTarget(edge: Edge): Vertex = edgeValues[edge.id.toInt()].target
 
     override fun registerVertexChangeListener(listener: VertexChangeListener) = vertexListeners.register(listener)
     override fun unregisterVertexChangeListener(listener: VertexChangeListener) = vertexListeners.unregister(listener)
@@ -284,7 +286,6 @@ internal class AdjacencyListNetwork(
         vertexRefs.getReference(validateVertex(vertex))
 
     override fun createEdgeReference(edge: Edge): EdgeReference = edgeRefs.getReference(validateEdge(edge))
-    override fun createEdgeReference(edge: IdentityIndexedEdge): EdgeReference = createEdgeReference(edge.toEdge())
 
     override fun trimToSize() {
         successors.trimToSize()
@@ -313,18 +314,18 @@ internal class AdjacencyListNetwork(
 
         override fun contains(element: Edge): Boolean {
             if (element.id !in 0..<edgeValues.size) return false
-            val edge = IdentityIndexedEdge.from(element)
 
             val target: Vertex
             val source: Vertex
             if (outgoing) {
-                source = edgeSource(edge)
-                target = edgeTarget(edge)
+                source = edgeSource(element)
+                target = edgeTarget(element)
             } else {
-                source = edgeTarget(edge)
-                target = edgeSource(edge)
+                source = edgeTarget(element)
+                target = edgeSource(element)
             }
 
+            val edge = IdentityIndexedEdge.from(element)
             return if (!directed && target == vertex) {
                 adjacencies.contains(EdgeAdjacency(source, edge.id))
             } else {
@@ -548,7 +549,7 @@ internal class AdjacencyListNetwork(
         private fun Int2IntHashMap.remove(vertex: Vertex) = remove(vertex.id)
     }
 
-    private companion object {
+    companion object {
         private operator fun ArrayList<AdjacencySet>.get(vertex: Vertex) = get(vertex.id)
         private operator fun ArrayList<AdjacencySet>.set(vertex: Vertex, value: AdjacencySet) = set(vertex.id, value)
         private fun ArrayList<AdjacencySet>.remove(vertex: Vertex) = removeAt(vertex.id)
@@ -565,5 +566,23 @@ internal class AdjacencyListNetwork(
         }
 
         private fun canonicalEdge(edgeId: Int): Edge = Edge(edgeId.toLong())
+
+        fun copy(graph: Graph): AdjacencyListNetwork {
+            require(graph.vertices is IdentityIndexedVertexSet)
+            require(graph.edges is IdentityIndexedEdgeSet)
+
+            val copy = AdjacencyListNetwork(graph.directed, graph.multiEdge)
+            copy.ensureVertexCapacity(graph.vertices.size)
+            copy.ensureEdgeCapacity(graph.edges.size)
+            for (vertex in graph.vertices) {
+                val vertexCopy = copy.addVertex(graph.outDegree(vertex), 0)
+                assert(vertexCopy.id == vertex.id)
+            }
+            for (edge in graph.edges) {
+                val edgeCopy = copy.addEdge(graph.edgeSource(edge), graph.edgeTarget(edge))
+                assert(edgeCopy.id == edge.id)
+            }
+            return copy
+        }
     }
 }

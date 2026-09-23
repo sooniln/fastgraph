@@ -8,19 +8,18 @@ import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeChangeListener
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.IdentityIndexedEdge
-import io.github.sooniln.fastgraph.IdentityIndexedEdgeGraph
-import io.github.sooniln.fastgraph.IndexedEdgeGraph
-import io.github.sooniln.fastgraph.PropertyType
-import io.github.sooniln.fastgraph.propertyTypeOf
+import io.github.sooniln.fastgraph.IndexedEdgeSet
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
+import io.github.sooniln.fastgraph.properties.PropertyType
+import io.github.sooniln.fastgraph.properties.propertyTypeOf
+import io.github.sooniln.fastgraph.properties.MutableEdgeKeyProperty
 import io.github.sooniln.fastcollect.Int2IntHashMap
 
 import io.github.sooniln.fastcollect.Int2LongHashMap
 
-import io.github.sooniln.fastgraph.MutableEdgeKeyProperty
 
 internal class IntIdentityIndexedEdgeKeyProperty(
-    override val graph: IdentityIndexedEdgeGraph,
+    override val graph: Graph,
 ) : MutableEdgeKeyProperty<Int>, EdgeChangeListener {
 
     private val keys = IntArrayList()
@@ -35,7 +34,6 @@ internal class IntIdentityIndexedEdgeKeyProperty(
     override val type: PropertyType<Int> get() = propertyTypeOf()
 
     private fun checkComplete() {
-
         check(index.size == keys.size) {
             "edges have no key: ${graph.edges.filter { edge ->                val edge = IdentityIndexedEdge.from(edge);                index.getOrDefault(keys[edge.id], -1) != edge.id            }}"
         }
@@ -45,7 +43,7 @@ internal class IntIdentityIndexedEdgeKeyProperty(
         checkComplete()
         val edge = IdentityIndexedEdge.from(edge)
         try {
-            return keys[edge.id]
+            return read(keys[edge.id])
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
@@ -53,20 +51,21 @@ internal class IntIdentityIndexedEdgeKeyProperty(
 
     override fun set(edge: Edge, value: Int) {
         val edge = IdentityIndexedEdge.from(edge)
-        val existingId = index[value]
-        if (!index.isDefaultValue(existingId) || index.containsKey(value)) {
+        val storeValue = write(value)
+        val existingId = index[storeValue]
+        if (!index.isDefaultValue(existingId) || index.containsKey(storeValue)) {
             if (existingId == edge.id) return
-            val existingEdge = IdentityIndexedEdge(existingId)
+            val existingEdge = IdentityIndexedEdge(existingId).toEdge()
             throw IllegalArgumentException("\"$value\" is already associated with $existingEdge (${graph.edgeSource(existingEdge)} -> ${graph.edgeTarget(existingEdge)})")
         }
 
         val oldValue = try {
-            keys.replace(edge.id, value)
+            keys.replace(edge.id, storeValue)
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
         index.remove(oldValue, edge.id)
-        index[value] = edge.id
+        index[storeValue] = edge.id
     }
 
     override fun put(edge: Edge, value: Int): Int {
@@ -77,12 +76,12 @@ internal class IntIdentityIndexedEdgeKeyProperty(
 
     override fun hasEdge(key: Int): Boolean {
         checkComplete()
-        return index.containsKey(key)
+        return index.containsKey(write(key))
     }
 
     override fun getEdge(key: Int): Edge {
         checkComplete()
-        return IdentityIndexedEdge(index.getValue(key)).toEdge()
+        return IdentityIndexedEdge(index.getValue(write(key))).toEdge()
     }
 
     override fun onEdgeAdded(edge: Edge) {
@@ -108,18 +107,22 @@ internal class IntIdentityIndexedEdgeKeyProperty(
 
     override fun ensureEdgeCapacity(edgeCapacity: Int) = keys.ensureCapacity(edgeCapacity)
     override fun trimToSize() = keys.trimToSize()
+
+    private fun read(it: Int): Int { return it }
+    private fun write(it: Int): Int { return it }
 }
 
 internal class IntIndexedEdgeKeyProperty(
-    override val graph: IndexedEdgeGraph,
+    override val graph: Graph,
+    private val edges: IndexedEdgeSet,
 ) : MutableEdgeKeyProperty<Int>, EdgeChangeListener {
 
     private val keys = IntArrayList()
     private val index = Int2IntHashMap()
 
     init {
-        keys.ensureCapacity(graph.edges.size)
-        for (edge in graph.edges) { onEdgeAdded(edge) }
+        keys.ensureCapacity(edges.size)
+        for (edge in edges) { onEdgeAdded(edge) }
         graph.registerEdgeChangeListener(this)
     }
 
@@ -127,35 +130,36 @@ internal class IntIndexedEdgeKeyProperty(
 
     private fun checkComplete() {
         check(index.size == keys.size) {
-            "edges have no key: ${graph.edges.filter { val i = graph.edges.indexOf(it); index.getOrDefault(keys[i], -1) != i }}"
+            "edges have no key: ${edges.filter { val i = edges.indexOf(it); index.getOrDefault(keys[i], -1) != i }}"
         }
     }
 
     override fun get(edge: Edge): Int {
         checkComplete()
         try {
-            return keys[graph.edges.indexOf(edge)]
+            return read(keys[edges.indexOf(edge)])
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
     }
 
     override fun set(edge: Edge, value: Int) {
-        val edgeIndex = graph.edges.indexOf(edge)
-        val existingIndex = index[value]
-        if (!index.isDefaultValue(existingIndex) || index.containsKey(value)) {
+        val edgeIndex = edges.indexOf(edge)
+        val storeValue = write(value)
+        val existingIndex = index[storeValue]
+        if (!index.isDefaultValue(existingIndex) || index.containsKey(storeValue)) {
             if (existingIndex == edgeIndex) return
-            val existingEdge = graph.edges[existingIndex]
+            val existingEdge = edges[existingIndex]
             throw IllegalArgumentException("\"$value\" is already associated with $existingEdge (${graph.edgeSource(existingEdge)} -> ${graph.edgeTarget(existingEdge)})")
         }
 
         val oldValue = try {
-            keys.replace(edgeIndex, value)
+            keys.replace(edgeIndex, storeValue)
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
         index.remove(oldValue, edgeIndex)
-        index[value] = edgeIndex
+        index[storeValue] = edgeIndex
     }
 
     override fun put(edge: Edge, value: Int): Int {
@@ -166,28 +170,28 @@ internal class IntIndexedEdgeKeyProperty(
 
     override fun hasEdge(key: Int): Boolean {
         checkComplete()
-        return index.containsKey(key)
+        return index.containsKey(write(key))
     }
 
     override fun getEdge(key: Int): Edge {
         checkComplete()
-        return graph.edges[index.getValue(key)]
+        return edges[index.getValue(write(key))]
     }
 
     override fun onEdgeAdded(edge: Edge) {
-        check(graph.edges.indexOf(edge) == keys.size)
+        check(edges.indexOf(edge) == keys.size)
         keys.add(0)
     }
 
     override fun onEdgeRemoved(edge: Edge) {
-        val edgeIndex = graph.edges.indexOf(edge)
+        val edgeIndex = edges.indexOf(edge)
         check(edgeIndex == keys.lastIndex)
         index.remove(keys.removeAt(edgeIndex), edgeIndex)
     }
 
     override fun onEdgeReassigned(oldEdge: Edge, newEdge: Edge) {
-        val oldIndex = graph.edges.indexOf(oldEdge)
-        val newIndex = graph.edges.indexOf(newEdge)
+        val oldIndex = edges.indexOf(oldEdge)
+        val newIndex = edges.indexOf(newEdge)
         check(oldIndex == keys.lastIndex)
         index.remove(keys[newIndex], newIndex)
         val moved = keys.removeAt(oldIndex)
@@ -197,6 +201,9 @@ internal class IntIndexedEdgeKeyProperty(
 
     override fun ensureEdgeCapacity(edgeCapacity: Int) = keys.ensureCapacity(edgeCapacity)
     override fun trimToSize() = keys.trimToSize()
+
+    private fun read(it: Int): Int { return it }
+    private fun write(it: Int): Int { return it }
 }
 
 internal class IntEdgeKeyProperty(
@@ -220,19 +227,20 @@ internal class IntEdgeKeyProperty(
 
     override fun get(edge: Edge): Int {
         checkComplete()
-        return keys.getValue(edge.id)
+        return read(keys.getValue(edge.id))
     }
 
     override fun set(edge: Edge, value: Int) {
-        val existingId = index[value]
-        if (!index.isDefaultValue(existingId) || index.containsKey(value)) {
+        val storeValue = write(value)
+        val existingId = index[storeValue]
+        if (!index.isDefaultValue(existingId) || index.containsKey(storeValue)) {
             if (existingId == edge.id) return
             val existingEdge = Edge(existingId)
             throw IllegalArgumentException("\"$value\" is already associated with $existingEdge (${graph.edgeSource(existingEdge)} -> ${graph.edgeTarget(existingEdge)})")
         }
 
-        index.remove(keys.put(edge.id, value), edge.id)
-        index[value] = edge.id
+        index.remove(keys.put(edge.id, storeValue), edge.id)
+        index[storeValue] = edge.id
     }
 
     override fun put(edge: Edge, value: Int): Int {
@@ -243,12 +251,12 @@ internal class IntEdgeKeyProperty(
 
     override fun hasEdge(key: Int): Boolean {
         checkComplete()
-        return index.containsKey(key)
+        return index.containsKey(write(key))
     }
 
     override fun getEdge(key: Int): Edge {
         checkComplete()
-        return Edge(index.getValue(key))
+        return Edge(index.getValue(write(key)))
     }
 
     override fun onEdgeAdded(edge: Edge) {}
@@ -265,4 +273,7 @@ internal class IntEdgeKeyProperty(
     }
 
     override fun trimToSize() = keys.trimToSize()
+
+    private fun read(it: Int): Int { return it }
+    private fun write(it: Int): Int { return it }
 }

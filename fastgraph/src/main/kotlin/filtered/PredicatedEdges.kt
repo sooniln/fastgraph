@@ -1,37 +1,31 @@
 package io.github.sooniln.fastgraph.filtered
 
-import io.github.sooniln.fastgraph.AbstractEdgeSet
-import io.github.sooniln.fastgraph.Edge
-import io.github.sooniln.fastgraph.EdgeChangeListener
-import io.github.sooniln.fastgraph.EdgeFunction
-import io.github.sooniln.fastgraph.EdgeIterator
-import io.github.sooniln.fastgraph.EdgePredicate
-import io.github.sooniln.fastgraph.EdgeReference
-import io.github.sooniln.fastgraph.Graph
-import io.github.sooniln.fastgraph.MutableEdgeKeyProperty
-import io.github.sooniln.fastgraph.MutableEdgeProperty
-import io.github.sooniln.fastgraph.PropertyType
+import io.github.sooniln.fastgraph.*
+import io.github.sooniln.fastgraph.references.EdgeReference
+import io.github.sooniln.fastgraph.properties.MutableEdgeKeyProperty
+import io.github.sooniln.fastgraph.properties.MutableEdgeProperty
+import io.github.sooniln.fastgraph.properties.PropertyType
 import java.lang.ref.WeakReference
 
-internal class PredicatedEdges(
+internal open class PredicatedEdges(
     private val parent: Graph,
     private val vertices: FilteredVertices,
     private val predicate: EdgePredicate,
-) : FilteredEdges, AbstractEdgeSet() {
+) : FilteredEdges() {
+
+    companion object {
+        // filtering never rewrites an edge id, so canonical endpoints survive any filter
+        fun from(parent: Graph, vertices: FilteredVertices, predicate: EdgePredicate): PredicatedEdges =
+            if (parent.edges is CanonicalEdgeSet) CanonicalPredicatedEdges(parent, vertices, predicate)
+            else PredicatedEdges(parent, vertices, predicate)
+    }
 
     private val properties = ArrayList<WeakReference<PredicatedEdgeProperty<*>>>()
 
-    // TODO: figure out a way to avoid lateinit?
-    private lateinit var graph: Graph
-
-    override fun bind(graph: Graph) {
-        this.graph = graph
-    }
-
     private fun test(edge: Edge): Boolean {
-        context(parent) {
-            return predicate.test(edge) && vertices.contains(edge.source) && vertices.contains(edge.target)
-        }
+        return predicate.test(edge) &&
+                vertices.contains(parent.edgeSource(edge)) &&
+                vertices.contains(parent.edgeTarget(edge))
     }
 
     override val size: Int get() {
@@ -79,6 +73,7 @@ internal class PredicatedEdges(
     }
 
     override fun <T> createEdgeProperty(
+        graph: Graph,
         type: PropertyType<T>,
         defaultValueFunction: EdgeFunction<T>
     ): MutableEdgeProperty<T> {
@@ -87,11 +82,11 @@ internal class PredicatedEdges(
         return property
     }
 
-    override fun <T> createEdgeKeyProperty(type: PropertyType<T>): MutableEdgeKeyProperty<T> {
+    override fun <T> createEdgeKeyProperty(graph: Graph, type: PropertyType<T>): MutableEdgeKeyProperty<T> {
         throw UnsupportedOperationException("A graph with filtered edges cannot support edge key properties")
     }
 
-    override fun createEdgeReference(edge: Edge): EdgeReference {
+    override fun createEdgeReference(graph: Graph,edge: Edge): EdgeReference {
         throw UnsupportedOperationException("A graph with filtered edges cannot support edge references")
     }
 
@@ -113,3 +108,6 @@ internal class PredicatedEdges(
         properties.trimToSize()
     }
 }
+
+private class CanonicalPredicatedEdges(parent: Graph, vertices: FilteredVertices, predicate: EdgePredicate) :
+    PredicatedEdges(parent, vertices, predicate), CanonicalEdgeSet

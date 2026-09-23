@@ -1,5 +1,6 @@
 package io.github.sooniln.fastgraph
 
+import io.github.sooniln.fastgraph.properties.VertexProperty
 import org.openjdk.jmh.annotations.Benchmark
 import org.openjdk.jmh.annotations.BenchmarkMode
 import org.openjdk.jmh.annotations.Fork
@@ -23,7 +24,7 @@ open class ImmutableNetworkBenchmark {
 
     lateinit var graph: ImmutableGraph
     lateinit var vertexId: VertexProperty<Int>
-    lateinit var edgeWeight: EdgeProperty<Float>
+    lateinit var edgeWeight: io.github.sooniln.fastgraph.properties.EdgeProperty<Float>
 
     @Setup
     fun setup() {

@@ -5,20 +5,19 @@ import io.github.sooniln.fastcollect.Int2LongHashMap
 import io.github.sooniln.fastcollect.lastIndex
 import io.github.sooniln.fastcollect.removeOrElse
 import io.github.sooniln.fastgraph.Graph
-import io.github.sooniln.fastgraph.IdentityIndexedVertexGraph
-import io.github.sooniln.fastgraph.IndexedVertexGraph
-import io.github.sooniln.fastgraph.PropertyType
+import io.github.sooniln.fastgraph.IndexedVertexSet
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
-import io.github.sooniln.fastgraph.propertyTypeOf
 import io.github.sooniln.fastgraph.internal.throwIllegalVertex
+import io.github.sooniln.fastgraph.properties.MutableVertexKeyProperty
+import io.github.sooniln.fastgraph.properties.PropertyType
+import io.github.sooniln.fastgraph.properties.propertyTypeOf
 
 import io.github.sooniln.fastcollect.Long2IntHashMap
 
-import io.github.sooniln.fastgraph.MutableVertexKeyProperty
 
 internal class LongIdentityIndexedVertexKeyProperty(
-    override val graph: IdentityIndexedVertexGraph,
+    override val graph: Graph,
 ) : MutableVertexKeyProperty<Long>, VertexChangeListener {
 
     private val keys = LongArrayList()
@@ -41,27 +40,28 @@ internal class LongIdentityIndexedVertexKeyProperty(
     override fun get(vertex: Vertex): Long {
         checkComplete()
         try {
-            return keys[vertex.id]
+            return read(keys[vertex.id])
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
         }
     }
 
     override fun set(vertex: Vertex, value: Long) {
-        val existingId = index[value]
-        if (!index.isDefaultValue(existingId) || index.containsKey(value)) {
+        val storeValue = write(value)
+        val existingId = index[storeValue]
+        if (!index.isDefaultValue(existingId) || index.containsKey(storeValue)) {
             if (existingId == vertex.id) return
             val existingVertex = Vertex(existingId)
             throw IllegalArgumentException("\"$value\" is already associated with $existingVertex")
         }
 
         val oldValue = try {
-            keys.replace(vertex.id, value)
+            keys.replace(vertex.id, storeValue)
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
         }
         index.remove(oldValue, vertex.id)
-        index[value] = vertex.id
+        index[storeValue] = vertex.id
     }
 
     override fun put(vertex: Vertex, value: Long): Long {
@@ -72,12 +72,12 @@ internal class LongIdentityIndexedVertexKeyProperty(
 
     override fun hasVertex(key: Long): Boolean {
         checkComplete()
-        return index.containsKey(key)
+        return index.containsKey(write(key))
     }
 
     override fun getVertex(key: Long): Vertex {
         checkComplete()
-        return Vertex(index.getValue(key))
+        return Vertex(index.getValue(write(key)))
     }
 
     override fun onVertexAdded(vertex: Vertex) {
@@ -100,18 +100,22 @@ internal class LongIdentityIndexedVertexKeyProperty(
 
     override fun ensureVertexCapacity(vertexCapacity: Int) = keys.ensureCapacity(vertexCapacity)
     override fun trimToSize() = keys.trimToSize()
+
+    private fun read(it: Long): Long { return it }
+    private fun write(it: Long): Long { return it }
 }
 
 internal class LongIndexedVertexKeyProperty(
-    override val graph: IndexedVertexGraph,
+    override val graph: Graph,
+    private val vertices: IndexedVertexSet,
 ) : MutableVertexKeyProperty<Long>, VertexChangeListener {
 
     private val keys = LongArrayList()
     private val index = Long2IntHashMap()
 
     init {
-        keys.ensureCapacity(graph.vertices.size)
-        for (vertex in graph.vertices) { onVertexAdded(vertex) }
+        keys.ensureCapacity(vertices.size)
+        for (vertex in vertices) { onVertexAdded(vertex) }
         graph.registerVertexChangeListener(this)
     }
 
@@ -119,35 +123,36 @@ internal class LongIndexedVertexKeyProperty(
 
     private fun checkComplete() {
         check(index.size == keys.size) {
-            "vertices have no key: ${graph.vertices.filter { val i = graph.vertices.indexOf(it); index.getOrDefault(keys[i], -1) != i }}"
+            "vertices have no key: ${vertices.filter { val i = vertices.indexOf(it); index.getOrDefault(keys[i], -1) != i }}"
         }
     }
 
     override fun get(vertex: Vertex): Long {
         checkComplete()
         try {
-            return keys[graph.vertices.indexOf(vertex)]
+            return read(keys[vertices.indexOf(vertex)])
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
         }
     }
 
     override fun set(vertex: Vertex, value: Long) {
-        val vertexIndex = graph.vertices.indexOf(vertex)
-        val existingIndex = index[value]
-        if (!index.isDefaultValue(existingIndex) || index.containsKey(value)) {
+        val vertexIndex = vertices.indexOf(vertex)
+        val storeValue = write(value)
+        val existingIndex = index[storeValue]
+        if (!index.isDefaultValue(existingIndex) || index.containsKey(storeValue)) {
             if (existingIndex == vertexIndex) return
-            val existingVertex = graph.vertices[existingIndex]
+            val existingVertex = vertices[existingIndex]
             throw IllegalArgumentException("\"$value\" is already associated with $existingVertex")
         }
 
         val oldValue = try {
-            keys.replace(vertexIndex, value)
+            keys.replace(vertexIndex, storeValue)
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
         }
         index.remove(oldValue, vertexIndex)
-        index[value] = vertexIndex
+        index[storeValue] = vertexIndex
     }
 
     override fun put(vertex: Vertex, value: Long): Long {
@@ -158,28 +163,28 @@ internal class LongIndexedVertexKeyProperty(
 
     override fun hasVertex(key: Long): Boolean {
         checkComplete()
-        return index.containsKey(key)
+        return index.containsKey(write(key))
     }
 
     override fun getVertex(key: Long): Vertex {
         checkComplete()
-        return graph.vertices[index.getValue(key)]
+        return vertices[index.getValue(write(key))]
     }
 
     override fun onVertexAdded(vertex: Vertex) {
-        check(graph.vertices.indexOf(vertex) == keys.size)
+        check(vertices.indexOf(vertex) == keys.size)
         keys.add(0)
     }
 
     override fun onVertexRemoved(vertex: Vertex) {
-        val vertexIndex = graph.vertices.indexOf(vertex)
+        val vertexIndex = vertices.indexOf(vertex)
         check(vertexIndex == keys.lastIndex)
         index.remove(keys.removeAt(vertexIndex), vertexIndex)
     }
 
     override fun onVertexReassigned(oldVertex: Vertex, newVertex: Vertex) {
-        val oldIndex = graph.vertices.indexOf(oldVertex)
-        val newIndex = graph.vertices.indexOf(newVertex)
+        val oldIndex = vertices.indexOf(oldVertex)
+        val newIndex = vertices.indexOf(newVertex)
         check(oldIndex == keys.lastIndex)
         index.remove(keys[newIndex], newIndex)
         val moved = keys.removeAt(oldIndex)
@@ -189,6 +194,9 @@ internal class LongIndexedVertexKeyProperty(
 
     override fun ensureVertexCapacity(vertexCapacity: Int) = keys.ensureCapacity(vertexCapacity)
     override fun trimToSize() = keys.trimToSize()
+
+    private fun read(it: Long): Long { return it }
+    private fun write(it: Long): Long { return it }
 }
 
 internal class LongVertexKeyProperty(
@@ -212,19 +220,20 @@ internal class LongVertexKeyProperty(
 
     override fun get(vertex: Vertex): Long {
         checkComplete()
-        return keys.getValue(vertex.id)
+        return read(keys.getValue(vertex.id))
     }
 
     override fun set(vertex: Vertex, value: Long) {
-        val existingId = index[value]
-        if (!index.isDefaultValue(existingId) || index.containsKey(value)) {
+        val storeValue = write(value)
+        val existingId = index[storeValue]
+        if (!index.isDefaultValue(existingId) || index.containsKey(storeValue)) {
             if (existingId == vertex.id) return
             val existingVertex = Vertex(existingId)
             throw IllegalArgumentException("\"$value\" is already associated with $existingVertex")
         }
 
-        index.remove(keys.put(vertex.id, value), vertex.id)
-        index[value] = vertex.id
+        index.remove(keys.put(vertex.id, storeValue), vertex.id)
+        index[storeValue] = vertex.id
     }
 
     override fun put(vertex: Vertex, value: Long): Long {
@@ -235,12 +244,12 @@ internal class LongVertexKeyProperty(
 
     override fun hasVertex(key: Long): Boolean {
         checkComplete()
-        return index.containsKey(key)
+        return index.containsKey(write(key))
     }
 
     override fun getVertex(key: Long): Vertex {
         checkComplete()
-        return Vertex(index.getValue(key))
+        return Vertex(index.getValue(write(key)))
     }
 
     override fun onVertexAdded(vertex: Vertex) {}
@@ -257,4 +266,7 @@ internal class LongVertexKeyProperty(
     }
 
     override fun trimToSize() = keys.trimToSize()
+
+    private fun read(it: Long): Long { return it }
+    private fun write(it: Long): Long { return it }
 }

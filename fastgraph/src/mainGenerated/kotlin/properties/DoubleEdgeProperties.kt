@@ -12,16 +12,15 @@ import io.github.sooniln.fastgraph.EdgeFunction
 import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.IdentityIndexedEdge
-import io.github.sooniln.fastgraph.IdentityIndexedEdgeGraph
-import io.github.sooniln.fastgraph.IndexedEdgeGraph
-import io.github.sooniln.fastgraph.MutableEdgeProperty
-import io.github.sooniln.fastgraph.PropertyType
-import io.github.sooniln.fastgraph.propertyTypeOf
+import io.github.sooniln.fastgraph.IndexedEdgeSet
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
+import io.github.sooniln.fastgraph.properties.MutableEdgeProperty
+import io.github.sooniln.fastgraph.properties.PropertyType
+import io.github.sooniln.fastgraph.properties.propertyTypeOf
 
 
 internal class DoubleIdentityIndexedEdgeProperty(
-    override val graph: IdentityIndexedEdgeGraph,
+    override val graph: Graph,
     defaultValueFunction: EdgeFunction<Double>,
 ) : MutableEdgeProperty<Double>, EdgeChangeListener {
 
@@ -89,7 +88,8 @@ internal class DoubleIdentityIndexedEdgeProperty(
 }
 
 internal class DoubleIndexedEdgeProperty(
-    override val graph: IndexedEdgeGraph,
+    override val graph: Graph,
+    private val edges: IndexedEdgeSet,
     defaultValueFunction: EdgeFunction<Double>,
 ) : MutableEdgeProperty<Double>, EdgeChangeListener {
 
@@ -97,8 +97,8 @@ internal class DoubleIndexedEdgeProperty(
     private val initializer = defaultValueFunction
 
     init {
-        property.ensureCapacity(graph.edges.size)
-        for (edge in graph.edges) { onEdgeAdded(edge) }
+        property.ensureCapacity(edges.size)
+        for (edge in edges) { onEdgeAdded(edge) }
         graph.registerEdgeChangeListener(this)
     }
 
@@ -106,7 +106,7 @@ internal class DoubleIndexedEdgeProperty(
 
     override fun get(edge: Edge): Double {
         try {
-            return read(property[graph.edges.indexOf(edge)])
+            return read(property[edges.indexOf(edge)])
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
@@ -114,7 +114,7 @@ internal class DoubleIndexedEdgeProperty(
 
     override fun set(edge: Edge, value: Double) {
         try {
-            property[graph.edges.indexOf(edge)] = write(value)
+            property[edges.indexOf(edge)] = write(value)
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
@@ -122,25 +122,25 @@ internal class DoubleIndexedEdgeProperty(
 
     override fun put(edge: Edge, value: Double): Double {
         try {
-            return read(property.replace(graph.edges.indexOf(edge), write(value)))
+            return read(property.replace(edges.indexOf(edge), write(value)))
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
     }
 
     override fun onEdgeAdded(edge: Edge) {
-        check(graph.edges.indexOf(edge) == property.size)
+        check(edges.indexOf(edge) == property.size)
         property.add(write(initializer.apply(edge)))
     }
 
     override fun onEdgeRemoved(edge: Edge) {
-        check(graph.edges.indexOf(edge) == property.lastIndex)
+        check(edges.indexOf(edge) == property.lastIndex)
         property.removeAt(property.lastIndex)
     }
 
     override fun onEdgeReassigned(oldEdge: Edge, newEdge: Edge) {
-        check(graph.edges.indexOf(oldEdge) == property.lastIndex)
-        property[graph.edges.indexOf(newEdge)] = property.removeAt(property.lastIndex)
+        check(edges.indexOf(oldEdge) == property.lastIndex)
+        property[edges.indexOf(newEdge)] = property.removeAt(property.lastIndex)
     }
 
     override fun ensureEdgeCapacity(edgeCapacity: Int) = property.ensureCapacity(edgeCapacity)
@@ -150,13 +150,13 @@ internal class DoubleIndexedEdgeProperty(
     private fun write(it: Double): Double { return it }
 }
 
-internal class ImmutableDoubleIdentityIndexedEdgeProperty<G>(
-    override val graph: G,
+internal class ImmutableDoubleIdentityIndexedEdgeProperty(
+    override val graph: ImmutableGraph,
     defaultValueFunction: EdgeFunction<Double>,
-) : MutableEdgeProperty<Double> where G : ImmutableGraph, G : IdentityIndexedEdgeGraph {
+) : MutableEdgeProperty<Double> {
 
     private val property = DoubleArray(graph.edges.size) { edgeId ->
-        write(defaultValueFunction.apply(graph.edges[edgeId]))
+        write(defaultValueFunction.apply(Edge(edgeId.toLong())))
     }
 
     override val type: PropertyType<Double> get() = propertyTypeOf()
@@ -194,20 +194,21 @@ internal class ImmutableDoubleIdentityIndexedEdgeProperty<G>(
     private fun write(it: Double): Double { return it }
 }
 
-internal class ImmutableDoubleIndexedEdgeProperty<G>(
-    override val graph: G,
+internal class ImmutableDoubleIndexedEdgeProperty(
+    override val graph: ImmutableGraph,
+    private val edges: IndexedEdgeSet,
     defaultValueFunction: EdgeFunction<Double>,
-) : MutableEdgeProperty<Double> where G : ImmutableGraph, G : IndexedEdgeGraph {
+) : MutableEdgeProperty<Double> {
 
-    private val property = DoubleArray(graph.edges.size) { index ->
-        write(defaultValueFunction.apply(graph.edges[index]))
+    private val property = DoubleArray(edges.size) { index ->
+        write(defaultValueFunction.apply(edges[index]))
     }
 
     override val type: PropertyType<Double> get() = propertyTypeOf()
 
     override fun get(edge: Edge): Double {
         try {
-            return read(property[graph.edges.indexOf(edge)])
+            return read(property[edges.indexOf(edge)])
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
@@ -215,7 +216,7 @@ internal class ImmutableDoubleIndexedEdgeProperty<G>(
 
     override fun set(edge: Edge, value: Double) {
         try {
-            property[graph.edges.indexOf(edge)] = write(value)
+            property[edges.indexOf(edge)] = write(value)
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalEdge(graph, edge, e)
         }
@@ -223,7 +224,7 @@ internal class ImmutableDoubleIndexedEdgeProperty<G>(
 
     override fun put(edge: Edge, value: Double): Double {
         try {
-            val index = graph.edges.indexOf(edge)
+            val index = edges.indexOf(edge)
             val oldValue = read(property[index])
             property[index] = write(value)
             return oldValue

@@ -5,16 +5,16 @@
 package io.github.sooniln.fastgraph.jgrapht
 
 import io.github.sooniln.fastgraph.Edge
-import io.github.sooniln.fastgraph.EdgeKeyProperty
-import io.github.sooniln.fastgraph.EdgeProperty
+import io.github.sooniln.fastgraph.properties.EdgeKeyProperty
+import io.github.sooniln.fastgraph.properties.EdgeProperty
 import io.github.sooniln.fastgraph.EdgeSet
 import io.github.sooniln.fastgraph.Graph
-import io.github.sooniln.fastgraph.MutableEdgeKeyProperty
-import io.github.sooniln.fastgraph.MutableEdgeProperty
+import io.github.sooniln.fastgraph.properties.MutableEdgeKeyProperty
+import io.github.sooniln.fastgraph.properties.MutableEdgeProperty
 import io.github.sooniln.fastgraph.MutableGraph
-import io.github.sooniln.fastgraph.MutableVertexKeyProperty
+import io.github.sooniln.fastgraph.properties.MutableVertexKeyProperty
 import io.github.sooniln.fastgraph.Vertex
-import io.github.sooniln.fastgraph.VertexKeyProperty
+import io.github.sooniln.fastgraph.properties.VertexKeyProperty
 import io.github.sooniln.fastgraph.VertexSet
 import io.github.sooniln.fastgraph.edgeIdProperty
 import io.github.sooniln.fastgraph.vertexIdProperty

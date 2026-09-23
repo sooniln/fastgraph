@@ -1,13 +1,10 @@
 package io.github.sooniln.fastgraph.io.dot
 
-import io.github.sooniln.fastgraph.createEdgeProperty
-import io.github.sooniln.fastgraph.createVertexProperty
 import io.github.sooniln.fastgraph.mutableGraph
 import io.github.sooniln.fastgraph.edgeSetOf
-import io.github.sooniln.fastgraph.filter
-import io.github.sooniln.fastgraph.toImmutableGraph
+import io.github.sooniln.fastgraph.filtered.filter
 import io.github.sooniln.fastgraph.vertexSetOf
-import io.github.sooniln.fastgraph.safeCast
+import io.github.sooniln.fastgraph.properties.safeCast
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.io.ByteArrayOutputStream

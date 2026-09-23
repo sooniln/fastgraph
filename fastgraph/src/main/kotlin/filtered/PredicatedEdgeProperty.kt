@@ -1,14 +1,9 @@
 package io.github.sooniln.fastgraph.filtered
 
-import io.github.sooniln.fastcollect.Long2AnyHashMap
-import io.github.sooniln.fastcollect.getOrPut
-import io.github.sooniln.fastcollect.replaceOrSet
-import io.github.sooniln.fastgraph.Edge
-import io.github.sooniln.fastgraph.EdgeFunction
-import io.github.sooniln.fastgraph.EdgePredicate
-import io.github.sooniln.fastgraph.Graph
-import io.github.sooniln.fastgraph.MutableEdgeProperty
-import io.github.sooniln.fastgraph.PropertyType
+import io.github.sooniln.fastcollect.*
+import io.github.sooniln.fastgraph.*
+import io.github.sooniln.fastgraph.properties.MutableEdgeProperty
+import io.github.sooniln.fastgraph.properties.PropertyType
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
 
 internal class PredicatedEdgeProperty<T>(
@@ -47,5 +42,14 @@ internal class PredicatedEdgeProperty<T>(
         return property.replaceOrSet(edge.id, value) { initializer.apply(edge) }
     }
 
-    fun trimToSize() = property.trimToSize()
+    fun trimToSize() {
+        val it = property.iterator()
+        while (it.hasNext()) {
+            val entry = it.next()
+            if (!predicate.test(Edge(entry.key))) {
+                it.remove()
+            }
+        }
+        property.trimToSize()
+    }
 }

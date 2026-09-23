@@ -14,8 +14,8 @@ class ReferenceTest {
     private var e0: Edge = Edge(-1)
     private var e1: Edge = Edge(-1)
 
-    // built with indexEdges = true so that the graph is guaranteed to implement both IndexedVertexGraph and
-    // IndexedEdgeGraph, letting the same fixture exercise VertexReference.index/EdgeReference.index too
+    // built with indexEdges = true so that both vertices and edges are indexed sets, letting the same fixture
+    // exercise indexOf for vertex and edge references too
     private fun constructGraph(immutable: Boolean, directed: Boolean = true) {
         graph = if (immutable) {
             buildImmutableGraph(directed, indexEdges = true) {
@@ -58,16 +58,6 @@ class ReferenceTest {
 
         val ref = graph.createVertexReference(v1)
 
-        context(graph) {
-            assertThat(ref.outDegree).isEqualTo(1)
-            assertThat(ref.inDegree).isEqualTo(1)
-            assertThat(ref.successors()).containsExactlyInAnyOrder(v2)
-            assertThat(ref.predecessors()).containsExactlyInAnyOrder(v0)
-            assertThat(ref.outgoingEdges()).containsExactlyInAnyOrder(e1)
-            assertThat(ref.incomingEdges()).containsExactlyInAnyOrder(e0)
-        }
-
-        // the reference overloads of the graph methods
         assertThat(graph.outDegree(ref)).isEqualTo(1)
         assertThat(graph.inDegree(ref)).isEqualTo(1)
         assertThat(graph.successors(ref)).containsExactlyInAnyOrder(v2)
@@ -86,14 +76,12 @@ class ReferenceTest {
 
         val ref = graph.createVertexReference(v1)
 
-        context(graph) {
-            assertThat(ref.outDegree).isEqualTo(2)
-            assertThat(ref.inDegree).isEqualTo(2)
-            assertThat(ref.successors()).containsExactlyInAnyOrder(v0, v2)
-            assertThat(ref.predecessors()).containsExactlyInAnyOrder(v0, v2)
-            assertThat(ref.outgoingEdges()).containsExactlyInAnyOrder(e0, e1)
-            assertThat(ref.incomingEdges()).containsExactlyInAnyOrder(e0, e1)
-        }
+        assertThat(graph.outDegree(ref)).isEqualTo(2)
+        assertThat(graph.inDegree(ref)).isEqualTo(2)
+        assertThat(graph.successors(ref)).containsExactlyInAnyOrder(v0, v2)
+        assertThat(graph.predecessors(ref)).containsExactlyInAnyOrder(v0, v2)
+        assertThat(graph.outgoingEdges(ref)).containsExactlyInAnyOrder(e0, e1)
+        assertThat(graph.incomingEdges(ref)).containsExactlyInAnyOrder(e0, e1)
         assertThat(graph.edgeOpposite(e0, ref)).isEqualTo(v0)
         assertThat(graph.edgeSource(e0, ref)).isEqualTo(v0)
         assertThat(graph.edgeTarget(e0, ref)).isEqualTo(v0)
@@ -106,9 +94,7 @@ class ReferenceTest {
 
         val ref = graph.createVertexReference(v1)
 
-        context(graph as IndexedVertexGraph) {
-            assertThat(ref.index).isEqualTo(1)
-        }
+        assertThat(graph.vertices.indexOf(ref.unstable)).isEqualTo(1)
     }
 
     @ParameterizedTest(name = "immutable={0}")
@@ -133,21 +119,11 @@ class ReferenceTest {
 
         val ref = graph.createEdgeReference(e0)
 
-        context(graph) {
-            assertThat(ref.source).isEqualTo(v0)
-            assertThat(ref.target).isEqualTo(v1)
-            assertThat(ref.opposite(v0)).isEqualTo(v1)
-            assertThat(ref.opposite(v1)).isEqualTo(v0)
-
-            val (source, target) = ref
-            assertThat(source).isEqualTo(v0)
-            assertThat(target).isEqualTo(v1)
-            assertThrows<IllegalArgumentException> { ref.opposite(v2) }
-        }
-
-        // the reference overloads of the graph methods
         assertThat(graph.edgeSource(ref)).isEqualTo(v0)
         assertThat(graph.edgeTarget(ref)).isEqualTo(v1)
+        assertThat(graph.edgeOpposite(ref.unstable, v0)).isEqualTo(v1)
+        assertThat(graph.edgeOpposite(ref.unstable, v1)).isEqualTo(v0)
+        assertThrows<IllegalArgumentException> { graph.edgeOpposite(ref.unstable, v2) }
     }
 
     @ParameterizedTest(name = "immutable={0}")
@@ -157,15 +133,11 @@ class ReferenceTest {
 
         val ref = graph.createEdgeReference(e0)
 
-        context(graph) {
-            assertThat(setOf(ref.source, ref.target)).containsExactlyInAnyOrder(v0, v1)
-            assertThat(ref.source).isEqualTo(graph.edgeSource(e0))
-            assertThat(ref.target).isEqualTo(graph.edgeTarget(e0))
-            assertThat(ref.opposite(v0)).isEqualTo(v1)
-            assertThat(ref.opposite(v1)).isEqualTo(v0)
-            val (source, target) = ref
-            assertThat(setOf(source, target)).containsExactlyInAnyOrder(v0, v1)
-        }
+        assertThat(setOf(graph.edgeSource(ref), graph.edgeTarget(ref))).containsExactlyInAnyOrder(v0, v1)
+        assertThat(graph.edgeSource(ref)).isEqualTo(graph.edgeSource(e0))
+        assertThat(graph.edgeTarget(ref)).isEqualTo(graph.edgeTarget(e0))
+        assertThat(graph.edgeOpposite(ref.unstable, v0)).isEqualTo(v1)
+        assertThat(graph.edgeOpposite(ref.unstable, v1)).isEqualTo(v0)
     }
 
     @ParameterizedTest(name = "immutable={0}")
@@ -175,9 +147,7 @@ class ReferenceTest {
 
         val ref = graph.createEdgeReference(e0)
 
-        context(graph as IndexedEdgeGraph) {
-            assertThat(ref.index).isEqualTo(0)
-        }
+        assertThat(graph.edges.indexOf(ref.unstable)).isEqualTo(0)
     }
 
     @ParameterizedTest(name = "directed={0}")
@@ -196,26 +166,18 @@ class ReferenceTest {
         assertThat(graph.vertices).containsExactlyInAnyOrder(v1, moved)
         assertThat(graph.vertices.contains(v2)).isFalse
         assertThat(graph.hasEdge(v1, moved)).isTrue
-        context(graph as IndexedVertexGraph) {
-            assertThat(ref.index).isEqualTo(graph.vertices.indexOf(moved))
-            assertThat(ref.inDegree).isEqualTo(1)
-            assertThat(ref.predecessors()).containsExactlyInAnyOrder(v1)
-        }
+        assertThat(graph.vertices.indexOf(ref.unstable)).isEqualTo(graph.vertices.indexOf(moved))
+        assertThat(graph.inDegree(ref)).isEqualTo(1)
+        assertThat(graph.predecessors(ref)).containsExactlyInAnyOrder(v1)
 
         // a reference to the removed vertex is invalid for every purpose
         assertThrows<IllegalArgumentException> { staleRef.unstable }
-        context(graph) {
-            assertThrows<IllegalArgumentException> { staleRef.outDegree }
-            assertThrows<IllegalArgumentException> { staleRef.inDegree }
-            assertThrows<IllegalArgumentException> { staleRef.successors() }
-            assertThrows<IllegalArgumentException> { staleRef.predecessors() }
-            assertThrows<IllegalArgumentException> { staleRef.outgoingEdges() }
-            assertThrows<IllegalArgumentException> { staleRef.incomingEdges() }
-        }
-        context(graph as IndexedVertexGraph) {
-            assertThrows<IllegalArgumentException> { staleRef.index }
-        }
         assertThrows<IllegalArgumentException> { graph.outDegree(staleRef) }
+        assertThrows<IllegalArgumentException> { graph.inDegree(staleRef) }
+        assertThrows<IllegalArgumentException> { graph.successors(staleRef) }
+        assertThrows<IllegalArgumentException> { graph.predecessors(staleRef) }
+        assertThrows<IllegalArgumentException> { graph.outgoingEdges(staleRef) }
+        assertThrows<IllegalArgumentException> { graph.incomingEdges(staleRef) }
         assertThrows<IllegalArgumentException> { mutable.removeVertex(staleRef) }
         assertThrows<IllegalArgumentException> { mutable.addEdge(staleRef, ref) }
 
@@ -240,22 +202,14 @@ class ReferenceTest {
         assertThat(graph.edges).containsExactlyInAnyOrder(moved)
         assertThat(graph.edges.contains(e1)).isFalse
         assertThat(setOf(graph.edgeSource(moved), graph.edgeTarget(moved))).containsExactlyInAnyOrder(v1, v2)
-        context(graph as IndexedEdgeGraph) {
-            assertThat(ref.index).isEqualTo(graph.edges.indexOf(moved))
-            assertThat(ref.opposite(v1)).isEqualTo(v2)
-        }
+        assertThat(graph.edges.indexOf(ref.unstable)).isEqualTo(graph.edges.indexOf(moved))
+        assertThat(graph.edgeOpposite(ref.unstable, v1)).isEqualTo(v2)
 
         // a reference to the removed edge is invalid for every purpose
         assertThrows<IllegalArgumentException> { staleRef.unstable }
-        context(graph) {
-            assertThrows<IllegalArgumentException> { staleRef.source }
-            assertThrows<IllegalArgumentException> { staleRef.target }
-            assertThrows<IllegalArgumentException> { staleRef.opposite(v0) }
-        }
-        context(graph as IndexedEdgeGraph) {
-            assertThrows<IllegalArgumentException> { staleRef.index }
-        }
         assertThrows<IllegalArgumentException> { graph.edgeSource(staleRef) }
+        assertThrows<IllegalArgumentException> { graph.edgeTarget(staleRef) }
+        assertThrows<IllegalArgumentException> { graph.edgeOpposite(staleRef.unstable, v0) }
         assertThrows<IllegalArgumentException> { mutable.removeEdge(staleRef) }
 
         // adding edges never disturbs a reference

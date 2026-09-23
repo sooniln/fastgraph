@@ -3,17 +3,14 @@ package io.github.sooniln.fastgraph.properties
 import io.github.sooniln.fastcollect.Int2AnyHashMap
 import io.github.sooniln.fastcollect.removeOrElse
 import io.github.sooniln.fastgraph.Graph
-import io.github.sooniln.fastgraph.IdentityIndexedVertexGraph
-import io.github.sooniln.fastgraph.IndexedVertexGraph
-import io.github.sooniln.fastgraph.MutableVertexKeyProperty
-import io.github.sooniln.fastgraph.PropertyType
+import io.github.sooniln.fastgraph.IndexedVertexSet
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
 import io.github.sooniln.fastgraph.internal.throwIllegalVertex
 
 @Suppress("UNCHECKED_CAST")
 internal class AnyIdentityIndexedVertexKeyProperty<T>(
-    override val graph: IdentityIndexedVertexGraph,
+    override val graph: Graph,
     override val type: PropertyType<T>,
 ) : MutableVertexKeyProperty<T>, VertexChangeListener {
 
@@ -98,7 +95,8 @@ internal class AnyIdentityIndexedVertexKeyProperty<T>(
 
 @Suppress("UNCHECKED_CAST")
 internal class AnyIndexedVertexKeyProperty<T>(
-    override val graph: IndexedVertexGraph,
+    override val graph: Graph,
+    private val vertices: IndexedVertexSet,
     override val type: PropertyType<T>,
 ) : MutableVertexKeyProperty<T>, VertexChangeListener {
 
@@ -106,15 +104,15 @@ internal class AnyIndexedVertexKeyProperty<T>(
     private val index = HashMap<T, Int>()
 
     init {
-        keys.ensureCapacity(graph.vertices.size)
-        for (vertex in graph.vertices) { onVertexAdded(vertex) }
+        keys.ensureCapacity(vertices.size)
+        for (vertex in vertices) { onVertexAdded(vertex) }
         graph.registerVertexChangeListener(this)
     }
 
     private fun checkComplete() {
         check(index.size == keys.size) {
-            "vertices have no key: ${graph.vertices.filter {
-                val i = graph.vertices.indexOf(it)
+            "vertices have no key: ${vertices.filter {
+                val i = vertices.indexOf(it)
                 index[keys[i] as T] != i
             }}"
         }
@@ -123,18 +121,18 @@ internal class AnyIndexedVertexKeyProperty<T>(
     override fun get(vertex: Vertex): T {
         checkComplete()
         try {
-            return keys[graph.vertices.indexOf(vertex)] as T
+            return keys[vertices.indexOf(vertex)] as T
         } catch (e: IndexOutOfBoundsException) {
             throwIllegalVertex(vertex, e)
         }
     }
 
     override fun set(vertex: Vertex, value: T) {
-        val vertexIndex = graph.vertices.indexOf(vertex)
+        val vertexIndex = vertices.indexOf(vertex)
         val existingIndex = index[value]
         if (existingIndex != null) {
             if (existingIndex == vertexIndex) return
-            val existingVertex = graph.vertices[existingIndex]
+            val existingVertex = vertices[existingIndex]
             throw IllegalArgumentException("\"$value\" is already associated with $existingVertex")
         }
 
@@ -160,23 +158,23 @@ internal class AnyIndexedVertexKeyProperty<T>(
 
     override fun getVertex(key: T): Vertex {
         checkComplete()
-        return graph.vertices[index.getValue(key)]
+        return vertices[index.getValue(key)]
     }
 
     override fun onVertexAdded(vertex: Vertex) {
-        check(graph.vertices.indexOf(vertex) == keys.size)
+        check(vertices.indexOf(vertex) == keys.size)
         keys.add(null)
     }
 
     override fun onVertexRemoved(vertex: Vertex) {
-        val vertexIndex = graph.vertices.indexOf(vertex)
+        val vertexIndex = vertices.indexOf(vertex)
         check(vertexIndex == keys.lastIndex)
         index.remove(keys.removeAt(vertexIndex) as T, vertexIndex)
     }
 
     override fun onVertexReassigned(oldVertex: Vertex, newVertex: Vertex) {
-        val oldIndex = graph.vertices.indexOf(oldVertex)
-        val newIndex = graph.vertices.indexOf(newVertex)
+        val oldIndex = vertices.indexOf(oldVertex)
+        val newIndex = vertices.indexOf(newVertex)
         check(oldIndex == keys.lastIndex)
         index.remove(keys[newIndex] as T, newIndex)
         val moved = keys.removeAt(oldIndex) as T

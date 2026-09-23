@@ -4,15 +4,15 @@
 @file:JvmName("Dot")
 package io.github.sooniln.fastgraph.io.dot
 
-import io.github.sooniln.fastgraph.EdgeProperty
+import io.github.sooniln.fastgraph.properties.EdgeProperty
 import io.github.sooniln.fastgraph.Graph
-import io.github.sooniln.fastgraph.MutableEdgeProperty
+import io.github.sooniln.fastgraph.properties.MutableEdgeProperty
 import io.github.sooniln.fastgraph.MutableGraph
-import io.github.sooniln.fastgraph.MutableVertexKeyProperty
-import io.github.sooniln.fastgraph.MutableVertexProperty
+import io.github.sooniln.fastgraph.properties.MutableVertexKeyProperty
+import io.github.sooniln.fastgraph.properties.MutableVertexProperty
 import io.github.sooniln.fastgraph.ValueGraph
-import io.github.sooniln.fastgraph.VertexKeyProperty
-import io.github.sooniln.fastgraph.VertexProperty
+import io.github.sooniln.fastgraph.properties.VertexKeyProperty
+import io.github.sooniln.fastgraph.properties.VertexProperty
 import io.github.sooniln.fastgraph.io.PropertyBinding
 import io.github.sooniln.fastgraph.io.dot.internal.DotLexer
 import io.github.sooniln.fastgraph.io.dot.internal.DotParser
@@ -87,7 +87,7 @@ public class MutableDotGraph(
  * [PropertyBinding.float]). If you do not want to parse/store a particular attribute, then supply [PropertyBinding.unit] for
  * that attribute. The [inputStream] is not closed by this function - that remains the caller's responsibility.
  *
- * Clients are expected to use [io.github.sooniln.fastgraph.safeCast] to convert the output properties in
+ * Clients are expected to use [io.github.sooniln.fastgraph.properties.safeCast] to convert the output properties in
  * [MutableDotGraph] to the correct types.
  */
 @JvmOverloads

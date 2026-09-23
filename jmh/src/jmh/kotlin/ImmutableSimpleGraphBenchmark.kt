@@ -1,5 +1,6 @@
 package io.github.sooniln.fastgraph
 
+import io.github.sooniln.fastgraph.properties.VertexProperty
 import org.openjdk.jmh.annotations.Benchmark
 import org.openjdk.jmh.annotations.BenchmarkMode
 import org.openjdk.jmh.annotations.Fork

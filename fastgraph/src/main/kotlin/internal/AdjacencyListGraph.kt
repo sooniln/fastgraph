@@ -5,23 +5,24 @@ import io.github.sooniln.fastgraph.AbstractEdgeSet
 import io.github.sooniln.fastgraph.AbstractGraph
 import io.github.sooniln.fastgraph.CanonicalEdge
 import io.github.sooniln.fastgraph.CanonicalEdgeGraph
+import io.github.sooniln.fastgraph.CanonicalEdgeSet
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeChangeListener
 import io.github.sooniln.fastgraph.EdgeIterator
-import io.github.sooniln.fastgraph.EdgeReference
+import io.github.sooniln.fastgraph.references.EdgeReference
 import io.github.sooniln.fastgraph.EdgeSet
-import io.github.sooniln.fastgraph.IdentityIndexedVertexGraph
+import io.github.sooniln.fastgraph.Graph
+import io.github.sooniln.fastgraph.IdentityIndexedVertexSet
+import io.github.sooniln.fastgraph.MutableCanonicalEdgeSet
 import io.github.sooniln.fastgraph.MutableEdgeIterator
-import io.github.sooniln.fastgraph.MutableEdgeSet
 import io.github.sooniln.fastgraph.MutableGraph
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexChangeListener
-import io.github.sooniln.fastgraph.VertexReference
+import io.github.sooniln.fastgraph.references.VertexReference
 import io.github.sooniln.fastgraph.VertexSet
 import io.github.sooniln.fastgraph.asVertexSet
 import io.github.sooniln.fastgraph.compareTo
 import io.github.sooniln.fastgraph.edgeIteratorOf
-import io.github.sooniln.fastgraph.edgeSetOf
 import io.github.sooniln.fastgraph.emptyEdgeIterator
 import io.github.sooniln.fastgraph.inc
 import io.github.sooniln.fastgraph.listeners.EdgeChangeListenerManager
@@ -29,9 +30,9 @@ import io.github.sooniln.fastgraph.listeners.VertexChangeListenerManager
 import io.github.sooniln.fastgraph.references.EdgeReferenceManager
 import io.github.sooniln.fastgraph.references.VertexReferenceManager
 import io.github.sooniln.fastgraph.util.cheapLazy
+import io.github.sooniln.fastgraph.util.cheapSynchronizedLazy
 
-internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGraph(), IdentityIndexedVertexGraph,
-    CanonicalEdgeGraph, MutableGraph {
+internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGraph<CanonicalEdgeSet>(), CanonicalEdgeGraph, MutableGraph {
 
     private val _predecessors = cheapLazy { check(directed); successors.transpose() }
 
@@ -42,19 +43,19 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
     private val vertexListeners = VertexChangeListenerManager()
     private val edgeListeners = EdgeChangeListenerManager()
 
-    private val vertexRefs = VertexReferenceManager(this)
-    private val edgeRefs = EdgeReferenceManager(this)
+    private val vertexRefs by cheapSynchronizedLazy { VertexReferenceManager(this) }
+    private val edgeRefs by cheapSynchronizedLazy { EdgeReferenceManager(this) }
 
     override fun validateVertex(vertex: Vertex): Vertex {
         if (vertex.id !in 0..<successors.size) throwIllegalVertex(vertex)
         return vertex
     }
 
-    override fun validateEdge(edge: Edge): Edge {
-        val e = CanonicalEdge.from(edge)
+    private fun validateEdge(edge: Edge): CanonicalEdge {
+        val edge = CanonicalEdge.from(edge)
         try {
-            validateVertex(e.source)
-            validateVertex(e.target)
+            validateVertex(edge.source)
+            validateVertex(edge.target)
         } catch (e: IllegalArgumentException) {
             throwIllegalEdge(edge, e)
         }
@@ -219,13 +220,12 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
     }
 
     override fun removeEdge(edge: Edge) {
-        val canonicalEdge = CanonicalEdge.from(validateEdge(edge))
-
-        val source = canonicalEdge.source
-        val target = canonicalEdge.target
+        val edge = validateEdge(edge)
+        val source = edge.source
+        val target = edge.target
         if (!successors[source].contains(target)) throwIllegalEdge(edge)
 
-        edgeListeners.notifyEdgeRemoved(edge)
+        edgeListeners.notifyEdgeRemoved(edge.toEdge())
 
         check(successors[source].remove(target))
         if (!directed) {
@@ -239,6 +239,8 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
         --edgeCount
     }
 
+    override val multiEdge: Boolean get() = false
+
     override val vertices: AbstractMutableIdentityIndexedVertexSet =
         object : AbstractMutableIdentityIndexedVertexSet(this@AdjacencyListGraph) {
             override val size: Int get() = successors.size
@@ -248,10 +250,10 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
     override fun getInDegree(vertex: Vertex): Int = predecessors[vertex].size
     override fun getSuccessors(vertex: Vertex): VertexSet = successors[vertex].asVertexSet()
     override fun getPredecessors(vertex: Vertex): VertexSet = predecessors[vertex].asVertexSet()
-    override fun getOutgoingEdges(vertex: Vertex): EdgeSet = OutgoingEdgeSet(vertex)
-    override fun getIncomingEdges(vertex: Vertex): EdgeSet = IncomingEdgeSet(vertex)
+    override fun getOutgoingEdges(vertex: Vertex): CanonicalEdgeSet = OutgoingEdgeSet(vertex)
+    override fun getIncomingEdges(vertex: Vertex): CanonicalEdgeSet = IncomingEdgeSet(vertex)
 
-    override val edges: MutableEdgeSet = object : MutableEdgeSet, AbstractEdgeSet() {
+    override val edges: MutableCanonicalEdgeSet = object : AbstractEdgeSet(), MutableCanonicalEdgeSet {
         override val size: Int get() = edgeCount
 
         override fun contains(element: Edge): Boolean {
@@ -317,6 +319,9 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
         }
     }
 
+    override fun edgeSource(edge: Edge): Vertex = CanonicalEdge.from(edge).source
+    override fun edgeTarget(edge: Edge): Vertex = CanonicalEdge.from(edge).target
+
     override fun registerVertexChangeListener(listener: VertexChangeListener) = vertexListeners.register(listener)
     override fun unregisterVertexChangeListener(listener: VertexChangeListener) = vertexListeners.unregister(listener)
     override fun registerEdgeChangeListener(listener: EdgeChangeListener) = edgeListeners.register(listener)
@@ -329,12 +334,12 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
         return canonicalEdge(source, target)
     }
 
-    override fun getEdges(source: Vertex, target: Vertex): EdgeSet = EdgesBetween(source, target)
+    override fun getEdges(source: Vertex, target: Vertex): CanonicalEdgeSet = EdgesBetween(source, target)
 
     override fun createVertexReference(vertex: Vertex): VertexReference =
         vertexRefs.getReference(validateVertex(vertex))
 
-    override fun createEdgeReference(edge: Edge): EdgeReference = edgeRefs.getReference(validateEdge(edge))
+    override fun createEdgeReference(edge: Edge): EdgeReference = edgeRefs.getReference(validateEdge(edge).toEdge())
 
     override fun trimToSize() {
         successors.trimToSize()
@@ -353,12 +358,12 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
         edgeRefs.trimToSize()
     }
 
-    private inner class OutgoingEdgeSet(private val vertex: Vertex) : AbstractEdgeSet() {
+    private inner class OutgoingEdgeSet(private val vertex: Vertex) : AbstractEdgeSet(), CanonicalEdgeSet {
         private val adjacencies = successors[vertex.id]
 
         override val size: Int get() = adjacencies.size
         override fun contains(element: Edge): Boolean {
-            val edge = CanonicalEdge.from(validateEdge(element))
+            val edge = CanonicalEdge.from(element)
             val source = edge.source
             val target = edge.target
 
@@ -375,14 +380,14 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
         }
     }
 
-    private inner class IncomingEdgeSet(private val vertex: Vertex) : AbstractEdgeSet() {
+    private inner class IncomingEdgeSet(private val vertex: Vertex) : AbstractEdgeSet(), CanonicalEdgeSet {
         init { check(directed) }
 
         private val adjacencies = predecessors[vertex.id]
 
         override val size: Int get() = adjacencies.size
         override fun contains(element: Edge): Boolean {
-            val edge = CanonicalEdge.from(validateEdge(element))
+            val edge = CanonicalEdge.from(element)
             return vertex == edge.target && adjacencies.contains(edge.source.id)
         }
         override fun iterator(): EdgeIterator = object : EdgeIterator {
@@ -392,7 +397,10 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
         }
     }
 
-    private inner class EdgesBetween(private val source: Vertex, private val target: Vertex) : AbstractEdgeSet() {
+    private inner class EdgesBetween(
+        private val source: Vertex,
+        private val target: Vertex
+    ) : AbstractEdgeSet(), CanonicalEdgeSet {
         override val size: Int get() = if (containsEdge(source, target)) 1 else 0
         override fun contains(element: Edge): Boolean {
             return element == canonicalEdge(source, target) && containsEdge(source, target)
@@ -410,7 +418,7 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
         return CanonicalEdge.from(directed, source, target).toEdge()
     }
 
-    private companion object {
+    companion object {
         private val INVALID_VERTEX = Vertex(-1)
 
         private operator fun ArrayList<IntHashSet>.get(vertex: Vertex) = get(vertex.id)
@@ -430,5 +438,24 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
         private fun IntHashSet.add(vertex: Vertex) = add(vertex.id)
         private fun IntHashSet.remove(vertex: Vertex) = remove(vertex.id)
         private inline fun IntHashSet.foreachVertex(crossinline action: (Vertex) -> Unit) = forEach { action(Vertex(it)) }
+
+        fun copy(graph: Graph): AdjacencyListGraph {
+            require(graph.vertices is IdentityIndexedVertexSet)
+            require(graph.edges is CanonicalEdgeSet)
+
+            val copy = AdjacencyListGraph(graph.directed)
+            copy.ensureVertexCapacity(graph.vertices.size)
+            copy.ensureEdgeCapacity(graph.edges.size)
+            for (vertex in graph.vertices) {
+                val vertexCopy = copy.addVertex(graph.outDegree(vertex), 0)
+                assert(vertexCopy.id == vertex.id)
+            }
+            for (edge in graph.edges) {
+                val edge = CanonicalEdge.from(edge)
+                val edgeCopy = copy.addEdge(edge.source, edge.target)
+                assert(edgeCopy.id == edge.id)
+            }
+            return copy
+        }
     }
 }

@@ -1,5 +1,7 @@
 package io.github.sooniln.fastgraph
 
+import io.github.sooniln.fastgraph.filtered.filter
+import io.github.sooniln.fastgraph.properties.propertyTypeOf
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -40,7 +42,7 @@ class TransposeTest {
     fun undirectedTransposeIsSameGraph(immutable: Boolean) {
         constructGraph(false, immutable)
 
-        assertThat(graph.transpose()).isSameAs(graph)
+        assertThat(graph.asTransposed()).isSameAs(graph)
     }
 
     @ParameterizedTest(name = "immutable={0}")
@@ -48,7 +50,7 @@ class TransposeTest {
     fun directedTransposeReversesEdges(immutable: Boolean) {
         constructGraph(true, immutable)
 
-        val transposed = graph.transpose()
+        val transposed = graph.asTransposed()
 
         assertThat(transposed.directed).isTrue
         assertThat(transposed.vertices).containsExactlyInAnyOrder(v0, v1, v2)
@@ -64,14 +66,12 @@ class TransposeTest {
         assertThat(transposed.hasEdge(v2, v1)).isTrue
         assertThat(transposed.hasEdge(v1, v2)).isFalse
 
-        context(transposed) {
-            assertThat(v0.outDegree).isEqualTo(0)
-            assertThat(v0.inDegree).isEqualTo(1)
-            assertThat(v1.outDegree).isEqualTo(1)
-            assertThat(v1.inDegree).isEqualTo(1)
-            assertThat(v1.successors()).containsExactlyInAnyOrder(v0)
-            assertThat(v1.predecessors()).containsExactlyInAnyOrder(v2)
-        }
+        assertThat(transposed.outDegree(v0)).isEqualTo(0)
+        assertThat(transposed.inDegree(v0)).isEqualTo(1)
+        assertThat(transposed.outDegree(v1)).isEqualTo(1)
+        assertThat(transposed.inDegree(v1)).isEqualTo(1)
+        assertThat(transposed.successors(v1)).containsExactlyInAnyOrder(v0)
+        assertThat(transposed.predecessors(v1)).containsExactlyInAnyOrder(v2)
 
         // the singular accessors must be reversed along with their plural counterparts
         assertThat(transposed.successor(v1)).isEqualTo(v0)
@@ -98,7 +98,7 @@ class TransposeTest {
     fun transposeOfEmptyImmutableGraphIsSameGraph(directed: Boolean) {
         val empty = emptyImmutableGraph(directed)
 
-        assertThat(empty.transpose()).isSameAs(empty)
+        assertThat(empty.asTransposed()).isSameAs(empty)
     }
 
     @ParameterizedTest(name = "immutable={0}")
@@ -106,10 +106,10 @@ class TransposeTest {
     fun transposingTwiceReturnsTheOriginalGraph(immutable: Boolean) {
         constructGraph(true, immutable)
 
-        val transposed = graph.transpose()
+        val transposed = graph.asTransposed()
 
         assertThat(transposed).isNotSameAs(graph)
-        assertThat(transposed.transpose()).isSameAs(graph)
+        assertThat(transposed.asTransposed()).isSameAs(graph)
         assertThat(transposed.multiEdge).isEqualTo(graph.multiEdge)
         assertThat(transposed.isEmpty()).isFalse
     }
@@ -119,7 +119,7 @@ class TransposeTest {
     fun transposeReversesEdgeEndpointHelpers(immutable: Boolean) {
         constructGraph(true, immutable)
 
-        val transposed = graph.transpose()
+        val transposed = graph.asTransposed()
 
         assertThat(transposed.edgeOpposite(e0, v0)).isEqualTo(v1)
         assertThat(transposed.edgeOpposite(e0, v1)).isEqualTo(v0)
@@ -128,22 +128,19 @@ class TransposeTest {
         assertThat(transposed.edgeSource(e0, v0)).isEqualTo(v1)
         assertThat(transposed.edgeTarget(e0, v1)).isEqualTo(v0)
 
-        context(transposed) {
-            assertThat(e0.source).isEqualTo(v1)
-            assertThat(e0.target).isEqualTo(v0)
-            val (source, target) = e1
-            assertThat(source).isEqualTo(v2)
-            assertThat(target).isEqualTo(v1)
-            assertThat(v1.successor()).isEqualTo(v0)
-            assertThat(v1.predecessor()).isEqualTo(v2)
-            assertThat(v1.outgoingEdge()).isEqualTo(e0)
-            assertThat(v1.incomingEdge()).isEqualTo(e1)
-            assertThat(v1.edgeTo(v0)).isEqualTo(e0)
-            assertThat(v0.edgesTo(v1)).isEmpty()
-            assertThat(v1.edgesTo(v0)).containsExactlyInAnyOrder(e0)
-            assertThat(v2.outgoingEdges()).containsExactlyInAnyOrder(e1)
-            assertThat(v2.incomingEdges()).isEmpty()
-        }
+        assertThat(transposed.edgeSource(e0)).isEqualTo(v1)
+        assertThat(transposed.edgeTarget(e0)).isEqualTo(v0)
+        assertThat(transposed.edgeSource(e1)).isEqualTo(v2)
+        assertThat(transposed.edgeTarget(e1)).isEqualTo(v1)
+        assertThat(transposed.successor(v1)).isEqualTo(v0)
+        assertThat(transposed.predecessor(v1)).isEqualTo(v2)
+        assertThat(transposed.outgoingEdge(v1)).isEqualTo(e0)
+        assertThat(transposed.incomingEdge(v1)).isEqualTo(e1)
+        assertThat(transposed.edge(v1, v0)).isEqualTo(e0)
+        assertThat(transposed.edges(v0, v1)).isEmpty()
+        assertThat(transposed.edges(v1, v0)).containsExactlyInAnyOrder(e0)
+        assertThat(transposed.outgoingEdges(v2)).containsExactlyInAnyOrder(e1)
+        assertThat(transposed.incomingEdges(v2)).isEmpty()
 
         assertThrows<IllegalArgumentException> { transposed.outDegree(Vertex(99)) }
         assertThrows<IllegalArgumentException> { transposed.edges(Vertex(99), v0) }
@@ -153,7 +150,7 @@ class TransposeTest {
     fun transposeIsALiveView() {
         constructGraph(true, immutable = false)
         val mutable = graph as MutableGraph
-        val transposed = graph.transpose()
+        val transposed = graph.asTransposed()
 
         val v3 = mutable.addVertex()
         val e2 = mutable.addEdge(v3, v0)
@@ -174,7 +171,7 @@ class TransposeTest {
     fun transposeForwardsListenersAndReferences() {
         constructGraph(true, immutable = false)
         val mutable = graph as MutableGraph
-        val transposed = graph.transpose()
+        val transposed = graph.asTransposed()
         val added = mutableListOf<Vertex>()
         val vertexListener = object : VertexChangeListener {
             override fun onVertexAdded(vertex: Vertex) { added.add(vertex) }
@@ -208,12 +205,10 @@ class TransposeTest {
         val e1Ref = transposed.createEdgeReference(e1)
         assertThat(v2Ref.unstable).isEqualTo(v2)
         assertThat(e1Ref.unstable).isEqualTo(e1)
-        context(transposed) {
-            assertThat(e1Ref.source).isEqualTo(v2)
-            assertThat(e1Ref.target).isEqualTo(v1)
-            assertThat(v2Ref.outDegree).isEqualTo(1)
-            assertThat(v2Ref.inDegree).isEqualTo(0)
-        }
+        assertThat(transposed.edgeSource(e1Ref)).isEqualTo(v2)
+        assertThat(transposed.edgeTarget(e1Ref)).isEqualTo(v1)
+        assertThat(transposed.outDegree(v2Ref)).isEqualTo(1)
+        assertThat(transposed.inDegree(v2Ref)).isEqualTo(0)
         assertThrows<IllegalArgumentException> { transposed.createVertexReference(Vertex(99)) }
         assertThrows<IllegalArgumentException> { transposed.createEdgeReference(Edge(-1)) }
 
@@ -228,7 +223,7 @@ class TransposeTest {
     @ValueSource(booleans = [true, false])
     fun transposedPropertiesBelongToTheTransposedView(immutable: Boolean) {
         constructGraph(true, immutable)
-        val transposed = graph.transpose()
+        val transposed = graph.asTransposed()
 
         val vertexProperty = transposed.createVertexProperty<String>()
         val edgeProperty = transposed.createEdgeProperty<Int>(0)
@@ -261,10 +256,8 @@ class TransposeTest {
         val valueGraph = valueGraph(transposed, vertexKeys, edgeProperty)
         assertThat(valueGraph.graph).isSameAs(transposed)
         assertThat(valueGraph.edgeSource(e0)).isEqualTo(v1)
-        context(valueGraph) {
-            assertThat(v1.key).isEqualTo("b")
-            assertThat(e0.value).isEqualTo(5)
-        }
+        assertThat(valueGraph.vertexKeys[v1]).isEqualTo("b")
+        assertThat(valueGraph.edgeValues[e0]).isEqualTo(5)
         assertThrows<IllegalArgumentException> { valueGraph(transposed, graph.createVertexKeyProperty<String>(), edgeProperty) }
         assertThrows<IllegalArgumentException> { valueGraph(graph, vertexKeys, graph.createEdgeProperty<Int>(0)) }
 
@@ -284,15 +277,15 @@ class TransposeTest {
     @ValueSource(booleans = [true, false])
     fun algorithmsRunOverTheTransposedView(immutable: Boolean) {
         constructGraph(true, immutable)
-        val transposed = graph.transpose()
+        val transposed = graph.asTransposed()
 
         // v2 -> v1 -> v0 in the transposed view
-        val tree = transposed.breadthFirstPathTree(v2)
+        val tree = transposed.breadthFirstPathForest(v2)
         assertThat(tree.vertices).containsExactlyInAnyOrder(v0, v1, v2)
         assertThat(tree.materializePath(v0).vertices).containsExactly(v2, v1, v0)
         assertThat(tree.materializePath(v0).edges).containsExactly(e1, e0)
         assertThat(tree.pathLengthProperty[v0]).isEqualTo(2)
-        assertThat(transposed.breadthFirstPathTree(v0).vertices).containsExactly(v0)
+        assertThat(transposed.breadthFirstPathForest(v0).vertices).containsExactly(v0)
 
         assertThat(transposed.breadthFirstVertexIterator(v2).asSequence().toList()).containsExactly(v2, v1, v0)
         assertThat(transposed.depthFirstPostOrderVertexIterator(v2).asSequence().toList()).containsExactly(v0, v1, v2)

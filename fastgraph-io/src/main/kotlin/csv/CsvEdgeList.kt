@@ -4,19 +4,16 @@
 @file:JvmName("CsvEdgeList")
 package io.github.sooniln.fastgraph.io.csv
 
-import io.github.sooniln.fastgraph.EdgeProperty
+import io.github.sooniln.fastgraph.properties.EdgeProperty
 import io.github.sooniln.fastgraph.Graph
-import io.github.sooniln.fastgraph.MutableEdgeProperty
+import io.github.sooniln.fastgraph.properties.MutableEdgeProperty
 import io.github.sooniln.fastgraph.MutableGraph
-import io.github.sooniln.fastgraph.MutableVertexKeyProperty
-import io.github.sooniln.fastgraph.MutableVertexProperty
+import io.github.sooniln.fastgraph.properties.MutableVertexKeyProperty
 import io.github.sooniln.fastgraph.ValueGraph
 import io.github.sooniln.fastgraph.Vertex
-import io.github.sooniln.fastgraph.VertexKeyProperty
-import io.github.sooniln.fastgraph.VertexProperty
+import io.github.sooniln.fastgraph.properties.VertexKeyProperty
 import io.github.sooniln.fastgraph.io.ParsingEdgeProperty
 import io.github.sooniln.fastgraph.io.ParsingVertexKeyProperty
-import io.github.sooniln.fastgraph.io.ParsingVertexProperty
 import io.github.sooniln.fastgraph.io.PropertyBinding
 import io.github.sooniln.fastgraph.io.csv.internal.CsvRecordReader
 import io.github.sooniln.fastgraph.io.csv.internal.CsvRecordWriter
@@ -71,7 +68,7 @@ public class MutableCsvEdgeListGraph(
  * column in the input CSV - if you do not want to parse/store a particular column, then supply [PropertyBinding.unit] for
  * that column. The [inputStream] is not closed by this function - that remains the caller's responsibility.
  *
- * Clients are expected to use [io.github.sooniln.fastgraph.safeCast] to convert the output properties in
+ * Clients are expected to use [io.github.sooniln.fastgraph.properties.safeCast] to convert the output properties in
  * [MutableCsvEdgeListGraph] to the correct types.
  */
 @JvmOverloads
@@ -136,7 +133,7 @@ public fun readCsvEdgeList(
  * Writes [graph]'s edges as a CSV edge list to [outputStream]. Each output row consists of the string representation of
  * the edge's source vertex value, the target vertex value, followed by the string representations of each of the
  * [CsvEdgeListGraph.edgeProperties] values for that edge. If a property requires more complex serialization than just
- * `toString()`, consider using [io.github.sooniln.fastgraph.map] to convert the property into a String property with
+ * `toString()`, consider using [io.github.sooniln.fastgraph.properties.map] to convert the property into a String property with
  * the correct serialization first. The [outputStream] is not closed by this function - that remains the caller's
  * responsibility.
  */

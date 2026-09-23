@@ -1,5 +1,20 @@
 package io.github.sooniln.fastgraph
 
+import io.github.sooniln.fastgraph.filtered.filter
+import io.github.sooniln.fastgraph.properties.MutableVertexKeyProperty
+import io.github.sooniln.fastgraph.properties.MutableVertexProperty
+import io.github.sooniln.fastgraph.properties.PropertyType
+import io.github.sooniln.fastgraph.properties.VertexKeyProperty
+import io.github.sooniln.fastgraph.properties.VertexProperty
+import io.github.sooniln.fastgraph.properties.copyFrom
+import io.github.sooniln.fastgraph.properties.copyInto
+import io.github.sooniln.fastgraph.properties.get
+import io.github.sooniln.fastgraph.properties.map
+import io.github.sooniln.fastgraph.properties.propertyTypeOf
+import io.github.sooniln.fastgraph.properties.put
+import io.github.sooniln.fastgraph.properties.safeCast
+import io.github.sooniln.fastgraph.properties.unitVertexProperty
+import io.github.sooniln.fastgraph.references.EdgeReference
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -430,9 +445,9 @@ class PropertyTest {
             ints[edge] = index++
         }
 
-        val strings: EdgeProperty<out String> = ints.map { value -> value.toString() }
+        val strings: io.github.sooniln.fastgraph.properties.EdgeProperty<out String> = ints.map { value -> value.toString() }
 
-        assertThat(strings).isNotInstanceOf(MutableEdgeProperty::class.java)
+        assertThat(strings).isNotInstanceOf(io.github.sooniln.fastgraph.properties.MutableEdgeProperty::class.java)
         assertThat(strings.graph).isSameAs(graph)
         assertThat(strings.type).isEqualTo(propertyTypeOf<String>())
         for (edge in graph.edges) {
@@ -665,10 +680,10 @@ class PropertyTest {
             addEdge(v0, v1)
         }
         val e0 = graph.edges.first()
-        val property: EdgeProperty<*> = graph.createEdgeProperty<Int>(0)
-        val mutableProperty: MutableEdgeProperty<*> = graph.createEdgeProperty<Int>(0)
-        val keyProperty: EdgeKeyProperty<*> = graph.createEdgeKeyProperty<Int>()
-        val mutableKeyProperty: MutableEdgeKeyProperty<*> = graph.createEdgeKeyProperty<Int>()
+        val property: io.github.sooniln.fastgraph.properties.EdgeProperty<*> = graph.createEdgeProperty<Int>(0)
+        val mutableProperty: io.github.sooniln.fastgraph.properties.MutableEdgeProperty<*> = graph.createEdgeProperty<Int>(0)
+        val keyProperty: io.github.sooniln.fastgraph.properties.EdgeKeyProperty<*> = graph.createEdgeKeyProperty<Int>()
+        val mutableKeyProperty: io.github.sooniln.fastgraph.properties.MutableEdgeKeyProperty<*> = graph.createEdgeKeyProperty<Int>()
 
         assertThat(property.safeCast<Int>()[e0]).isEqualTo(0)
         assertThat(mutableProperty.safeCast<Int>().put(e0, 5)).isEqualTo(0)
@@ -678,7 +693,7 @@ class PropertyTest {
 
         // a non-null type may be read as its nullable counterpart, but not the other way round
         assertThat(property.safeCast<Int?>()[e0]).isEqualTo(0)
-        val nullable: EdgeProperty<*> = graph.createEdgeProperty<Int?>()
+        val nullable: io.github.sooniln.fastgraph.properties.EdgeProperty<*> = graph.createEdgeProperty<Int?>()
         assertThrows<TypeCastException> { nullable.safeCast<Int>() }
         assertThat(nullable.safeCast<Int?>()[e0]).isNull()
 
@@ -689,7 +704,7 @@ class PropertyTest {
         assertThrows<TypeCastException> { property.safeCast<Number>() }
 
         // an untyped property can never be cast safely
-        val untyped: EdgeProperty<*> = graph.createEdgeProperty(PropertyType.obj<String>()) { "x" }
+        val untyped: io.github.sooniln.fastgraph.properties.EdgeProperty<*> = graph.createEdgeProperty(PropertyType.obj<String>()) { "x" }
         assertThrows<TypeCastException> { untyped.safeCast<String>() }
         assertThrows<TypeCastException> { untyped.safeCast<String?>() }
     }
@@ -701,7 +716,8 @@ class PropertyTest {
     fun unitVertexPropertyAlwaysReturnsUnit(graphType: GraphType) {
         val graph = graphType.loadGraph()
 
-        for (property in listOf(unitVertexProperty(graph), graph.createVertexProperty<Unit> { }, graph.createVertexProperty(PropertyType.unit) { })) {
+        for (property in listOf(unitVertexProperty(graph), graph.createVertexProperty<Unit> { }, graph.createVertexProperty(
+            PropertyType.unit) { })) {
             assertThat(property.graph).isSameAs(graph)
             assertThat(property.type).isEqualTo(PropertyType.unit)
             assertThat(property.type.isUnitType()).isTrue
@@ -718,7 +734,8 @@ class PropertyTest {
     fun unitEdgePropertyAlwaysReturnsUnit(graphType: GraphType) {
         val graph = graphType.loadGraph()
 
-        for (property in listOf(unitEdgeProperty(graph), graph.createEdgeProperty<Unit> { }, graph.createEdgeProperty(PropertyType.unit) { })) {
+        for (property in listOf(_root_ide_package_.io.github.sooniln.fastgraph.properties.unitEdgeProperty(graph), graph.createEdgeProperty<Unit> { }, graph.createEdgeProperty(
+            PropertyType.unit) { })) {
             assertThat(property.graph).isSameAs(graph)
             assertThat(property.type).isEqualTo(PropertyType.unit)
             assertThat(property.type.isUnitType()).isTrue

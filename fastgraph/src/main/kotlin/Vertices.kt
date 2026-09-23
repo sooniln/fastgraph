@@ -28,108 +28,13 @@ private val VERTEX_HEX_FORMAT = HexFormat {
  * invalidated if a mutation is made to the owning graph. Individual graph implementations should make explicit
  * guarantees on when a vertex identifier is invalidated, but in the absence of stronger guarantees clients must assume
  * that any mutation of the graph topology (i.e. adding a vertex/edge, removing a vertex/edge) invalidates all
- * unstable references. [Graph] instances offer [Graph.createVertexReference] to obtain a stable [VertexReference] from
+ * unstable references. [Graph] instances offer [Graph.createVertexReference] to obtain a stable [io.github.sooniln.fastgraph.references.VertexReference] from
  * an unstable reference. Stable references are guaranteed to never be invalidated, but may be more expensive to
  * maintain than unstable references, and thus should be used sparingly.
  */
 @Suppress("INAPPLICABLE_JVM_NAME")
 @JvmInline
 public value class Vertex(public val id: Int) {
-    /**
-     * See [Graph.createVertexReference].
-     */
-    @JvmSynthetic
-    context(graph: Graph)
-    public fun reference(): VertexReference = graph.createVertexReference(this)
-
-    /**
-     * See [Graph.outDegree].
-     */
-    @get:JvmSynthetic
-    context(graph: Graph)
-    public val outDegree: Int inline get() = graph.outDegree(this)
-
-    /**
-     * See [Graph.inDegree].
-     */
-    @get:JvmSynthetic
-    context(graph: Graph)
-    public val inDegree: Int inline get() = graph.inDegree(this)
-
-    /**
-     * See [Graph.successors].
-     */
-    @JvmSynthetic
-    context(graph: Graph)
-    public fun successors(): VertexSet = graph.successors(this)
-
-    /**
-     * See [Graph.successor].
-     */
-    @JvmSynthetic
-    context(graph: Graph)
-    public fun successor(): Vertex = graph.successor(this)
-
-    /**
-     * See [Graph.predecessors].
-     */
-    @JvmSynthetic
-    context(graph: Graph)
-    public fun predecessors(): VertexSet = graph.predecessors(this)
-
-    /**
-     * See [Graph.predecessor].
-     */
-    @JvmSynthetic
-    context(graph: Graph)
-    public fun predecessor(): Vertex = graph.predecessor(this)
-
-    /**
-     * See [Graph.outgoingEdges].
-     */
-    @JvmSynthetic
-    context(graph: Graph)
-    public fun outgoingEdges(): EdgeSet = graph.outgoingEdges(this)
-
-    /**
-     * See [Graph.outgoingEdge].
-     */
-    @JvmSynthetic
-    context(graph: Graph)
-    public fun outgoingEdge(): Edge = graph.outgoingEdge(this)
-
-    /**
-     * See [Graph.incomingEdges].
-     */
-    @JvmSynthetic
-    context(graph: Graph)
-    public fun incomingEdges(): EdgeSet = graph.incomingEdges(this)
-
-    /**
-     * See [Graph.incomingEdge].
-     */
-    @JvmSynthetic
-    context(graph: Graph)
-    public fun incomingEdge(): Edge = graph.incomingEdge(this)
-
-    /**
-     * See [Graph.edge].
-     */
-    @JvmSynthetic
-    context(graph: Graph)
-    public fun edgeTo(other: Vertex): Edge = graph.edge(this, other)
-
-    /**
-     * See [Graph.edges].
-     */
-    @JvmSynthetic
-    context(graph: Graph)
-    public fun edgesTo(other: Vertex): EdgeSet = graph.edges(this, other)
-
-    @get:JvmSynthetic
-    context(graph: ValueGraph<V, *>)
-    public val <V> key: V inline get() = graph.vertexKeys[this]
-
     @JvmName("toString")
     override fun toString(): String = "Vertex(${id.toHexString(VERTEX_HEX_FORMAT)})"
 }
@@ -287,6 +192,52 @@ public interface VertexSequencedCollection : VertexCollection, RandomAccess {
 
 public val VertexSequencedCollection.lastIndex: Int get() = size - 1
 
+// the following methods shadow the equivalent Iterable<Vertex> methods from the standard library in order to avoid
+// Vertex boxing/unboxing, and associated performance penalties. note that clients outside this package must import
+// these methods explicitly, otherwise the standard library versions will be used.
+
+/** Returns true if at least one vertex matches the given predicate. */
+public inline fun VertexCollection.any(predicate: (Vertex) -> Boolean): Boolean {
+    for (vertex in this) {
+        if (predicate(vertex)) return true
+    }
+    return false
+}
+
+/** Returns true if all vertices match the given predicate. */
+public inline fun VertexCollection.all(predicate: (Vertex) -> Boolean): Boolean {
+    for (vertex in this) {
+        if (!predicate(vertex)) return false
+    }
+    return true
+}
+
+/** Returns true if no vertices match the given predicate. */
+public inline fun VertexCollection.none(predicate: (Vertex) -> Boolean): Boolean {
+    for (vertex in this) {
+        if (predicate(vertex)) return false
+    }
+    return true
+}
+
+/** Returns the number of vertices matching the given predicate. */
+public inline fun VertexCollection.count(predicate: (Vertex) -> Boolean): Int {
+    var count = 0
+    for (vertex in this) {
+        if (predicate(vertex)) ++count
+    }
+    return count
+}
+
+/** Returns the first vertex matching the given predicate. Throws [NoSuchElementException] if no such vertex exists. */
+@JvmName("first")
+public inline fun VertexCollection.first(predicate: (Vertex) -> Boolean): Vertex {
+    for (vertex in this) {
+        if (predicate(vertex)) return vertex
+    }
+    throw NoSuchElementException("No vertex matching the predicate.")
+}
+
 /** A read-only set of vertices. */
 @Suppress("INAPPLICABLE_JVM_NAME")
 public interface VertexSet : VertexCollection, Set<Vertex> {
@@ -329,7 +280,16 @@ public interface MutableVertexSequencedSet : VertexSequencedSet, MutableVertexSe
 
 /**
  * An ordered set of vertices where every vertex is associated with an index in [0, size). The index of a vertex is
- * obtained via [indexOf], and the vertex for an index via [get].
+ * obtained via [indexOf], and the vertex for an index via [get]. This set MUST iterate vertices in index order. Both
+ * [get] and [indexOf] are strongly expected to run in constant time - if they do not this must be extensively
+ * documented.
+ *
+ * If a vertex is removed from the IndexedVertexSet, this implies that the remaining vertices must be re-ordered in
+ * order to keep indices in the range [0, size). The most common method of doing so is to assign the last vertex the
+ * index of the removed vertex, but this is not guaranteed by this interface, and the actual method is determined by the
+ * implementation.
+ *
+ * See [IdentityIndexedVertexSet] for the stronger guarantee that the index of a vertex is its [Vertex.id].
  */
 @Suppress("INAPPLICABLE_JVM_NAME")
 public interface IndexedVertexSet : VertexSequencedSet {

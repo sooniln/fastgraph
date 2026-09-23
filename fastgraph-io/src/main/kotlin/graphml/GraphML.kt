@@ -4,17 +4,17 @@
 @file:JvmName("GraphML")
 package io.github.sooniln.fastgraph.io.graphml
 
-import io.github.sooniln.fastgraph.EdgeProperty
+import io.github.sooniln.fastgraph.properties.EdgeProperty
 import io.github.sooniln.fastgraph.Graph
-import io.github.sooniln.fastgraph.IdentityIndexedEdgeGraph
-import io.github.sooniln.fastgraph.IdentityIndexedVertexGraph
-import io.github.sooniln.fastgraph.MutableEdgeProperty
+import io.github.sooniln.fastgraph.IdentityIndexedEdgeSet
+import io.github.sooniln.fastgraph.IdentityIndexedVertexSet
+import io.github.sooniln.fastgraph.properties.MutableEdgeProperty
 import io.github.sooniln.fastgraph.MutableGraph
-import io.github.sooniln.fastgraph.MutableVertexProperty
-import io.github.sooniln.fastgraph.PropertyType
+import io.github.sooniln.fastgraph.properties.MutableVertexProperty
+import io.github.sooniln.fastgraph.properties.PropertyType
 import io.github.sooniln.fastgraph.ValueGraph
 import io.github.sooniln.fastgraph.Vertex
-import io.github.sooniln.fastgraph.VertexProperty
+import io.github.sooniln.fastgraph.properties.VertexProperty
 import io.github.sooniln.fastgraph.io.ParsingEdgeProperty
 import io.github.sooniln.fastgraph.io.ParsingVertexProperty
 import io.github.sooniln.fastgraph.io.PropertyBinding
@@ -86,7 +86,7 @@ public class MutableGraphMLGraph(
  * that the keys in [attributeTypeOverrides] are the attribute *names*, not the attribute *ids*. The [inputStream] is
  * not closed by this function - that remains the caller's responsibility.
  *
- * Clients are expected to use [io.github.sooniln.fastgraph.safeCast] to convert the output properties in
+ * Clients are expected to use [io.github.sooniln.fastgraph.properties.safeCast] to convert the output properties in
  * [MutableGraphMLGraph] to the correct types.
  */
 @JvmOverloads
@@ -394,8 +394,8 @@ public fun writeGraphML(
     writer.writeAttribute("parse.nodes", graph.graph.vertices.size.toString())
     writer.writeAttribute("parse.edges", graph.graph.edges.size.toString())
     writer.writeAttribute("parse.order", "nodesfirst")
-    if (graph.graph is IdentityIndexedVertexGraph) writer.writeAttribute("parse.nodeids", "canonical")
-    if (graph.graph is IdentityIndexedEdgeGraph) writer.writeAttribute("parse.edgeids", "canonical")
+    if (graph.graph.vertices is IdentityIndexedVertexSet) writer.writeAttribute("parse.nodeids", "canonical")
+    if (graph.graph.edges is IdentityIndexedEdgeSet) writer.writeAttribute("parse.edgeids", "canonical")
 
     for ((name, value) in graph.graphAttributes) {
         writer.writeStartElement("data")

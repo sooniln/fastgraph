@@ -68,33 +68,6 @@ val sourceVertex = graph.edgeSource(edge)
 val targetVertex = graph.edgeTarget(edge)
 ```
 
-FastGraph also provides more convenient accessors that take advantage of Kotlin context APIs. The above example can also
-be expressed as:
-
-```kotlin
-val graph = ...
-
-context(graph) {
-    val myVertex = ...
-    for (vertex in myVertex.successors()) {
-        ...
-    }
-    for (vertex in myVertex.predecessors()) {
-        ...
-    }
-    for (edge in myVertex.outgoingEdges()) {
-        ...
-    }
-    for (edge in myVertex.incomingEdges()) {
-        ...
-    }
-
-    val otherVertex = ...
-    val edge = myVertex.edgeTo(otherVertex)
-    val (sourceVertex, targetVertex) = edge
-}
-```
-
 ## Graph Data
 
 Graph topology can be quite interesting in and of itself, but usually we have some data associated with vertices and
@@ -121,13 +94,10 @@ val myEdge = ...
 edgeWeight[myEdge] = 5.0f
 println(edgeWeight[myEdge])
 
-// a ValueGraph bundles a graph with a vertex key property and one edge property, and offers context APIs for reading
-// the bundled values in a more convenient form
+// a ValueGraph bundles a graph with a vertex key property and one edge property
 val valueGraph = valueGraph(graph, vertexId, edgeWeight)
-context(valueGraph) {
-    println(myVertex.key)
-    println(myEdge.value)
-}
+println(valueGraph.vertexKeys[myVertex])
+println(valueGraph.edgeValues[myEdge])
 ```
 
 `VertexProperty` and `EdgeProperty` instances constructed through a `Graph` instance are guaranteed to remain in sync
@@ -276,23 +246,20 @@ reference points to from the graph, and that will only affect the removed refere
 however, is that `VertexReference` and `EdgeReference` are more expensive in terms of both memory and CPU than `Vertex`
 and `Edge`, and should thus generally be used sparingly and only when actually necessary.
 
-A stable reference can be obtained via `Graph.createVertexReference()` and `Graph.createEdgeReference()` (or via the
-context APIs `Vertex.reference()` and `Edge.reference()`). For example:
+A stable reference can be obtained via `Graph.createVertexReference()` and `Graph.createEdgeReference()`. For example:
 
 ```kotlin
 val mutableGraph = mutableGraph(directed = false)
 
-context(mutableGraph) {
-    val vertex1Ref = mutableGraph.addVertex().reference()
-    val vertex2Ref = mutableGraph.addVertex().reference()
+val vertex1Ref = mutableGraph.createVertexReference(mutableGraph.addVertex())
+val vertex2Ref = mutableGraph.createVertexReference(mutableGraph.addVertex())
 
-    // this will not invalidate vertex2Ref since it is a stable reference
-    // this will invalidate vertex1Ref since it's being removed from the graph
-    mutableGraph.removeVertex(vertex1Ref)
+// this will not invalidate vertex2Ref since it is a stable reference
+// this will invalidate vertex1Ref since it's being removed from the graph
+mutableGraph.removeVertex(vertex1Ref)
 
-    // this is now safe and will always function as intended
-    mutableGraph.removeVertex(vertex2Ref)
-}
+// this is now safe and will always function as intended
+mutableGraph.removeVertex(vertex2Ref)
 ```
 
 ## Immutable Graphs

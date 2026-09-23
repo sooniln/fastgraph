@@ -60,12 +60,12 @@ class MutableGraphContractTest {
 
         assertThat(graph.directed).isEqualTo(directed)
         assertThat(graph.multiEdge).isEqualTo(kind.multiEdge)
-        assertThat(graph).isInstanceOf(IndexedVertexGraph::class.java)
+        assertThat(graph.vertices).isInstanceOf(IndexedVertexSet::class.java)
         if (kind.indexEdges) {
-            assertThat(graph).isInstanceOf(IndexedEdgeGraph::class.java)
+            assertThat(graph.edges).isInstanceOf(IndexedEdgeSet::class.java)
         }
         if (kind == GraphKind.GRAPH) {
-            assertThat(graph).isNotInstanceOf(IndexedEdgeGraph::class.java)
+            assertThat(graph.edges).isNotInstanceOf(IndexedEdgeSet::class.java)
         }
     }
 

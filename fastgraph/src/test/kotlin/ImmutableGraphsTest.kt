@@ -1,5 +1,7 @@
 package io.github.sooniln.fastgraph
 
+import io.github.sooniln.fastgraph.filtered.filter
+import io.github.sooniln.fastgraph.properties.propertyTypeOf
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
@@ -151,8 +153,8 @@ class ImmutableGraphsTest {
         assertThat(immutable).isInstanceOf(ImmutableGraph::class.java)
         assertThat(immutable.directed).isEqualTo(directed)
         assertThat(immutable.multiEdge).isEqualTo(kind.multiEdge)
-        assertThat(immutable).isInstanceOf(IndexedVertexGraph::class.java)
-        if (kind.indexEdges) assertThat(immutable).isInstanceOf(IndexedEdgeGraph::class.java)
+        assertThat(immutable.vertices).isInstanceOf(IndexedVertexSet::class.java)
+        if (kind.indexEdges) assertThat(immutable.edges).isInstanceOf(IndexedEdgeSet::class.java)
 
         // identical ids: every vertex/edge of the source is a vertex/edge of the copy with the same endpoints
         assertThat(immutable.vertices).containsExactlyInAnyOrderElementsOf(mutable.vertices)
@@ -198,14 +200,14 @@ class ImmutableGraphsTest {
         assertThrows<UnsupportedOperationException> { mutable.filter(vertexSetOf(v0, v1), mutable.edges).toImmutableGraph() }
         assertThrows<UnsupportedOperationException> { mutable.filter({ true }, { true }).toImmutableGraph() }
         if (directed) {
-            assertThrows<UnsupportedOperationException> { mutable.transpose().toImmutableGraph() }
+            assertThrows<UnsupportedOperationException> { mutable.asTransposed().toImmutableGraph() }
         }
 
         // ... except for empty views, which become the empty immutable graph
         assertThat(mutable.filter({ false }, { true }).toImmutableGraph()).isSameAs(io.github.sooniln.fastgraph.emptyImmutableGraph(directed))
 
         // a path tree is already immutable
-        val tree = mutable.breadthFirstPathTree(v0)
+        val tree = mutable.breadthFirstPathForest(v0)
         assertThat(tree.toImmutableGraph()).isSameAs(tree)
     }
 
@@ -220,8 +222,8 @@ class ImmutableGraphsTest {
         assertThat(mutableGraph(directed, multiEdge = true).toImmutableGraph()).isSameAs(empty)
         assertThat(emptyGraph(directed)).isSameAs(empty)
         assertThat(empty.multiEdge).isFalse
-        assertThat(empty).isInstanceOf(IdentityIndexedVertexGraph::class.java)
-        assertThat(empty).isInstanceOf(IdentityIndexedEdgeGraph::class.java)
+        assertThat(empty.vertices).isInstanceOf(IdentityIndexedVertexSet::class.java)
+        assertThat(empty.edges).isInstanceOf(IdentityIndexedEdgeSet::class.java)
 
         // every accessor rejects every vertex and edge
         for (vertex in listOf(Vertex(-1), Vertex(0), Vertex(1))) {

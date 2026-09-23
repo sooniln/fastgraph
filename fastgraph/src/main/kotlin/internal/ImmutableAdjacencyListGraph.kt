@@ -6,16 +6,19 @@ import io.github.sooniln.fastgraph.AbstractVertexSequencedSet
 import io.github.sooniln.fastgraph.AbstractVertexSet
 import io.github.sooniln.fastgraph.CanonicalEdge
 import io.github.sooniln.fastgraph.CanonicalEdgeGraph
+import io.github.sooniln.fastgraph.CanonicalEdgeSet
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeIterator
 import io.github.sooniln.fastgraph.EdgeSet
+import io.github.sooniln.fastgraph.Graph
 import io.github.sooniln.fastgraph.ImmutableGraph
-import io.github.sooniln.fastgraph.IdentityIndexedVertexGraph
 import io.github.sooniln.fastgraph.IdentityIndexedVertexSet
 import io.github.sooniln.fastgraph.InternalImmutableGraph
+import io.github.sooniln.fastgraph.MutableCanonicalEdgeSet
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexIterator
 import io.github.sooniln.fastgraph.VertexSet
+import io.github.sooniln.fastgraph.edgeIteratorOf
 import io.github.sooniln.fastgraph.edgeSetOf
 import io.github.sooniln.fastgraph.emptyEdgeSet
 import io.github.sooniln.fastgraph.util.cheapLazy
@@ -24,7 +27,12 @@ internal class ImmutableAdjacencyListGraph private constructor(
     override val directed: Boolean,
     private val successors: Adjacencies,
     private val numEdges: Int,
-) : AbstractGraph(), IdentityIndexedVertexGraph, CanonicalEdgeGraph, InternalImmutableGraph {
+) : AbstractGraph<CanonicalEdgeSet>(), CanonicalEdgeGraph, InternalImmutableGraph {
+
+    override val multiEdge: Boolean get() = false
+
+    override fun edgeSource(edge: Edge): Vertex = CanonicalEdge.from(edge).source
+    override fun edgeTarget(edge: Edge): Vertex = CanonicalEdge.from(edge).target
 
     // neighbors of vertex i are targets[offsets[i]..<offsets[i + 1]], sorted ascending
     private class Adjacencies private constructor(private val offsets: IntArray, private val targets: IntArray) {
@@ -115,7 +123,10 @@ internal class ImmutableAdjacencyListGraph private constructor(
         }
 
         companion object {
-            fun <G> createSuccessors(graph: G): Adjacencies where G : IdentityIndexedVertexGraph, G : CanonicalEdgeGraph {
+            fun createSuccessors(graph: Graph): Adjacencies {
+                require(graph.vertices is IdentityIndexedVertexSet)
+                require(graph.edges is CanonicalEdgeSet)
+
                 val numVertices = graph.vertices.size
                 val offsets = IntArray(numVertices + 1)
                 for (vertexId in 0..<numVertices) {
@@ -141,13 +152,6 @@ internal class ImmutableAdjacencyListGraph private constructor(
         return vertex
     }
 
-    override fun validateEdge(edge: Edge): Edge {
-        val canonicalEdge = CanonicalEdge.from(edge)
-        val size = successors.size
-        if (canonicalEdge.source.id !in 0..<size || canonicalEdge.target.id !in 0..<size) throwIllegalEdge(canonicalEdge)
-        return edge
-    }
-
     override val vertices: IdentityIndexedVertexSet = object : IdentityIndexedVertexSet, AbstractVertexSequencedSet() {
         override val size: Int get() = successors.size
     }
@@ -158,12 +162,12 @@ internal class ImmutableAdjacencyListGraph private constructor(
     override fun getSuccessor(vertex: Vertex): Vertex = successors.adjacency(vertex)
     override fun getPredecessors(vertex: Vertex): VertexSet = predecessors.adjacencies(vertex)
     override fun getPredecessor(vertex: Vertex): Vertex = predecessors.adjacency(vertex)
-    override fun getOutgoingEdges(vertex: Vertex): EdgeSet = OutgoingIncidentEdgeSet(vertex)
+    override fun getOutgoingEdges(vertex: Vertex): CanonicalEdgeSet = OutgoingIncidentEdgeSet(vertex)
     override fun getOutgoingEdge(vertex: Vertex): Edge = canonicalEdge(vertex, successors.adjacency(vertex))
-    override fun getIncomingEdges(vertex: Vertex): EdgeSet = IncomingIncidentEdgeSet(vertex)
+    override fun getIncomingEdges(vertex: Vertex): CanonicalEdgeSet = IncomingIncidentEdgeSet(vertex)
     override fun getIncomingEdge(vertex: Vertex): Edge = canonicalEdge(predecessors.adjacency(vertex), vertex)
 
-    override val edges: EdgeSet = object : AbstractEdgeSet() {
+    override val edges: CanonicalEdgeSet = object : CanonicalEdgeSet, AbstractEdgeSet() {
         override val size: Int get() = numEdges
         override fun contains(element: Edge): Boolean {
             val edge = CanonicalEdge.from(element)
@@ -180,11 +184,18 @@ internal class ImmutableAdjacencyListGraph private constructor(
         return canonicalEdge(source, target)
     }
 
-    override fun getEdges(source: Vertex, target: Vertex): EdgeSet {
-        return if (!containsEdge(source, target)) emptyEdgeSet() else edgeSetOf(canonicalEdge(source, target))
+    override fun getEdges(source: Vertex, target: Vertex): CanonicalEdgeSet {
+        return if (!containsEdge(source, target)) {
+            emptyEdgeSet()
+        } else {
+            object : AbstractEdgeSet(), CanonicalEdgeSet {
+                override val size: Int get() = 1
+                override fun iterator(): EdgeIterator = edgeIteratorOf(canonicalEdge(source, target))
+            }
+        }
     }
 
-    private inner class OutgoingIncidentEdgeSet(private val vertex: Vertex) : AbstractEdgeSet() {
+    private inner class OutgoingIncidentEdgeSet(private val vertex: Vertex) : AbstractEdgeSet(), CanonicalEdgeSet {
         override val size: Int get() = successors.degree(vertex)
         override fun contains(element: Edge): Boolean {
             val edge = CanonicalEdge.from(element)
@@ -204,7 +215,7 @@ internal class ImmutableAdjacencyListGraph private constructor(
         }
     }
 
-    private inner class IncomingIncidentEdgeSet(private val vertex: Vertex) : AbstractEdgeSet() {
+    private inner class IncomingIncidentEdgeSet(private val vertex: Vertex) : AbstractEdgeSet(), CanonicalEdgeSet {
         init { check(directed) }
 
         override val size: Int get() = predecessors.degree(vertex)
@@ -224,7 +235,7 @@ internal class ImmutableAdjacencyListGraph private constructor(
     }
 
     companion object {
-        fun <G> copy(graph: G): ImmutableGraph where G : IdentityIndexedVertexGraph, G : CanonicalEdgeGraph {
+        fun copy(graph: Graph): ImmutableGraph {
             return ImmutableAdjacencyListGraph(graph.directed, Adjacencies.createSuccessors(graph), graph.edges.size)
         }
     }

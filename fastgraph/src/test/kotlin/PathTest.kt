@@ -1,5 +1,11 @@
 package io.github.sooniln.fastgraph
 
+import io.github.sooniln.fastgraph.paths.buildPathForest
+import io.github.sooniln.fastgraph.paths.endVertex
+import io.github.sooniln.fastgraph.paths.isClosed
+import io.github.sooniln.fastgraph.paths.isOpen
+import io.github.sooniln.fastgraph.paths.startVertex
+import io.github.sooniln.fastgraph.properties.propertyTypeOf
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.provider.Arguments
@@ -64,7 +70,7 @@ class PathTest {
     fun pathVerticesAndEdgesAreOrdered() {
         constructGraph()
 
-        val tree = graph.breadthFirstPathTree(v0)
+        val tree = graph.breadthFirstPathForest(v0)
         val path = tree.materializePath(v2)
 
         assertThat(path.vertices).containsExactly(v0, v1, v2)
@@ -83,9 +89,9 @@ class PathTest {
         // walking the path yields every edge with the vertex it leads to
         val steps = path.iterator().asSequence().toList()
         assertThat(steps.map { it.edge }).containsExactly(e0, e1)
-        assertThat(steps.map { it.vertex }).containsExactly(v1, v2)
+        assertThat(steps.map { it.target }).containsExactly(v1, v2)
         for ((index, step) in steps.withIndex()) {
-            assertThat(graph.edgeOpposite(step.edge, step.vertex)).isEqualTo(path.vertices[index])
+            assertThat(graph.edgeOpposite(step.edge, step.target)).isEqualTo(path.vertices[index])
         }
         val stepIterator = path.iterator()
         stepIterator.next()
@@ -105,7 +111,7 @@ class PathTest {
     fun pathVerticesHaveSetEquality() {
         constructGraph()
 
-        val path = graph.breadthFirstPathTree(v0).materializePath(v2)
+        val path = graph.breadthFirstPathForest(v0).materializePath(v2)
 
         val vertices = vertexSetOf(v2, v0, v1)
         assertThat(path.vertices).isEqualTo(vertices)
@@ -122,7 +128,7 @@ class PathTest {
     fun trivialPath() {
         constructGraph()
 
-        val tree = graph.breadthFirstPathTree(v0)
+        val tree = graph.breadthFirstPathForest(v0)
         val path = tree.materializePath(v0)
 
         assertThat(path.vertices).containsExactly(v0)
@@ -143,7 +149,7 @@ class PathTest {
     fun unreachableTarget() {
         constructGraph()
 
-        val tree = graph.breadthFirstPathTree(v3)
+        val tree = graph.breadthFirstPathForest(v3)
         assertThat(tree.vertices).containsExactly(v3)
         assertThat(tree.edges).isEmpty()
         assertThat(tree.isEmpty()).isFalse
@@ -152,20 +158,21 @@ class PathTest {
         assertThrows<IllegalArgumentException> { tree.materializePath(Vertex(99)) }
         assertThrows<IllegalArgumentException> { tree.pathLengthProperty[v0] }
         assertThrows<IllegalArgumentException> { tree.outDegree(v0) }
-        assertThrows<IllegalArgumentException> { graph.breadthFirstPathTree(Vertex(99)) }
+        assertThrows<IllegalArgumentException> { graph.breadthFirstPathForest(Vertex(99)) }
     }
 
     @ParameterizedTest
     @ValueSource(booleans = [true, false])
-    fun buildPathTreeProducesTheSameTreeAsBreadthFirstSearch(indexEdges: Boolean) {
+    fun buildPathForestProducesTheSameTreeAsBreadthFirstSearch(indexEdges: Boolean) {
         constructGraph(indexEdges = indexEdges)
 
-        val tree = graph.buildPathTree(v0) {
-            setParent(v0, e0, v1)
-            setParent(v0, e2, v3)
-            setParent(v1, e1, v2)
+        val tree = graph.buildPathForest {
+            addRoot(v0)
+            setParentEdge(v1, e0)
+            setParentEdge(v3, e2)
+            setParentEdge(v2, e1)
         }
-        val expected = graph.breadthFirstPathTree(v0)
+        val expected = graph.breadthFirstPathForest(v0)
 
         assertThat(tree.vertices).containsExactlyElementsOf(expected.vertices)
         assertThat(tree.edges).containsExactlyElementsOf(expected.edges)
@@ -180,15 +187,16 @@ class PathTest {
 
     @ParameterizedTest
     @CsvSource("true,true", "true,false", "false,true", "false,false")
-    fun setParentUpdatesTheDepthOfTheWholeSubtree(directed: Boolean, indexEdges: Boolean) {
+    fun setParentEdgeUpdatesTheDepthOfTheWholeSubtree(directed: Boolean, indexEdges: Boolean) {
         constructShortcutGraph(directed, indexEdges)
 
-        val tree = graph.buildPathTree(v0) {
-            setParent(v0, e0, v1)
-            setParent(v1, e1, v2)
-            setParent(v2, e2, v3)
+        val tree = graph.buildPathForest {
+            addRoot(v0)
+            setParentEdge(v1, e0)
+            setParentEdge(v2, e1)
+            setParentEdge(v3, e2)
             // v2 is reached straight from v0 instead, which shortens v3's path as well
-            setParent(v0, e3, v2)
+            setParentEdge(v2, e3)
         }
 
         assertThat(tree.pathLengthProperty[v1]).isEqualTo(1)
@@ -202,14 +210,39 @@ class PathTest {
 
     @ParameterizedTest
     @CsvSource("true,true", "true,false", "false,true", "false,false")
+    fun setParentEdgeCanMoveAChildFromARootToANonRoot(directed: Boolean, indexEdges: Boolean) {
+        constructShortcutGraph(directed, indexEdges)
+
+        val tree = graph.buildPathForest {
+            addRoot(v0)
+            setParentEdge(v2, e3)
+            setParentEdge(v1, e0)
+            setParentEdge(v3, e2)
+            // v2 is reached through v1 instead, which lengthens v3's path as well
+            setParentEdge(v2, e1)
+        }
+
+        assertThat(tree.pathLengthProperty[v1]).isEqualTo(1)
+        assertThat(tree.pathLengthProperty[v2]).isEqualTo(2)
+        assertThat(tree.pathLengthProperty[v3]).isEqualTo(3)
+        assertThat(tree.successor(v2)).isEqualTo(v1)
+        assertThat(tree.materializePath(v3).vertices).containsExactly(v0, v1, v2, v3)
+        assertThat(tree.materializePath(v3).edges).containsExactly(e0, e1, e2)
+        assertThat(tree.edges).containsExactlyInAnyOrder(e0, e1, e2)
+        assertThat(tree.edges.contains(e3)).isFalse()
+    }
+
+    @ParameterizedTest
+    @CsvSource("true,true", "true,false", "false,true", "false,false")
     fun rewiredTreeExposesTheNewTopology(directed: Boolean, indexEdges: Boolean) {
         constructShortcutGraph(directed, indexEdges)
 
-        val tree = graph.buildPathTree(v0) {
-            setParent(v0, e0, v1)
-            setParent(v1, e1, v2)
-            setParent(v2, e2, v3)
-            setParent(v0, e3, v2)
+        val tree = graph.buildPathForest {
+            addRoot(v0)
+            setParentEdge(v1, e0)
+            setParentEdge(v2, e1)
+            setParentEdge(v3, e2)
+            setParentEdge(v2, e3)
         }
 
         // the edges of a path tree point from a vertex back to its parent
@@ -225,7 +258,7 @@ class PathTest {
         assertThat(tree.hasEdge(v2, v0)).isTrue()
         assertThat(tree.hasEdge(v2, v1)).isFalse()
         // e1 was replaced as v2's tree edge and is no longer part of the tree
-        assertThat(tree.edges).containsExactly(e0, e3, e2)
+        assertThat(tree.edges).containsExactlyInAnyOrder(e0, e3, e2)
         assertThat(tree.edges.contains(e1)).isFalse()
     }
 
@@ -242,57 +275,240 @@ class PathTest {
         }
 
         val exception = assertThrows<IllegalStateException> {
-            graph.buildPathTree(v0) {
-                setParent(v0, e0, v1)
-                setParent(v1, e1, v2)
+            graph.buildPathForest {
+                addRoot(v0)
+                setParentEdge(v1, e0)
+                setParentEdge(v2, e1)
                 // v1 now reaches the tree through v2, which only reaches it through v1
-                setParent(v2, e2, v1)
+                setParentEdge(v1, e2)
             }
         }
         assertThat(exception).hasMessageContaining("cycle")
     }
 
     @Test
-    fun setParentRejectsIllegalArguments() {
+    fun setParentEdgeRejectsIllegalArguments() {
         constructGraph()
 
         // v2 has not been reached yet, so it cannot be a parent
         assertThrows<IllegalArgumentException> {
-            graph.buildPathTree(v0) { setParent(v2, e1, v1) }
+            graph.buildPathForest { addRoot(v0); setParentEdge(v1, e1) }
         }
-        // the source is always the root of the tree
+        // a root can never be given a parent
         assertThrows<IllegalArgumentException> {
-            graph.buildPathTree(v0) {
-                setParent(v0, e0, v1)
-                setParent(v1, e0, v0)
+            graph.buildPathForest { addRoot(v0); addRoot(v3); setParentEdge(v3, e2) }
+        }
+        // e0 leads to v1, not v0, in a directed graph
+        assertThrows<IllegalArgumentException> {
+            graph.buildPathForest { addRoot(v0); setParentEdge(v1, e0); setParentEdge(v0, e0) }
+        }
+        // e1 does not touch v3 at all
+        assertThrows<IllegalArgumentException> {
+            graph.buildPathForest { addRoot(v0); setParentEdge(v1, e0); setParentEdge(v3, e1) }
+        }
+
+        constructGraph(directed = false)
+
+        // a root can never be given a parent, even when the undirected edge would otherwise lead back to it
+        assertThrows<IllegalArgumentException> {
+            graph.buildPathForest {
+                addRoot(v0)
+                setParentEdge(v1, e0)
+                setParentEdge(v0, e0)
             }
         }
+
         // a vertex cannot be its own parent
-        assertThrows<IllegalArgumentException> {
-            graph.buildPathTree(v0) { setParent(v0, e0, v0) }
+        for (directed in listOf(true, false)) {
+            var loop = Edge(-1)
+            val graph = buildGraph(directed) {
+                v0 = addVertex()
+                loop = addEdge(v0, v0)
+            }
+            assertThrows<IllegalArgumentException> {
+                graph.buildPathForest { addRoot(v0); setParentEdge(v0, loop) }
+            }
         }
     }
 
     @Test
-    fun buildPathTreeRequiresASourceInTheGraph() {
+    fun buildPathForestRequiresRootsInTheGraph() {
         constructGraph()
 
-        assertThrows<IllegalArgumentException> { graph.buildPathTree(Vertex(99)) {} }
+        assertThrows<IllegalArgumentException> { graph.buildPathForest { addRoot(Vertex(99)) } }
+    }
+
+    @ParameterizedTest(name = "indexEdges={0}")
+    @ValueSource(booleans = [true, false])
+    fun pathForestWithSeveralRootsKeepsEachTreeApart(indexEdges: Boolean) {
+        constructGraph(indexEdges = indexEdges)
+        val forest = graph.buildPathForest {
+            addRoot(v0)
+            addRoot(v3)
+            setParentEdge(v1, e0)
+            setParentEdge(v2, e1)
+        }
+
+        assertThat(forest.roots).containsExactlyInAnyOrder(v0, v3)
+        assertThat(forest.vertices).containsExactlyInAnyOrder(v0, v1, v2, v3)
+        assertThat(forest.edges).containsExactlyInAnyOrder(e0, e1)
+        assertThat(forest.materializePath(v2).vertices.first()).isEqualTo(v0)
+        assertThat(forest.pathLengthProperty[v2]).isEqualTo(2)
+        assertThat(forest.pathLengthProperty[v3]).isEqualTo(0)
+        assertThat(forest.materializePath(v2).vertices).containsExactly(v0, v1, v2)
+        assertThat(forest.materializePath(v3).vertices).containsExactly(v3)
+
+        // both roots have no parent
+        for (root in listOf(v0, v3)) {
+            assertThat(forest.outDegree(root)).isEqualTo(0)
+            assertThat(forest.outgoingEdges(root)).isEmpty()
+            assertThrows<IllegalStateException> { forest.successor(root) }
+        }
+        assertThat(forest.inDegree(v3)).isEqualTo(0)
+        assertThat(forest.predecessors(v0)).containsExactly(v1)
+        assertThat(forest.predecessors(v3)).isEmpty()
+        assertThat(forest.hasEdge(v1, v0)).isTrue
+        assertThat(forest.hasEdge(v3, v0)).isFalse
+    }
+
+    @Test
+    fun reparentingMovesASubtreeToAnotherTree() {
+        // v0 -> v1 -> v2, v3 -> v1
+        graph = buildGraph(directed = true) {
+            v0 = addVertex()
+            v1 = addVertex()
+            v2 = addVertex()
+            v3 = addVertex()
+            e0 = addEdge(v0, v1)
+            e1 = addEdge(v1, v2)
+            e2 = addEdge(v3, v1)
+        }
+
+        val forest = graph.buildPathForest {
+            addRoot(v0)
+            addRoot(v3)
+            setParentEdge(v1, e0)
+            setParentEdge(v2, e1)
+            setParentEdge(v1, e2)
+        }
+
+        assertThat(forest.materializePath(v1).vertices.first()).isEqualTo(v3)
+        assertThat(forest.materializePath(v2).vertices.first()).isEqualTo(v3)
+        assertThat(forest.pathLengthProperty[v1]).isEqualTo(1)
+        assertThat(forest.pathLengthProperty[v2]).isEqualTo(2)
+        assertThat(forest.materializePath(v2).vertices).containsExactly(v3, v1, v2)
+        assertThat(forest.predecessors(v0)).isEmpty()
+        assertThat(forest.edges).containsExactlyInAnyOrder(e1, e2)
+    }
+
+    @ParameterizedTest(name = "indexEdges={0}")
+    @ValueSource(booleans = [true, false])
+    fun rootsMayBeAddedAfterOtherVertices(indexEdges: Boolean) {
+        constructGraph(indexEdges = indexEdges)
+        val forest = graph.buildPathForest {
+            addRoot(v0)
+            setParentEdge(v1, e0)
+            addRoot(v3)
+            setParentEdge(v2, e1)
+        }
+
+        assertThat(forest.roots).containsExactlyInAnyOrder(v0, v3)
+        assertThat(forest.roots.contains(v1)).isFalse
+        assertThat(forest.roots.contains(Vertex(99))).isFalse
+        assertThat(forest.vertices).containsExactlyInAnyOrder(v0, v1, v2, v3)
+        assertThat(forest.edges).containsExactlyInAnyOrder(e0, e1)
+        assertThat(forest.materializePath(v2).vertices.first()).isEqualTo(v0)
+        assertThat(forest.pathLengthProperty[v2]).isEqualTo(2)
+        assertThat(forest.pathLengthProperty[v3]).isEqualTo(0)
+        assertThat(forest.materializePath(v3).vertices).containsExactly(v3)
+        assertThat(forest.outDegree(v3)).isEqualTo(0)
+        assertThat(forest.predecessors(v0)).containsExactly(v1)
+        assertThat(forest.predecessors(v3)).isEmpty()
+
+        // the tree edges skip over the root in the middle of the parent arrays
+        val edges = forest.edges as EdgeSequencedSet
+        assertThat(edges).containsExactly(e0, e1)
+        assertThat(edges.size).isEqualTo(2)
+        assertThat(edges[0]).isEqualTo(e0)
+        assertThat(edges[1]).isEqualTo(e1)
+        assertThrows<IndexOutOfBoundsException> { edges[2] }
+        assertThat(edges.indexOf(e0)).isEqualTo(0)
+        assertThat(edges.indexOf(e1)).isEqualTo(1)
+        assertThat(edges.indexOf(e2)).isEqualTo(-1)
+        assertThat(edges.contains(e2)).isFalse
+        assertThat(edges.contains(Edge(0))).isEqualTo(e0 == Edge(0) || e1 == Edge(0))
+        assertThat(forest.edgeSource(e1)).isEqualTo(v2)
+        assertThat(forest.edgeTarget(e1)).isEqualTo(v1)
+    }
+
+    @Test
+    fun reparentingUnderALaterRootMovesTheSubtree() {
+        // v0 -> v1 -> v2, v3 -> v1
+        graph = buildGraph(directed = true) {
+            v0 = addVertex()
+            v1 = addVertex()
+            v2 = addVertex()
+            v3 = addVertex()
+            e0 = addEdge(v0, v1)
+            e1 = addEdge(v1, v2)
+            e2 = addEdge(v3, v1)
+        }
+
+        val forest = graph.buildPathForest {
+            addRoot(v0)
+            setParentEdge(v1, e0)
+            setParentEdge(v2, e1)
+            addRoot(v3)
+            setParentEdge(v1, e2)
+        }
+
+        assertThat(forest.roots).containsExactlyInAnyOrder(v0, v3)
+        assertThat(forest.materializePath(v1).vertices.first()).isEqualTo(v3)
+        assertThat(forest.materializePath(v2).vertices.first()).isEqualTo(v3)
+        assertThat(forest.pathLengthProperty[v1]).isEqualTo(1)
+        assertThat(forest.pathLengthProperty[v2]).isEqualTo(2)
+        assertThat(forest.materializePath(v2).vertices).containsExactly(v3, v1, v2)
+        assertThat(forest.predecessors(v0)).isEmpty()
+        assertThat(forest.edges).containsExactlyInAnyOrder(e1, e2)
+    }
+
+    @Test
+    fun addRootRejectsAVertexAlreadyInTheForest() {
+        constructGraph()
+
+        assertThrows<IllegalArgumentException> {
+            graph.buildPathForest { addRoot(v0); addRoot(v0) }
+        }
+        assertThrows<IllegalArgumentException> {
+            graph.buildPathForest {
+                addRoot(v0)
+                setParentEdge(v1, e0)
+                addRoot(v1)
+            }
+        }
+    }
+
+    @Test
+    fun emptyPathForest() {
+        constructGraph()
+
+        val forest = graph.buildPathForest {}
+        assertThat(forest.isEmpty()).isTrue
+        assertThat(forest.vertices).isEmpty()
+        assertThat(forest.edges).isEmpty()
+        assertThat(forest.roots).isEmpty()
+        assertThrows<IllegalArgumentException> { forest.materializePath(v0) }
     }
 
     @ParameterizedTest
     @ValueSource(booleans = [true, false])
-    fun breadthFirstPathTreeIsUnchangedByDirectedness(directed: Boolean) {
+    fun breadthFirstPathForestIsUnchangedByDirectedness(directed: Boolean) {
         constructGraph(directed = directed)
 
-        val tree = graph.breadthFirstPathTree(v0)
+        val tree = graph.breadthFirstPathForest(v0)
 
-        // v1 and v3 are both discovered from v0, in whichever order v0 lists its edges; v2 is discovered last
         assertThat(tree.vertices).containsExactlyInAnyOrder(v0, v1, v2, v3)
-        assertThat(tree.vertices.first()).isEqualTo(v0)
-        assertThat(tree.vertices.last()).isEqualTo(v2)
         assertThat(tree.edges).containsExactlyInAnyOrder(e0, e1, e2)
-        assertThat(tree.edges.last()).isEqualTo(e1)
         assertThat(tree.pathLengthProperty[v0]).isEqualTo(0)
         assertThat(tree.pathLengthProperty[v1]).isEqualTo(1)
         assertThat(tree.pathLengthProperty[v3]).isEqualTo(1)
@@ -304,76 +520,52 @@ class PathTest {
 
     @ParameterizedTest(name = "indexEdges={0}")
     @ValueSource(booleans = [true, false])
-    fun pathTreeIsIndexedByDiscoveryOrder(indexEdges: Boolean) {
+    fun pathTreePropertiesAreKeyedByVertex(indexEdges: Boolean) {
         constructGraph(indexEdges = indexEdges)
 
         // v3 is discovered before v1 and v2 so that discovery order differs from vertex ids
-        val tree = graph.buildPathTree(v0) {
-            setParent(v0, e2, v3)
-            setParent(v0, e0, v1)
-            setParent(v1, e1, v2)
+        val tree = graph.buildPathForest {
+            addRoot(v0)
+            setParentEdge(v3, e2)
+            setParentEdge(v1, e0)
+            setParentEdge(v2, e1)
         }
+        assertThat(tree.vertices).isNotInstanceOf(IdentityIndexedVertexSet::class.java)
 
-        assertThat(tree).isNotInstanceOf(IdentityIndexedVertexGraph::class.java)
-        assertThat(tree.vertices).containsExactly(v0, v3, v1, v2)
-        assertThat(tree.vertices.indexOf(v0)).isEqualTo(0)
-        assertThat(tree.vertices.indexOf(v3)).isEqualTo(1)
-        assertThat(tree.vertices.indexOf(v2)).isEqualTo(3)
-        assertThat(tree.vertices.indexOf(Vertex(99))).isEqualTo(-1)
-        for ((index, vertex) in tree.vertices.withIndex()) {
-            assertThat(tree.vertices[index]).isEqualTo(vertex)
-            assertThat(tree.vertices.indexOf(vertex)).isEqualTo(index)
-        }
-
-        assertThat(tree.edges).containsExactly(e2, e0, e1)
-        assertThat(tree.edges.indexOf(e2)).isEqualTo(0)
-        assertThat(tree.edges.indexOf(e1)).isEqualTo(2)
-        assertThat(tree.edges.indexOf(Edge(99))).isEqualTo(-1)
-        for ((index, edge) in tree.edges.withIndex()) {
-            assertThat(tree.edges[index]).isEqualTo(edge)
-            assertThat(tree.edges.indexOf(edge)).isEqualTo(index)
-        }
-    }
-
-    @ParameterizedTest(name = "indexEdges={0}")
-    @ValueSource(booleans = [true, false])
-    fun pathTreePropertiesAreIndexedByDiscoveryOrder(indexEdges: Boolean) {
-        constructGraph(indexEdges = indexEdges)
-        val tree = graph.buildPathTree(v0) {
-            setParent(v0, e2, v3)
-            setParent(v0, e0, v1)
-            setParent(v1, e1, v2)
-        }
-
-        val ints = tree.createVertexProperty { vertex -> tree.vertices.indexOf(vertex) * 10 }
+        val ints = tree.createVertexProperty { vertex -> vertex.id * 10 }
         val strings = tree.createVertexProperty<String?>()
-        for ((index, vertex) in tree.vertices.withIndex()) {
-            assertThat(ints[vertex]).isEqualTo(index * 10)
+        for (vertex in tree.vertices) {
+            assertThat(ints[vertex]).isEqualTo(vertex.id * 10)
             assertThat(strings[vertex]).isNull()
-            strings[vertex] = "v$index"
+            strings[vertex] = "v${vertex.id}"
         }
-        assertThat(ints.put(v2, 7)).isEqualTo(30)
+        assertThat(ints.put(v2, 7)).isEqualTo(v2.id * 10)
         assertThat(ints[v2]).isEqualTo(7)
-        assertThat(strings[v3]).isEqualTo("v1")
-        assertThat(strings[v2]).isEqualTo("v3")
+        assertThat(strings[v3]).isEqualTo("v${v3.id}")
+        assertThat(strings[v2]).isEqualTo("v${v2.id}")
         assertThrows<IllegalArgumentException> { ints[Vertex(99)] }
         assertThrows<IllegalArgumentException> { strings[Vertex(99)] = "x" }
 
-        val lengths = tree.createEdgeProperty { edge -> tree.edges.indexOf(edge).toLong() }
+        val lengths = tree.createEdgeProperty { edge -> edge.id }
         val labels = tree.createEdgeProperty<String?>()
-        for ((index, edge) in tree.edges.withIndex()) {
-            assertThat(lengths[edge]).isEqualTo(index.toLong())
-            labels[edge] = "e$index"
+        for (edge in tree.edges) {
+            assertThat(lengths[edge]).isEqualTo(edge.id)
+            labels[edge] = "e${edge.id}"
         }
-        assertThat(labels[e2]).isEqualTo("e0")
-        assertThat(labels[e1]).isEqualTo("e2")
+        assertThat(labels[e2]).isEqualTo("e${e2.id}")
+        assertThat(labels[e1]).isEqualTo("e${e1.id}")
         assertThrows<IllegalArgumentException> { lengths[Edge(99)] }
         assertThrows<IllegalArgumentException> { labels[Edge(99)] = "x" }
 
         val vertexKeys = tree.createVertexKeyProperty<String>()
         val edgeKeys = tree.createEdgeKeyProperty<Int>()
-        for ((index, vertex) in tree.vertices.withIndex()) vertexKeys[vertex] = "k$index"
-        for ((index, edge) in tree.edges.withIndex()) edgeKeys[edge] = index
+        vertexKeys[v0] = "k0"
+        vertexKeys[v3] = "k1"
+        vertexKeys[v1] = "k2"
+        vertexKeys[v2] = "k3"
+        edgeKeys[e2] = 0
+        edgeKeys[e0] = 1
+        edgeKeys[e1] = 2
         assertThat(vertexKeys.getVertex("k1")).isEqualTo(v3)
         assertThat(vertexKeys.getVertex("k3")).isEqualTo(v2)
         assertThat(vertexKeys[v0]).isEqualTo("k0")
@@ -388,8 +580,6 @@ class PathTest {
         assertThrows<IllegalArgumentException> { vertexKeys[Vertex(99)] = "k9" }
         assertThrows<IllegalArgumentException> { edgeKeys[e0] = 9 }
         assertThrows<IllegalArgumentException> { edgeKeys[Edge(99)] = 5 }
-        assertThat(lengths.put(e2, 7L)).isEqualTo(0L)
-        assertThat(lengths[e2]).isEqualTo(7L)
     }
 
     @ParameterizedTest(name = "{0}, directed={1}, immutable={2}")
@@ -397,7 +587,7 @@ class PathTest {
     fun pathTreeIsBuiltFromEveryGraphImplementation(kind: MutableGraphContractTest.GraphKind, directed: Boolean, immutable: Boolean) {
         constructGraph(directed, kind.indexEdges, immutable, kind.multiEdge)
 
-        val tree = graph.breadthFirstPathTree(v0)
+        val tree = graph.breadthFirstPathForest(v0)
 
         assertThat(tree.vertices).containsExactlyInAnyOrder(v0, v1, v2, v3)
         assertThat(tree.edges).containsExactlyInAnyOrder(e0, e1, e2)
@@ -428,7 +618,7 @@ class PathTest {
             e2 = addEdge(v0, v0)
         }
 
-        val tree = graph.buildPathTree(v0) { setParent(v0, e1, v1) }
+        val tree = graph.buildPathForest { addRoot(v0); setParentEdge(v1, e1) }
 
         assertThat(tree.edges).containsExactly(e1)
         assertThat(tree.edges.contains(e0)).isFalse
@@ -439,7 +629,7 @@ class PathTest {
         assertThrows<IllegalArgumentException> { tree.edgeTarget(e2) }
 
         // a breadth-first tree picks exactly one of the parallel edges and never a self-loop
-        val bfs = graph.breadthFirstPathTree(v0)
+        val bfs = graph.breadthFirstPathForest(v0)
         assertThat(bfs.edges).hasSize(1)
         assertThat(bfs.edges.first()).isIn(e0, e1)
         assertThat(bfs.materializePath(v1).edges).containsExactly(bfs.edges.first())
@@ -449,17 +639,18 @@ class PathTest {
     @ValueSource(booleans = [true, false])
     fun pathTreeIsADirectedGraphOfParentPointers(indexEdges: Boolean) {
         constructGraph(indexEdges = indexEdges)
-        val tree = graph.buildPathTree(v0) {
-            setParent(v0, e0, v1)
-            setParent(v0, e2, v3)
-            setParent(v1, e1, v2)
+        val tree = graph.buildPathForest {
+            addRoot(v0)
+            setParentEdge(v1, e0)
+            setParentEdge(v3, e2)
+            setParentEdge(v2, e1)
         }
 
         assertThat(tree).isInstanceOf(ImmutableGraph::class.java)
         assertThat(tree.directed).isTrue
         assertThat(tree.multiEdge).isFalse
         assertThat(tree.isEmpty()).isFalse
-        assertThat(tree.startVertex).isEqualTo(v0)
+        assertThat(tree.roots).containsExactly(v0)
         assertThat(tree.toImmutableGraph()).isSameAs(tree)
 
         // the root has no parent
@@ -527,7 +718,7 @@ class PathTest {
             assertThat(tree.breadthFirstVertexIterator(vertex).asSequence().last()).isEqualTo(v0)
         }
         // and transposing the tree points the edges from parents to children
-        val transposed = tree.transpose()
+        val transposed = tree.asTransposed()
         assertThat(transposed.successors(v0)).containsExactlyInAnyOrder(v1, v3)
         assertThat(transposed.breadthFirstVertexIterator(v0).asSequence().toList()).containsExactlyInAnyOrder(v0, v1, v2, v3)
     }
@@ -536,10 +727,11 @@ class PathTest {
     @ValueSource(booleans = [true, false])
     fun pathTreeCollectionsAreProperSets(indexEdges: Boolean) {
         constructGraph(indexEdges = indexEdges)
-        val tree = graph.buildPathTree(v0) {
-            setParent(v0, e2, v3)
-            setParent(v0, e0, v1)
-            setParent(v1, e1, v2)
+        val tree = graph.buildPathForest {
+            addRoot(v0)
+            setParentEdge(v3, e2)
+            setParentEdge(v1, e0)
+            setParentEdge(v2, e1)
         }
 
         // vertices and edges compare by elements, symmetrically, and hash consistently
@@ -549,7 +741,6 @@ class PathTest {
         assertThat(tree.vertices.hashCode()).isEqualTo(vertices.hashCode())
         assertThat(tree.vertices == graph.vertices).isTrue
         assertThat(graph.vertices == tree.vertices).isTrue
-        assertThat(tree.vertices.toString()).isEqualTo("{$v0, $v3, $v1, $v2}")
 
         val edges = edgeSetOf(e1, e0, e2)
         assertThat(tree.edges == edges).isTrue
@@ -557,44 +748,27 @@ class PathTest {
         assertThat(tree.edges.hashCode()).isEqualTo(edges.hashCode())
         assertThat(tree.edges == graph.edges).isTrue
         assertThat(graph.edges == tree.edges).isTrue
-        assertThat(tree.edges.toString()).isEqualTo("{$e2, $e0, $e1}")
 
-        // indexed access is bounds checked on both sides
-        assertThat(tree.vertices.first()).isEqualTo(v0)
-        assertThat(tree.vertices.last()).isEqualTo(v2)
-        assertThat(tree.vertices.lastIndex).isEqualTo(3)
-        assertThrows<IndexOutOfBoundsException> { tree.vertices[-1] }
-        assertThrows<IndexOutOfBoundsException> { tree.vertices[4] }
-        assertThat(tree.edges.first()).isEqualTo(e2)
-        assertThat(tree.edges.last()).isEqualTo(e1)
-        assertThat(tree.edges.lastIndex).isEqualTo(2)
-        assertThrows<IndexOutOfBoundsException> { tree.edges[-1] }
-        assertThrows<IndexOutOfBoundsException> { tree.edges[3] }
-        assertThat(tree.vertices.toIntArray()).containsExactly(v0.id, v3.id, v1.id, v2.id)
-        assertThat(tree.edges.toLongArray()).containsExactly(e2.id, e0.id, e1.id)
-        assertThat(tree.vertices.lastIndexOf(v1)).isEqualTo(2)
-        assertThat(tree.edges.lastIndexOf(e0)).isEqualTo(1)
+        assertThat(tree.vertices.toIntArray()).containsExactlyInAnyOrder(v0.id, v3.id, v1.id, v2.id)
+        assertThat(tree.edges.toLongArray()).containsExactlyInAnyOrder(e2.id, e0.id, e1.id)
         assertThat(tree.vertices.containsAll(vertexSetOf(v1, v3))).isTrue
         assertThat(tree.vertices.containsAll(listOf(v1, Vertex(99)))).isFalse
         assertThat(tree.edges.containsAll(edgeSetOf(e0, e1))).isTrue
         assertThat(tree.edges.containsAll(listOf(e0, Edge(99)))).isFalse
 
         // a single-vertex tree has no edges but is still a valid graph
-        val trivial = graph.buildPathTree(v3) {}
+        val trivial = graph.buildPathForest { addRoot(v3) }
         assertThat(trivial.vertices).containsExactly(v3)
         assertThat(trivial.edges).isEmpty()
         assertThat(trivial.edges == emptyEdgeSet()).isTrue
         assertThat(emptyEdgeSet() == trivial.edges).isTrue
-        assertThat(trivial.edges.lastIndex).isEqualTo(-1)
-        assertThrows<IndexOutOfBoundsException> { trivial.edges[0] }
-        assertThrows<NoSuchElementException> { trivial.edges.first() }
     }
 
     @Test
     fun pathAccessorsInUndirectedGraphAreConsistentWithEdgeOpposite() {
         constructGraph(directed = false)
 
-        val path = graph.breadthFirstPathTree(v2).materializePath(v3)
+        val path = graph.breadthFirstPathForest(v2).materializePath(v3)
 
         assertThat(path.vertices).containsExactly(v2, v1, v0, v3)
         assertThat(path.edges).containsExactly(e1, e0, e2)

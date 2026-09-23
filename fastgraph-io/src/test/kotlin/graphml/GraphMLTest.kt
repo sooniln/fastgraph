@@ -1,6 +1,6 @@
 package io.github.sooniln.fastgraph.io.graphml
 
-import io.github.sooniln.fastgraph.safeCast
+import io.github.sooniln.fastgraph.properties.safeCast
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows

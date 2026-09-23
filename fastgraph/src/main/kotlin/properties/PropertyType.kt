@@ -3,7 +3,7 @@
  */
 @file:JvmName("PropertyTypes")
 
-package io.github.sooniln.fastgraph
+package io.github.sooniln.fastgraph.properties
 
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
@@ -23,7 +23,7 @@ public inline fun <reified T> propertyTypeOf(): PropertyType<T> {
  * [VertexProperty] and [EdgeProperty], so that a property can know what type it is storing, and behave appropriately.
  * Kotlin clients should rarely if ever need to interact with this class, since all reified overloads handle this
  * automatically. Since Java clients cannot invoke reified methods, they may need to use this class to pass in type
- * information to [Graph.createVertexProperty] and [Graph.createEdgeProperty] directly.
+ * information to [io.github.sooniln.fastgraph.Graph.createVertexProperty] and [io.github.sooniln.fastgraph.Graph.createEdgeProperty] directly.
  *
  * Java clients can use [unit], [boolean], [byte], [short], [int], [long], [float], or [double] to indicate the type of
  * primitive property they want. If Java clients want a normal Object property (which allows null values), use [obj].

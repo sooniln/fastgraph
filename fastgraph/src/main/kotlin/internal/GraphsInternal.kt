@@ -1,32 +1,9 @@
 package io.github.sooniln.fastgraph.internal
 
 import io.github.sooniln.fastcollect.*
-import io.github.sooniln.fastgraph.AbstractEdgeSequencedSet
-import io.github.sooniln.fastgraph.AbstractVertexSequencedSet
-import io.github.sooniln.fastgraph.CanonicalEdge
-import io.github.sooniln.fastgraph.Edge
-import io.github.sooniln.fastgraph.EdgeFunction
-import io.github.sooniln.fastgraph.EdgeIterator
-import io.github.sooniln.fastgraph.EdgeReference
-import io.github.sooniln.fastgraph.EdgeSet
-import io.github.sooniln.fastgraph.Graph
-import io.github.sooniln.fastgraph.IdentityIndexedEdge
-import io.github.sooniln.fastgraph.IdentityIndexedEdgeSet
-import io.github.sooniln.fastgraph.MutableEdgeIterator
-import io.github.sooniln.fastgraph.MutableEdgeKeyProperty
-import io.github.sooniln.fastgraph.MutableEdgeProperty
-import io.github.sooniln.fastgraph.MutableGraph
-import io.github.sooniln.fastgraph.MutableIdentityIndexedVertexSet
-import io.github.sooniln.fastgraph.MutableIndexedEdgeSet
-import io.github.sooniln.fastgraph.MutableVertexIterator
-import io.github.sooniln.fastgraph.MutableVertexKeyProperty
-import io.github.sooniln.fastgraph.MutableVertexProperty
-import io.github.sooniln.fastgraph.PropertyType
-import io.github.sooniln.fastgraph.Vertex
-import io.github.sooniln.fastgraph.VertexFunction
-import io.github.sooniln.fastgraph.VertexReference
-import io.github.sooniln.fastgraph.VertexSet
-import io.github.sooniln.fastgraph.reparent
+import io.github.sooniln.fastgraph.*
+import io.github.sooniln.fastgraph.references.EdgeReference
+import io.github.sooniln.fastgraph.references.VertexReference
 import kotlin.math.max
 import kotlin.math.min
 
@@ -149,40 +126,6 @@ internal interface EdgeAdjacencySet {
     fun contains(element: EdgeAdjacency): Boolean
     fun contains(vertex: Vertex): Boolean = vertices.contains(vertex)
     fun edgeIterator(): EdgeIterator
-}
-
-internal class TransposedGraph(val graph: Graph) : Graph by graph {
-    override fun outDegree(vertex: Vertex): Int = graph.inDegree(vertex)
-    override fun inDegree(vertex: Vertex): Int = graph.outDegree(vertex)
-    override fun successors(vertex: Vertex): VertexSet = graph.predecessors(vertex)
-    override fun successor(vertex: Vertex): Vertex = graph.predecessor(vertex)
-    override fun predecessors(vertex: Vertex): VertexSet = graph.successors(vertex)
-    override fun predecessor(vertex: Vertex): Vertex = graph.successor(vertex)
-    override fun outgoingEdges(vertex: Vertex): EdgeSet = graph.incomingEdges(vertex)
-    override fun outgoingEdge(vertex: Vertex): Edge = graph.incomingEdge(vertex)
-    override fun incomingEdges(vertex: Vertex): EdgeSet = graph.outgoingEdges(vertex)
-    override fun incomingEdge(vertex: Vertex): Edge = graph.outgoingEdge(vertex)
-    override fun edgeSource(edge: Edge): Vertex = graph.edgeTarget(edge)
-    override fun edgeTarget(edge: Edge): Vertex = graph.edgeSource(edge)
-    override fun hasEdge(source: Vertex, target: Vertex): Boolean = graph.hasEdge(target, source)
-    override fun edge(source: Vertex, target: Vertex): Edge = graph.edge(target, source)
-    override fun edges(source: Vertex, target: Vertex): EdgeSet = graph.edges(target, source)
-
-    override fun <T> createVertexProperty(
-        type: PropertyType<T>,
-        defaultValueFunction: VertexFunction<T>
-    ): MutableVertexProperty<T> = graph.createVertexProperty(type, defaultValueFunction).reparent(this)
-
-    override fun <T> createEdgeProperty(
-        type: PropertyType<T>,
-        defaultValueFunction: EdgeFunction<T>
-    ): MutableEdgeProperty<T> = graph.createEdgeProperty(type, defaultValueFunction).reparent(this)
-
-    override fun <T> createVertexKeyProperty(type: PropertyType<T>): MutableVertexKeyProperty<T> =
-        graph.createVertexKeyProperty(type).reparent(this)
-
-    override fun <T> createEdgeKeyProperty(type: PropertyType<T>): MutableEdgeKeyProperty<T> =
-        graph.createEdgeKeyProperty(type).reparent(this)
 }
 
 @Suppress("NOTHING_TO_INLINE")

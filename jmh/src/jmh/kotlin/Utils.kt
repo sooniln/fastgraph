@@ -8,6 +8,7 @@ import io.github.sooniln.fastcollect.Int2FloatMap
 import io.github.sooniln.fastcollect.Int2IntHashMap
 import io.github.sooniln.fastcollect.IntHashSet
 import io.github.sooniln.fastcollect.getOrElse
+import io.github.sooniln.fastgraph.properties.VertexProperty
 import org.jgrapht.Graphs
 
 internal object Utils {
@@ -41,7 +42,7 @@ internal object Utils {
         }
     }
 
-    fun dijkstras(graph: Graph, weights: EdgeProperty<Float>, start: Vertex): VertexProperty<Float> {
+    fun dijkstras(graph: Graph, weights: io.github.sooniln.fastgraph.properties.EdgeProperty<Float>, start: Vertex): VertexProperty<Float> {
         val visited = graph.createVertexProperty(false)
         val distance = graph.createVertexProperty(Float.MAX_VALUE)
 

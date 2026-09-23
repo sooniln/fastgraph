@@ -1,6 +1,6 @@
 package io.github.sooniln.fastgraph.io.csv
 
-import io.github.sooniln.fastgraph.EdgeProperty
+import io.github.sooniln.fastgraph.properties.EdgeProperty
 import io.github.sooniln.fastgraph.io.PropertyBinding
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test

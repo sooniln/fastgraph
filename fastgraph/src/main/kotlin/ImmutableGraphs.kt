@@ -5,12 +5,30 @@
 
 package io.github.sooniln.fastgraph
 
-import io.github.sooniln.fastgraph.internal.ImmutableAdjacencyListGraph
-import io.github.sooniln.fastgraph.internal.ImmutableAdjacencyListNetwork
+import io.github.sooniln.fastgraph.homomorphisms.EdgeHomomorphism
+import io.github.sooniln.fastgraph.homomorphisms.GraphHomomorphism
+import io.github.sooniln.fastgraph.homomorphisms.VertexIsomorphism
+import io.github.sooniln.fastgraph.homomorphisms.homomorphism
+import io.github.sooniln.fastgraph.homomorphisms.isomorphism
+import io.github.sooniln.fastgraph.homomorphisms.vertexIdentityIsomorphism
 import io.github.sooniln.fastgraph.internal.ImmutableEdgeReference
+import io.github.sooniln.fastgraph.internal.ImmutableTransposedGraph
+import io.github.sooniln.fastgraph.internal.ImmutableUndirectedGraph
 import io.github.sooniln.fastgraph.internal.ImmutableVertexReference
+import io.github.sooniln.fastgraph.internal.createAssociatedDiGraph
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
 import io.github.sooniln.fastgraph.internal.throwIllegalVertex
+import io.github.sooniln.fastgraph.properties.MutableEdgeKeyProperty
+import io.github.sooniln.fastgraph.properties.MutableEdgeProperty
+import io.github.sooniln.fastgraph.properties.MutableVertexKeyProperty
+import io.github.sooniln.fastgraph.properties.MutableVertexProperty
+import io.github.sooniln.fastgraph.properties.PropertyType
+import io.github.sooniln.fastgraph.properties.copyInto
+import io.github.sooniln.fastgraph.properties.emptyEdgeProperty
+import io.github.sooniln.fastgraph.properties.emptyVertexProperty
+import io.github.sooniln.fastgraph.properties.propertyTypeOf
+import io.github.sooniln.fastgraph.references.EdgeReference
+import io.github.sooniln.fastgraph.references.VertexReference
 
 /**
  * A [Graph] whose topology will never change. This class offers similar guarantees to most immutable collections:
@@ -59,7 +77,7 @@ public class ImmutableValueGraph<V, E>(
     override val graph: ImmutableGraph,
     override val vertexKeys: MutableVertexKeyProperty<V>,
     override val edgeValues: MutableEdgeProperty<E>
-) : ValueGraph<V, E>, ImmutableGraph by graph {
+) : ValueGraph<V, E> {
     init {
         require(vertexKeys.graph === graph)
         require(edgeValues.graph === graph)
@@ -85,7 +103,7 @@ public fun <V, E> emptyImmutableValueGraph(
     val graph = if (directed) EmptyGraph.DIRECTED else EmptyGraph.UNDIRECTED
     return ImmutableValueGraph(
         graph,
-        emptyVertexKeyProperty(graph, vertexType),
+        emptyVertexProperty(graph, vertexType),
         emptyEdgeProperty(graph, edgeType)
     )
 }
@@ -97,31 +115,6 @@ public inline fun <reified V, reified E> emptyImmutableValueGraph(directed: Bool
     return emptyImmutableValueGraph(directed, propertyTypeOf(), propertyTypeOf())
 }
 
-/**
- * Returns an [ImmutableGraph] which is a copy of the given [Graph]. The returned graph is guaranteed to have
- * identical vertex/edge ids as the input graph.
- */
-public fun Graph.toImmutableGraph(): ImmutableGraph {
-    if (this is ImmutableGraph) {
-        return this
-    } else if (isEmpty()) {
-        return emptyImmutableGraph(directed)
-    }
-
-    if (this is IdentityIndexedVertexGraph) {
-        if (this is CanonicalEdgeGraph) return ImmutableAdjacencyListGraph.copy(this)
-        if (this is IdentityIndexedEdgeGraph) return ImmutableAdjacencyListNetwork.copy(this)
-        throw UnsupportedOperationException("Creating immutable copies of graphs with opaque edge identifiers is currently unsupported")
-    }
-
-    throw UnsupportedOperationException("Creating immutable copies of graphs with opaque vertex identifiers is currently unsupported")
-}
-
-/**
- * Returns an [ImmutableValueGraph] which is a copy of the given [ValueGraph]. The returned graph is guaranteed to
- * have identical vertex/edge ids as the input graph, and the returned vertex/edge properties have the mappings as
- * the input properties.
- */
 public fun <V, E> ValueGraph<V, E>.toImmutableValueGraph(): ImmutableValueGraph<V, E> {
     if (this is ImmutableValueGraph) {
         return this
@@ -139,7 +132,7 @@ public fun <V, E> ValueGraph<V, E>.toImmutableValueGraph(): ImmutableValueGraph<
     return ImmutableValueGraph(
         graph,
         graph.createVertexKeyProperty(vertexKeys.type).also { vertexKeys.copyInto(it) },
-        graph.createEdgeProperty(edgeValues.type) { edge -> edgeValues[edge] },)
+        graph.createEdgeProperty(edgeValues.type) { edge -> edgeValues[edge] })
 }
 
 /**
@@ -195,7 +188,40 @@ public inline fun <reified V, reified E> buildImmutableValueGraph(
     return buildImmutableValueGraph(directed, { null }, multiEdge, indexEdges, builder)
 }
 
-private class EmptyGraph(override val directed: Boolean) : ImmutableGraph, IdentityIndexedVertexGraph, IdentityIndexedEdgeGraph {
+/**
+ * Returns a live view of the given immutable graph with every edge direction reversed (transposed). The returned
+ * immutable graph is guaranteed to use the same edge ids for transposed edges vs the original edges.
+ */
+public fun ImmutableGraph.asTransposed(): ImmutableGraph = if (isEmpty()) this else ImmutableTransposedGraph(this)
+
+/**
+ * Returns a live view of the given immutable graph with every edge treated as undirected. The returned immutable graph
+ * is guaranteed to use the same vertex and edge ids as the original graph. Since edges in opposite directions between
+ * the same vertices become parallel undirected edges, the returned graph always supports multi-edges.
+ */
+public fun ImmutableGraph.asUndirected(): ImmutableGraph {
+    return if (!directed) {
+        this
+    } else if (isEmpty()) {
+        emptyImmutableGraph(false)
+    } else {
+        ImmutableUndirectedGraph(this)
+    }
+}
+
+
+/**
+ * Returns a live view of the given immutable graph as a directed graph ([GraphHomomorphism.source] is the live view,
+ * [GraphHomomorphism.target] is the original).
+ */
+public fun ImmutableGraph.asDirected(): GraphHomomorphism<ImmutableGraph, ImmutableGraph, VertexIsomorphism<ImmutableGraph, ImmutableGraph>, EdgeHomomorphism<ImmutableGraph, ImmutableGraph>> {
+    if (directed) return isomorphism(this)
+
+    val edgeHomomorphism = createAssociatedDiGraph(this)
+    return homomorphism(vertexIdentityIsomorphism(edgeHomomorphism.source, this), edgeHomomorphism)
+}
+
+private class EmptyGraph(override val directed: Boolean) : ImmutableGraph {
     companion object {
         val DIRECTED = EmptyGraph(true)
         val UNDIRECTED = EmptyGraph(false)
@@ -222,8 +248,8 @@ private class EmptyGraph(override val directed: Boolean) : ImmutableGraph, Ident
     override val edges: IdentityIndexedEdgeSet
         get() = emptyEdgeSet()
 
-    override fun edgeSource(edge: IdentityIndexedEdge): Vertex = throw IllegalArgumentException()
-    override fun edgeTarget(edge: IdentityIndexedEdge): Vertex = throw IllegalArgumentException()
+    override fun edgeSource(edge: Edge): Vertex = throw IllegalArgumentException()
+    override fun edgeTarget(edge: Edge): Vertex = throw IllegalArgumentException()
 
     override fun hasEdge(source: Vertex, target: Vertex): Boolean = throw IllegalArgumentException()
 
@@ -246,14 +272,13 @@ private class EmptyGraph(override val directed: Boolean) : ImmutableGraph, Ident
     }
 
     override fun <T> createVertexKeyProperty(type: PropertyType<T>): MutableVertexKeyProperty<T> {
-        return emptyVertexKeyProperty(this, type)
+        return emptyVertexProperty(this, type)
     }
 
     override fun <T> createEdgeKeyProperty(type: PropertyType<T>): MutableEdgeKeyProperty<T> {
-        return emptyEdgeKeyProperty(this, type)
+        return emptyEdgeProperty(this, type)
     }
 
     override fun createVertexReference(vertex: Vertex): VertexReference = throw IllegalArgumentException()
     override fun createEdgeReference(edge: Edge): EdgeReference = throw IllegalArgumentException()
-    override fun createEdgeReference(edge: IdentityIndexedEdge): EdgeReference = throw IllegalArgumentException()
 }

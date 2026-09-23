@@ -1,12 +1,9 @@
 package io.github.sooniln.fastgraph.io.graphml
 
-import io.github.sooniln.fastgraph.MutableEdgeProperty
-import io.github.sooniln.fastgraph.createEdgeProperty
-import io.github.sooniln.fastgraph.createVertexProperty
+import io.github.sooniln.fastgraph.properties.MutableEdgeProperty
 import io.github.sooniln.fastgraph.mutableGraph
 import io.github.sooniln.fastgraph.edgeSetOf
-import io.github.sooniln.fastgraph.filter
-import io.github.sooniln.fastgraph.toImmutableGraph
+import io.github.sooniln.fastgraph.filtered.filter
 import io.github.sooniln.fastgraph.vertexSetOf
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -126,8 +123,8 @@ class GraphMLWriterTest {
     }
 
     @Test
-    fun canonicalNodeIdsClaimedWhenIdentityIndexedVertexGraph() {
-        // mutableGraph(indexEdges = false) implements IdentityIndexedVertexGraph but not IdentityIndexedEdgeGraph.
+    fun canonicalNodeIdsClaimedWhenIdentityIndexedVertexSet() {
+        // mutableGraph(indexEdges = false) has an IdentityIndexedVertexSet but not an IdentityIndexedEdgeSet.
         val graph = mutableGraph(directed = true)
         val a = graph.addVertex()
 
@@ -146,8 +143,8 @@ class GraphMLWriterTest {
     }
 
     @Test
-    fun canonicalEdgeIdsClaimedWhenIdentityIndexedEdgeGraph() {
-        // mutableGraph(indexEdges = true) implements both IdentityIndexedVertexGraph and IdentityIndexedEdgeGraph.
+    fun canonicalEdgeIdsClaimedWhenIdentityIndexedEdgeSet() {
+        // mutableGraph(indexEdges = true) has both an IdentityIndexedVertexSet and an IdentityIndexedEdgeSet.
         val graph = mutableGraph(directed = true, indexEdges = true)
         val a = graph.addVertex()
         val b = graph.addVertex()

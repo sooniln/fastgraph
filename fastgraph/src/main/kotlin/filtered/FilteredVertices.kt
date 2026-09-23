@@ -1,27 +1,22 @@
 package io.github.sooniln.fastgraph.filtered
 
-import io.github.sooniln.fastgraph.Graph
-import io.github.sooniln.fastgraph.MutableVertexKeyProperty
-import io.github.sooniln.fastgraph.MutableVertexProperty
-import io.github.sooniln.fastgraph.PropertyType
-import io.github.sooniln.fastgraph.Vertex
-import io.github.sooniln.fastgraph.VertexChangeListener
-import io.github.sooniln.fastgraph.VertexFunction
-import io.github.sooniln.fastgraph.VertexReference
-import io.github.sooniln.fastgraph.VertexSet
+import io.github.sooniln.fastgraph.*
+import io.github.sooniln.fastgraph.properties.MutableVertexKeyProperty
+import io.github.sooniln.fastgraph.properties.MutableVertexProperty
+import io.github.sooniln.fastgraph.properties.PropertyType
+import io.github.sooniln.fastgraph.references.VertexReference
 
-internal interface FilteredVertices : VertexSet {
-    fun bind(graph: Graph)
+internal abstract class FilteredVertices : AbstractVertexSet() {
+    abstract fun registerVertexChangeListener(listener: VertexChangeListener)
+    abstract fun unregisterVertexChangeListener(listener: VertexChangeListener)
 
-    fun registerVertexChangeListener(listener: VertexChangeListener)
-    fun unregisterVertexChangeListener(listener: VertexChangeListener)
-
-    fun <T> createVertexProperty(
+    abstract fun <T> createVertexProperty(
+        graph: Graph,
         type: PropertyType<T>,
         defaultValueFunction: VertexFunction<T>
     ): MutableVertexProperty<T>
-    fun <T> createVertexKeyProperty(type: PropertyType<T>): MutableVertexKeyProperty<T>
-    fun createVertexReference(vertex: Vertex): VertexReference
+    abstract fun <T> createVertexKeyProperty(graph: Graph, type: PropertyType<T>): MutableVertexKeyProperty<T>
+    abstract fun createVertexReference(graph: Graph, vertex: Vertex): VertexReference
 
-    fun trimToSize()
+    abstract fun trimToSize()
 }

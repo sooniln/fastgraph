@@ -1,5 +1,7 @@
 package io.github.sooniln.fastgraph
 
+import io.github.sooniln.fastgraph.filtered.ImmutableFilteredGraph
+import io.github.sooniln.fastgraph.filtered.filter
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -59,39 +61,37 @@ class FilteredGraphTest {
         assertThrows<IllegalArgumentException> { filteredGraph.edges(v0, v3) }
         assertThrows<IllegalArgumentException> { filteredGraph.createVertexReference(v3) }
 
-        context(filteredGraph) {
-            // the edge to v3 is filtered out along with v3, so the out-side of v0 only sees e0 (and e2 if undirected)
-            if (directed) {
-                assertThat(v0.outDegree).isEqualTo(1)
-                assertThat(v0.inDegree).isEqualTo(1)
-                assertThat(v0.successors()).containsExactlyInAnyOrder(v1)
-                assertThat(v0.predecessors()).containsExactlyInAnyOrder(v2)
-                assertThat(v0.outgoingEdges()).containsExactlyInAnyOrder(e0)
-                assertThat(v0.incomingEdges()).containsExactlyInAnyOrder(e2)
-                assertThat(v0.successor()).isEqualTo(v1)
-                assertThat(v0.predecessor()).isEqualTo(v2)
-                assertThat(v0.outgoingEdge()).isEqualTo(e0)
-                assertThat(v0.incomingEdge()).isEqualTo(e2)
-                assertThat(filteredGraph.hasEdge(v1, v0)).isFalse
-                assertThat(v1.edgesTo(v0)).isEmpty()
-            } else {
-                assertThat(v0.outDegree).isEqualTo(2)
-                assertThat(v0.inDegree).isEqualTo(2)
-                assertThat(v0.successors()).containsExactlyInAnyOrder(v1, v2)
-                assertThat(v0.predecessors()).containsExactlyInAnyOrder(v1, v2)
-                assertThat(v0.outgoingEdges()).containsExactlyInAnyOrder(e0, e2)
-                assertThat(v0.incomingEdges()).containsExactlyInAnyOrder(e0, e2)
-                assertThrows<IllegalStateException> { v0.successor() }
-                assertThat(filteredGraph.hasEdge(v1, v0)).isTrue
-                assertThat(v1.edgesTo(v0)).containsExactlyInAnyOrder(e0)
-            }
-            assertThat(filteredGraph.hasEdge(v0, v1)).isTrue
-            assertThat(v0.edgeTo(v1)).isEqualTo(e0)
-            assertThat(v0.edgesTo(v1)).containsExactlyInAnyOrder(e0)
-            assertThat(e0.source).isEqualTo(graph.edgeSource(e0))
-            assertThat(e0.target).isEqualTo(graph.edgeTarget(e0))
-            assertThat(e0.opposite(v0)).isEqualTo(v1)
+        // the edge to v3 is filtered out along with v3, so the out-side of v0 only sees e0 (and e2 if undirected)
+        if (directed) {
+            assertThat(filteredGraph.outDegree(v0)).isEqualTo(1)
+            assertThat(filteredGraph.inDegree(v0)).isEqualTo(1)
+            assertThat(filteredGraph.successors(v0)).containsExactlyInAnyOrder(v1)
+            assertThat(filteredGraph.predecessors(v0)).containsExactlyInAnyOrder(v2)
+            assertThat(filteredGraph.outgoingEdges(v0)).containsExactlyInAnyOrder(e0)
+            assertThat(filteredGraph.incomingEdges(v0)).containsExactlyInAnyOrder(e2)
+            assertThat(filteredGraph.successor(v0)).isEqualTo(v1)
+            assertThat(filteredGraph.predecessor(v0)).isEqualTo(v2)
+            assertThat(filteredGraph.outgoingEdge(v0)).isEqualTo(e0)
+            assertThat(filteredGraph.incomingEdge(v0)).isEqualTo(e2)
+            assertThat(filteredGraph.hasEdge(v1, v0)).isFalse
+            assertThat(filteredGraph.edges(v1, v0)).isEmpty()
+        } else {
+            assertThat(filteredGraph.outDegree(v0)).isEqualTo(2)
+            assertThat(filteredGraph.inDegree(v0)).isEqualTo(2)
+            assertThat(filteredGraph.successors(v0)).containsExactlyInAnyOrder(v1, v2)
+            assertThat(filteredGraph.predecessors(v0)).containsExactlyInAnyOrder(v1, v2)
+            assertThat(filteredGraph.outgoingEdges(v0)).containsExactlyInAnyOrder(e0, e2)
+            assertThat(filteredGraph.incomingEdges(v0)).containsExactlyInAnyOrder(e0, e2)
+            assertThrows<IllegalStateException> { filteredGraph.successor(v0) }
+            assertThat(filteredGraph.hasEdge(v1, v0)).isTrue
+            assertThat(filteredGraph.edges(v1, v0)).containsExactlyInAnyOrder(e0)
         }
+        assertThat(filteredGraph.hasEdge(v0, v1)).isTrue
+        assertThat(filteredGraph.edge(v0, v1)).isEqualTo(e0)
+        assertThat(filteredGraph.edges(v0, v1)).containsExactlyInAnyOrder(e0)
+        assertThat(filteredGraph.edgeSource(e0)).isEqualTo(graph.edgeSource(e0))
+        assertThat(filteredGraph.edgeTarget(e0)).isEqualTo(graph.edgeTarget(e0))
+        assertThat(filteredGraph.edgeOpposite(e0, v0)).isEqualTo(v1)
 
         // an edge outside the filtered graph is a foreign edge
         assertThrows<IllegalArgumentException> { filteredGraph.createEdgeReference(graph.edge(v0, v3)) }

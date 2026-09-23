@@ -5,9 +5,28 @@
 
 package io.github.sooniln.fastgraph
 
+import io.github.sooniln.fastgraph.homomorphisms.EdgeHomomorphism
+import io.github.sooniln.fastgraph.homomorphisms.GraphHomomorphism
+import io.github.sooniln.fastgraph.homomorphisms.VertexIsomorphism
+import io.github.sooniln.fastgraph.homomorphisms.homomorphism
+import io.github.sooniln.fastgraph.homomorphisms.isomorphism
+import io.github.sooniln.fastgraph.homomorphisms.vertexIdentityIsomorphism
+import io.github.sooniln.fastgraph.internal.AbstractTransposedGraph
 import io.github.sooniln.fastgraph.internal.AdjacencyListGraph
 import io.github.sooniln.fastgraph.internal.AdjacencyListNetwork
 import io.github.sooniln.fastgraph.internal.TransposedGraph
+import io.github.sooniln.fastgraph.internal.UndirectedGraph
+import io.github.sooniln.fastgraph.internal.createAssociatedDiGraph
+import io.github.sooniln.fastgraph.properties.EdgeKeyProperty
+import io.github.sooniln.fastgraph.properties.MutableEdgeKeyProperty
+import io.github.sooniln.fastgraph.properties.MutableEdgeProperty
+import io.github.sooniln.fastgraph.properties.MutableVertexKeyProperty
+import io.github.sooniln.fastgraph.properties.MutableVertexProperty
+import io.github.sooniln.fastgraph.properties.PropertyType
+import io.github.sooniln.fastgraph.properties.VertexKeyProperty
+import io.github.sooniln.fastgraph.properties.propertyTypeOf
+import io.github.sooniln.fastgraph.references.EdgeReference
+import io.github.sooniln.fastgraph.references.VertexReference
 
 /**
  * An interface for read-only graph topology. A graph topology is composed of a set of vertices and a set of edges
@@ -30,7 +49,7 @@ import io.github.sooniln.fastgraph.internal.TransposedGraph
  * checks for performance.
  *
  * [Vertex] and [Edge] references are unstable - that is they may be invalidated as the graph changes. For more details
- * on unstable vs stable references, see [VertexReference] and [EdgeReference].
+ * on unstable vs stable references, see [io.github.sooniln.fastgraph.references.VertexReference] and [io.github.sooniln.fastgraph.references.EdgeReference].
  *
  * To create graphs, see the [mutableGraph]/[buildGraph]/etc factory methods. See also [ImmutableGraph] for more
  * information on immutable graphs.
@@ -250,7 +269,7 @@ public interface Graph {
 
     /**
      * [Graph] represents only a topology, not any data associated with the vertices and edges of the topology. In order
-     * to associate data with vertices in this graph, this method returns a new [VertexProperty] instance which can
+     * to associate data with vertices in this graph, this method returns a new [io.github.sooniln.fastgraph.properties.VertexProperty] instance which can
      * associate some type of data with vertices in this graph. The returned property is guaranteed to remain in sync
      * with the graph, such that vertices added to the graph will appear in the property and vertices removed from the
      * graph will be removed from the property.
@@ -260,18 +279,19 @@ public interface Graph {
      * [defaultValueFunction] indefinitely (in case vertices are later added), so be cautious of leaking memory through
      * the reference.
      *
-     * The extension method of the same name allows for not passing in the [PropertyType] parameter explicitly - this
+     * The extension method of the same name allows for not passing in the [io.github.sooniln.fastgraph.properties.PropertyType] parameter explicitly - this
      * should be simpler to use where possible.
      */
     @JvmName("createVertexProperty")
     public fun <T> createVertexProperty(
         type: PropertyType<T>,
         defaultValueFunction: VertexFunction<T>
-    ): MutableVertexProperty<T> = createVertexProperty(this, type, defaultValueFunction)
+    ): MutableVertexProperty<T> =
+        io.github.sooniln.fastgraph.properties.createVertexProperty(this, type, defaultValueFunction)
 
     /**
      * [Graph] represents only a topology, not any data associated with the vertices and edges of the topology. In order
-     * to associate data with edges in this graph, this method returns a new [EdgeProperty] instance which can associate
+     * to associate data with edges in this graph, this method returns a new [io.github.sooniln.fastgraph.properties.EdgeProperty] instance which can associate
      * some type of data with edges in this graph. The returned property is guaranteed to remain in sync with the graph,
      * such that edges added to the graph will appear in the property and edges removed from the graph will be removed
      * from the property.
@@ -289,11 +309,12 @@ public interface Graph {
     public fun <T> createEdgeProperty(
         type: PropertyType<T>,
         defaultValueFunction: EdgeFunction<T>
-    ): MutableEdgeProperty<T> = createEdgeProperty(this, type, defaultValueFunction)
+    ): MutableEdgeProperty<T> =
+        io.github.sooniln.fastgraph.properties.createEdgeProperty(this, type, defaultValueFunction)
 
     /**
-     * Returns a new [MutableVertexKeyProperty] associated with this graph. Key properties have no default value -
-     * see [VertexKeyProperty] for their semantics. The returned property is guaranteed to remain in sync with the
+     * Returns a new [io.github.sooniln.fastgraph.properties.MutableVertexKeyProperty] associated with this graph. Key properties have no default value -
+     * see [io.github.sooniln.fastgraph.properties.VertexKeyProperty] for their semantics. The returned property is guaranteed to remain in sync with the
      * graph.
      *
      * The extension method of the same name allows for not passing in the [PropertyType] parameter explicitly - this
@@ -301,31 +322,31 @@ public interface Graph {
      */
     @JvmName("createVertexKeyProperty")
     public fun <T> createVertexKeyProperty(type: PropertyType<T>): MutableVertexKeyProperty<T> {
-        return createVertexKeyProperty(this, type)
+        return io.github.sooniln.fastgraph.properties.createVertexKeyProperty(this, type)
     }
 
     /**
-     * Returns a new [MutableEdgeKeyProperty] associated with this graph. Key properties have no default value - see
-     * [EdgeKeyProperty] for their semantics. The returned property is guaranteed to remain in sync with the graph.
+     * Returns a new [io.github.sooniln.fastgraph.properties.MutableEdgeKeyProperty] associated with this graph. Key properties have no default value - see
+     * [io.github.sooniln.fastgraph.properties.EdgeKeyProperty] for their semantics. The returned property is guaranteed to remain in sync with the graph.
      *
      * The extension method of the same name allows for not passing in the [PropertyType] parameter explicitly - this
      * should be simpler to use where possible.
      */
     @JvmName("createEdgeKeyProperty")
     public fun <T> createEdgeKeyProperty(type: PropertyType<T>): MutableEdgeKeyProperty<T> {
-        return createEdgeKeyProperty(this, type)
+        return io.github.sooniln.fastgraph.properties.createEdgeKeyProperty(this, type)
     }
 
     /**
      * Returns a stable reference to the given vertex. For more information about vertices and stable references to
-     * vertices, see [VertexReference].
+     * vertices, see [io.github.sooniln.fastgraph.references.VertexReference].
      */
     @JvmName("createVertexReference")
     public fun createVertexReference(vertex: Vertex): VertexReference
 
     /**
      * Returns a stable reference to the given edge. For more information about edges and stable references to edges,
-     * see [EdgeReference].
+     * see [io.github.sooniln.fastgraph.references.EdgeReference].
      */
     @JvmName("createEdgeReference")
     public fun createEdgeReference(edge: Edge): EdgeReference
@@ -473,6 +494,79 @@ public fun Graph.density(): Double {
     return numerator / (numVertices * (numVertices - 1))
 }
 
+/**
+ * A convenient extension method for [Graph.createVertexProperty] that creates a [MutableVertexProperty] with every
+ * value initialized to null.
+ */
+public inline fun <reified T> Graph.createVertexProperty(): MutableVertexProperty<T?> {
+    return createVertexProperty(propertyTypeOf<T?>()) { null }
+}
+
+/**
+ * A convenient extension method for [Graph.createVertexProperty] that does not require explicitly providing the
+ * [PropertyType].
+ */
+public inline fun <reified T> Graph.createVertexProperty(
+    defaultValueFunction: VertexFunction<T>
+): MutableVertexProperty<T> = createVertexProperty(propertyTypeOf<T>(), defaultValueFunction)
+
+/**
+ * A convenient extension method for [Graph.createVertexProperty] that does not require explicitly providing the
+ * [PropertyType].
+ */
+public inline fun <reified T> Graph.createVertexProperty(defaultValue: T): MutableVertexProperty<T> {
+    return createVertexProperty(propertyTypeOf<T>()) { defaultValue }
+}
+
+/**
+ * A convenient extension method for [Graph.createVertexKeyProperty] that does not require explicitly providing the
+ * [PropertyType].
+ */
+public inline fun <reified T> Graph.createVertexKeyProperty(): MutableVertexKeyProperty<T> =
+    createVertexKeyProperty(propertyTypeOf<T>())
+
+/**
+ * A convenient extension method for [Graph.createEdgeProperty] that creates a [MutableEdgeProperty] with every value
+ * initialized to null.
+ */
+public inline fun <reified T> Graph.createEdgeProperty(): MutableEdgeProperty<T?> {
+    return createEdgeProperty(propertyTypeOf<T?>()) { null }
+}
+
+/**
+ * A convenient extension method for [Graph.createEdgeProperty] that does not require explicitly providing the
+ * [PropertyType].
+ */
+public inline fun <reified T> Graph.createEdgeProperty(
+    defaultValueFunction: EdgeFunction<T>
+): MutableEdgeProperty<T> = createEdgeProperty(propertyTypeOf<T>(), defaultValueFunction)
+
+/**
+ * A convenient extension method for [Graph.createEdgeProperty] that does not require explicitly providing the
+ * [PropertyType].
+ */
+public inline fun <reified T> Graph.createEdgeProperty(defaultValue: T): MutableEdgeProperty<T> {
+    return createEdgeProperty(propertyTypeOf<T>()) { defaultValue }
+}
+
+/**
+ * A convenient extension method for [Graph.createEdgeKeyProperty] that does not require explicitly providing the
+ * [PropertyType].
+ */
+public inline fun <reified T> Graph.createEdgeKeyProperty(): MutableEdgeKeyProperty<T> =
+    createEdgeKeyProperty(propertyTypeOf<T>())
+
+/**
+ * A [Graph] that encodes all edges as [CanonicalEdge].
+ */
+public interface CanonicalEdgeGraph : Graph {
+    override fun outgoingEdges(vertex: Vertex): CanonicalEdgeSet
+    override fun incomingEdges(vertex: Vertex): CanonicalEdgeSet
+
+    override val edges: CanonicalEdgeSet
+    override fun edges(source: Vertex, target: Vertex): CanonicalEdgeSet
+}
+
 @Suppress("INAPPLICABLE_JVM_NAME")
 public interface VertexChangeListener {
     /**
@@ -543,268 +637,6 @@ public interface EdgeChangeListener {
      */
     public fun trimToSize() {}
 }
-
-/**
- * A convenient extension method for [Graph.createVertexProperty] that creates a [MutableVertexProperty] with every
- * value initialized to null.
- */
-public inline fun <reified T> Graph.createVertexProperty(): MutableVertexProperty<T?> {
-    return createVertexProperty(propertyTypeOf<T?>()) { null }
-}
-
-/**
- * A convenient extension method for [Graph.createEdgeProperty] that creates a [MutableEdgeProperty] with every value
- * initialized to null.
- */
-public inline fun <reified T> Graph.createEdgeProperty(): MutableEdgeProperty<T?> {
-    return createEdgeProperty(propertyTypeOf<T?>()) { null }
-}
-
-/**
- * A convenient extension method for [Graph.createVertexProperty] that does not require explicitly providing the
- * [PropertyType].
- */
-public inline fun <reified T> Graph.createVertexProperty(
-    defaultValueFunction: VertexFunction<T>
-): MutableVertexProperty<T> = createVertexProperty(propertyTypeOf<T>(), defaultValueFunction)
-
-/**
- * A convenient extension method for [Graph.createVertexKeyProperty] that does not require explicitly providing the
- * [PropertyType].
- */
-public inline fun <reified T> Graph.createVertexKeyProperty(): MutableVertexKeyProperty<T> =
-    createVertexKeyProperty(propertyTypeOf<T>())
-
-/**
- * A convenient extension method for [Graph.createEdgeProperty] that does not require explicitly providing the
- * [PropertyType].
- */
-public inline fun <reified T> Graph.createEdgeProperty(
-    defaultValueFunction: EdgeFunction<T>
-): MutableEdgeProperty<T> = createEdgeProperty(propertyTypeOf<T>(), defaultValueFunction)
-
-/**
- * A convenient extension method for [Graph.createEdgeKeyProperty] that does not require explicitly providing the
- * [PropertyType].
- */
-public inline fun <reified T> Graph.createEdgeKeyProperty(): MutableEdgeKeyProperty<T> =
-    createEdgeKeyProperty(propertyTypeOf<T>())
-
-/**
- * A convenient extension method for [Graph.createVertexProperty] that does not require explicitly providing the
- * [PropertyType].
- */
-public inline fun <reified T> Graph.createVertexProperty(defaultValue: T): MutableVertexProperty<T> {
-    return createVertexProperty(propertyTypeOf<T>()) { defaultValue }
-}
-
-/**
- * A convenient extension method for [Graph.createEdgeProperty] that does not require explicitly providing the
- * [PropertyType].
- */
-public inline fun <reified T> Graph.createEdgeProperty(defaultValue: T): MutableEdgeProperty<T> {
-    return createEdgeProperty(propertyTypeOf<T>()) { defaultValue }
-}
-
-/**
- * A graph which guarantees that all vertices in the graph can be associated with an index from `0` to
- * `vertices.size - 1`. The index of a vertex is defined via `vertices.indexOf(vertex)` and the vertex for an index
- * via `vertices[index]`. In addition, [vertices] MUST iterate vertices in index order. If applied to a [MutableGraph]
- * this implies that when a vertex is removed the graph must re-order vertices in order to keep indices contiguous.
- *
- * See [IdentityIndexedVertexGraph] for the stronger guarantee that the index of a vertex is its [Vertex.id].
- */
-public interface IndexedVertexGraph : Graph {
-    override val vertices: IndexedVertexSet
-}
-
-/**
- * An [IndexedVertexGraph] which additionally guarantees that the index of every vertex is its [Vertex.id], i.e.
- * `vertices[index] == Vertex(index)` and `vertices.indexOf(vertex) == vertex.id`.
- */
-public interface IdentityIndexedVertexGraph : IndexedVertexGraph {
-    override val vertices: IdentityIndexedVertexSet
-}
-
-/**
- * A graph which guarantees that all edges in the graph can be associated with an index from `0` to `edges.size - 1`.
- * The index of an edge is obtained via `edges.indexOf(edge)`, and the edge for an index via `edges[index]`. In
- * addition, [edges] MUST iterate edges in index order. If applied to a [MutableGraph] this implies that when an edge is
- * removed the graph must re-order edges in order to keep indices contiguous.
- *
- * See [IdentityIndexedEdgeGraph] for the stronger guarantee that the index of an edge is its [Edge.id].
- */
-public interface IndexedEdgeGraph : Graph {
-    override val edges: IndexedEdgeSet
-}
-
-/**
- * An [IndexedEdgeGraph] which additionally guarantees that the index of every edge is its [Edge.id], i.e.
- * `edges[index] == Edge(index)` and `edges.indexOf(edge) == edge.id`.
- *
- * This interface is incompatible with [CanonicalEdgeGraph].
- */
-@Suppress("INAPPLICABLE_JVM_NAME")
-public interface IdentityIndexedEdgeGraph : IndexedEdgeGraph {
-    override val edges: IdentityIndexedEdgeSet
-
-    @JvmName("edgeSource")
-    override fun edgeSource(edge: Edge): Vertex = edgeSource(IdentityIndexedEdge.from(edge))
-    @JvmName("edgeTarget")
-    override fun edgeTarget(edge: Edge): Vertex = edgeTarget(IdentityIndexedEdge.from(edge))
-    @JvmName("createEdgeReference")
-    override fun createEdgeReference(edge: Edge): EdgeReference = createEdgeReference(IdentityIndexedEdge.from(edge))
-
-    @JvmName("edgeSource")
-    public fun edgeSource(edge: IdentityIndexedEdge): Vertex
-    @JvmName("edgeTarget")
-    public fun edgeTarget(edge: IdentityIndexedEdge): Vertex
-    @JvmName("createEdgeReference")
-    public fun createEdgeReference(edge: IdentityIndexedEdge): EdgeReference
-}
-
-/**
- * For a directed graph, this is equivalent to [Graph.edgeSource]. For an undirected graph this returns the vertex
- * opposite the given [target] vertex. Behavior is undefined if [target] does not belong to [edge]. This method is
- * faster than [edgeOpposite] for directed graphs.
- */
-@JvmName("edgeSource")
-public fun IdentityIndexedEdgeGraph.edgeSource(edge: IdentityIndexedEdge, target: Vertex): Vertex {
-    if (directed) {
-        val source = edgeSource(edge)
-        assert(edgeTarget(edge) == target)
-        return source
-    } else {
-        return edgeOpposite(edge, target)
-    }
-}
-
-/**
- * For a directed graph, this is equivalent to [Graph.edgeSource]. For an undirected graph this returns the vertex
- * opposite the given [target] vertex. Behavior is undefined if [target] does not belong to [edge]. This method is
- * faster than [edgeOpposite].
- */
-@JvmSynthetic
-public fun IdentityIndexedEdgeGraph.edgeSource(edge: IdentityIndexedEdge, target: VertexReference): Vertex = edgeSource(edge, target.unstable)
-
-/**
- * For a directed graph, this is equivalent to [Graph.edgeTarget]. For an undirected graph this returns the vertex
- * opposite the given [source] vertex. Behavior is undefined if [source] does not belong to [edge]. This method is
- * faster than [edgeOpposite] for directed graphs.
- */
-@JvmName("edgeTarget")
-public fun IdentityIndexedEdgeGraph.edgeTarget(edge: IdentityIndexedEdge, source: Vertex): Vertex {
-    if (directed) {
-        val target = edgeTarget(edge)
-        assert(edgeSource(edge) == source)
-        return target
-    } else {
-        return edgeOpposite(edge, source)
-    }
-}
-
-/**
- * For a directed graph, this is equivalent to [Graph.edgeTarget]. For an undirected graph this returns the vertex
- * opposite the given [source] vertex. Behavior is undefined if [source] does not belong to [edge]. This method is
- * faster than [edgeOpposite].
- */
-@JvmSynthetic
-public fun IdentityIndexedEdgeGraph.edgeTarget(edge: IdentityIndexedEdge, source: VertexReference): Vertex = edgeTarget(edge, source.unstable)
-
-/**
- * Returns the vertex of the given edge that is opposite the given vertex. I.e., the source vertex is returned if the
- * target vertex is provided, and vice versa. Throws [IllegalArgumentException] if the given vertex is neither the
- * source nor target of the given edge. This method is often useful when working with undirected edges where the
- * source/target distinction does not exist. If viable, the [edgeSource] and [edgeTarget] extension methods are faster
- * than this method.
- */
-@JvmName("edgeOpposite")
-public fun IdentityIndexedEdgeGraph.edgeOpposite(edge: IdentityIndexedEdge, other: Vertex): Vertex {
-    val target = edgeTarget(edge)
-    val source = edgeSource(edge)
-    if (other == target) {
-        return source
-    } else {
-        if (other != source) {
-            throw IllegalArgumentException("vertex $other is not in edge $source -> $target")
-        }
-
-        return target
-    }
-}
-
-/**
- * Returns the vertex of the given edge that is opposite the given vertex reference. I.e., the source vertex is returned
- * if the target vertex is provided, and vice versa. Throws [IllegalArgumentException] if the given vertex reference is
- * neither the source nor target of the given edge. This method is often useful when working with undirected edges where
- * the source/target distinction does not exist.
- */
-@JvmSynthetic
-public fun IdentityIndexedEdgeGraph.edgeOpposite(edge: IdentityIndexedEdge, other: VertexReference): Vertex = edgeOpposite(edge, other.unstable)
-
-/**
- * A graph which guarantees that all edges in the graph encode their vertex endpoints directly into the edge id, without
- * requiring any additional storage.
- *
- * This interface is incompatible with [IdentityIndexedEdgeGraph].
- */
-@Suppress("INAPPLICABLE_JVM_NAME")
-public interface CanonicalEdgeGraph : Graph {
-    override val multiEdge: Boolean get() = false
-
-    @JvmName("edgeSource")
-    override fun edgeSource(edge: Edge): Vertex = CanonicalEdge.from(edge).source
-    @JvmName("edgeTarget")
-    override fun edgeTarget(edge: Edge): Vertex = CanonicalEdge.from(edge).target
-}
-
-/**
- * For a directed graph, this is equivalent to [Graph.edgeSource]. For an undirected graph this returns the vertex
- * opposite the given [target] vertex. Behavior is undefined if [target] does not belong to [edge]. This method is
- * faster than [edgeOpposite] for directed graphs.
- */
-@JvmName("edgeSource")
-public fun CanonicalEdgeGraph.edgeSource(edge: Edge, target: Vertex): Vertex {
-    if (directed) {
-        val source = edge.source
-        assert(edge.target == target)
-        return source
-    } else {
-        return edge.opposite(target)
-    }
-}
-
-/**
- * For a directed graph, this is equivalent to [Graph.edgeSource]. For an undirected graph this returns the vertex
- * opposite the given [target] vertex. Behavior is undefined if [target] does not belong to [edge]. This method is
- * faster than [edgeOpposite].
- */
-@JvmSynthetic
-public fun CanonicalEdgeGraph.edgeSource(edge: Edge, target: VertexReference): Vertex = edgeSource(edge, target.unstable)
-
-/**
- * For a directed graph, this is equivalent to [Graph.edgeTarget]. For an undirected graph this returns the vertex
- * opposite the given [source] vertex. Behavior is undefined if [source] does not belong to [edge]. This method is
- * faster than [edgeOpposite] for directed graphs.
- */
-@JvmName("edgeTarget")
-public fun CanonicalEdgeGraph.edgeTarget(edge: Edge, source: Vertex): Vertex {
-    if (directed) {
-        val target = edge.target
-        assert(edge.source == source)
-        return target
-    } else {
-        return edge.opposite(source)
-    }
-}
-
-/**
- * For a directed graph, this is equivalent to [Graph.edgeTarget]. For an undirected graph this returns the vertex
- * opposite the given [source] vertex. Behavior is undefined if [source] does not belong to [edge]. This method is
- * faster than [edgeOpposite].
- */
-@JvmSynthetic
-public fun CanonicalEdgeGraph.edgeTarget(edge: Edge, source: VertexReference): Vertex = edgeTarget(edge, source.unstable)
 
 /**
  * An interface for building graphs. While there are some similarities to [MutableGraph], this builder only allows for
@@ -892,29 +724,82 @@ public fun MutableGraph.removeEdge(edgeReference: EdgeReference): Unit = removeE
 
 /**
  * A convenience interface for bundling a graph topology with a vertex key property and an edge value property. Every
- * vertex is identified by a unique key (see [VertexKeyProperty]) and every edge carries a value. The [ValueGraph]
- * itself implements [Graph] as a convenience - invoking graph methods on the [ValueGraph] is the same as invoking them
- * on [graph]. However, note that this is just a convenience - in particular the [ValueGraph] is NOT guaranteed to
- * implement the same marker interfaces as the actual [graph]. Ensure that you pass in [graph] anywhere that expects a
- * real [Graph] argument.
+ * vertex is identified by a unique key (see [io.github.sooniln.fastgraph.properties.VertexKeyProperty]) and every edge carries a value.
  *
  * When creating and using [ValueGraph], note that if you do not require an edge value, you can set the edge type to
  * [Unit], which ensures it will take up no additional resources. If you do not require a vertex key of your own,
  * [Graph.vertexIdProperty] can be used as a key property which takes up no additional resources.
  */
-public interface ValueGraph<V, E> : Graph {
+@Suppress("INAPPLICABLE_JVM_NAME")
+public interface ValueGraph<V, E> {
     /** The topology. */
     public val graph: Graph
     /** The vertex key property associated with the topology. */
-    public val vertexKeys: MutableVertexKeyProperty<V>
+    public val vertexKeys: VertexKeyProperty<V>
     /** The edge value property associated with the topology. */
     public val edgeValues: MutableEdgeProperty<E>
+
+    /** A convenience property that returns the property of the same name on [graph]. */
+    public val directed: Boolean get() = graph.directed
+    /** A convenience property that returns the property of the same name on [graph]. */
+    public val multiEdge: Boolean get() = graph.multiEdge
+    /** A convenience property that returns the property of the same name on [graph]. */
+    public val vertices: VertexSet get() = graph.vertices
+    /** A convenience property that returns the property of the same name on [graph]. */
+    public val edges: EdgeSet get() = graph.edges
+
+    /** A convenience method that calls the method of the same name on [graph]. */
+    public fun isEmpty(): Boolean = graph.isEmpty()
+    /** A convenience method that calls the method of the same name on [graph]. */
+    @JvmName("outDegree")
+    public fun outDegree(vertex: Vertex): Int = graph.outDegree(vertex)
+    /** A convenience method that calls the method of the same name on [graph]. */
+    @JvmName("inDegree")
+    public fun inDegree(vertex: Vertex): Int = graph.inDegree(vertex)
+    /** A convenience method that calls the method of the same name on [graph]. */
+    @JvmName("successors")
+    public fun successors(vertex: Vertex): VertexSet = graph.successors(vertex)
+    /** A convenience method that calls the method of the same name on [graph]. */
+    @JvmName("successor")
+    public fun successor(vertex: Vertex): Vertex = graph.successor(vertex)
+    /** A convenience method that calls the method of the same name on [graph]. */
+    @JvmName("predecessors")
+    public fun predecessors(vertex: Vertex): VertexSet = graph.predecessors(vertex)
+    /** A convenience method that calls the method of the same name on [graph]. */
+    @JvmName("predecessor")
+    public fun predecessor(vertex: Vertex): Vertex = graph.predecessor(vertex)
+    /** A convenience method that calls the method of the same name on [graph]. */
+    @JvmName("outgoingEdges")
+    public fun outgoingEdges(vertex: Vertex): EdgeSet = graph.outgoingEdges(vertex)
+    /** A convenience method that calls the method of the same name on [graph]. */
+    @JvmName("outgoingEdge")
+    public fun outgoingEdge(vertex: Vertex): Edge = graph.outgoingEdge(vertex)
+    /** A convenience method that calls the method of the same name on [graph]. */
+    @JvmName("incomingEdges")
+    public fun incomingEdges(vertex: Vertex): EdgeSet = graph.incomingEdges(vertex)
+    /** A convenience method that calls the method of the same name on [graph]. */
+    @JvmName("incomingEdge")
+    public fun incomingEdge(vertex: Vertex): Edge = graph.incomingEdge(vertex)
+    /** A convenience method that calls the method of the same name on [graph]. */
+    @JvmName("edgeSource")
+    public fun edgeSource(edge: Edge): Vertex = graph.edgeSource(edge)
+    /** A convenience method that calls the method of the same name on [graph]. */
+    @JvmName("edgeTarget")
+    public fun edgeTarget(edge: Edge): Vertex = graph.edgeTarget(edge)
+    /** A convenience method that calls the method of the same name on [graph]. */
+    @JvmName("hasEdge")
+    public fun hasEdge(source: Vertex, target: Vertex): Boolean = graph.hasEdge(source, target)
+    /** A convenience method that calls the method of the same name on [graph]. */
+    @JvmName("edges")
+    public fun edges(source: Vertex, target: Vertex): EdgeSet = graph.edges(source, target)
+    /** A convenience method that calls the method of the same name on [graph]. */
+    @JvmName("edge")
+    public fun edge(source: Vertex, target: Vertex): Edge = graph.edge(source, target)
 }
 
 /**
- * A specialization of [ValueGraph] which contains a [MutableGraph] and allows mutation of the graph topology. Vertices
- * may only be added with a key (see [ValueGraphBuilder]) so that [vertexKeys] is always complete - use [graph] if
- * direct access to the underlying [MutableGraph] is required.
+ * A specialization of [ValueGraph] which contains a [MutableGraph] and allows mutation of the graph topology and the
+ * vertex keys.
  */
 @Suppress("INAPPLICABLE_JVM_NAME")
 public interface MutableValueGraph<V, E> : ValueGraph<V, E>, ValueGraphBuilder<V, E> {
@@ -1063,8 +948,8 @@ public inline fun <reified V, reified E> buildValueGraph(
 }
 
 /**
- * Constructs and returns a new empty [MutableGraph] with the given directedness. The returned mutable graph is
- * guaranteed to implement [IndexedVertexGraph].
+ * Constructs and returns a new empty [MutableGraph] with the given directedness. The returned mutable graph's
+ * [Graph.vertices] is guaranteed to be an [IndexedVertexSet].
  *
  * There are several parameters that help control the specific graph implementation chosen:
  *   * [multiEdge]: If set to true, ensures that the returned mutable graph supports adding multi-edges
@@ -1075,8 +960,8 @@ public inline fun <reified V, reified E> buildValueGraph(
  *   edge and edge property access and iteration. While this increases the amount of memory required to store edge
  *   topology, it substantially speeds up access, and will reduce the amount of memory needed to store edge properties.
  *   While you should always measure to be sure, with even a single edge property present it usually uses less memory
- *   AND is faster to set [indexEdges]. If set to true, the returned mutable graph is guaranteed to also implement
- *   [IndexedEdgeGraph].
+ *   AND is faster to set [indexEdges]. If set to true, the returned mutable graph's [Graph.edges] is guaranteed to
+ *   be an [IndexedEdgeSet].
  *
  * The implementation returned by this method guarantees that [Vertex] and [Edge] references are stable in the case
  * of additive mutations to the topology (i.e. adding a vertex or edge will not invalidate any existing
@@ -1097,12 +982,12 @@ public fun mutableGraph(directed: Boolean, multiEdge: Boolean = false, indexEdge
 /**
  * Creates a [ValueGraph] from the given graph, vertex key property, and edge value property.
  */
-public fun <V, E> valueGraph(graph: Graph, vertexKeys: MutableVertexKeyProperty<V>, edgeValues: MutableEdgeProperty<E>): ValueGraph<V, E> {
+public fun <V, E> valueGraph(graph: Graph, vertexKeys: VertexKeyProperty<V>, edgeValues: MutableEdgeProperty<E>): ValueGraph<V, E> {
     require(vertexKeys.graph === graph)
     require(edgeValues.graph === graph)
-    return object : ValueGraph<V, E>, Graph by graph {
+    return object : ValueGraph<V, E> {
         override val graph: Graph get() = graph
-        override val vertexKeys: MutableVertexKeyProperty<V> get() = vertexKeys
+        override val vertexKeys: VertexKeyProperty<V> get() = vertexKeys
         override val edgeValues: MutableEdgeProperty<E> get() = edgeValues
     }
 }
@@ -1113,7 +998,7 @@ public fun <V, E> valueGraph(graph: Graph, vertexKeys: MutableVertexKeyProperty<
 public fun <V, E> mutableValueGraph(graph: MutableGraph, vertexKeys: MutableVertexKeyProperty<V>, edgeValues: MutableEdgeProperty<E>): MutableValueGraph<V, E> {
     require(vertexKeys.graph === graph)
     require(edgeValues.graph === graph)
-    return object : MutableValueGraph<V, E>, Graph by graph {
+    return object : MutableValueGraph<V, E> {
         override val graph: MutableGraph get() = graph
         override val vertexKeys: MutableVertexKeyProperty<V> get() = vertexKeys
         override val edgeValues: MutableEdgeProperty<E> get() = edgeValues
@@ -1143,57 +1028,92 @@ public fun <V, E> mutableValueGraph(graph: MutableGraph, vertexKeys: MutableVert
     }
 }
 
-/**
- * Returns a view of the given graph with every edge direction reversed (transposed). The returned graph is
- * guaranteed to use the same edge ids for transposed edges vs the original edges.
- */
-public fun Graph.transpose(): Graph {
-    return if (!directed || (this is ImmutableGraph && isEmpty())) {
-        this
-    } else if (this is TransposedGraph) {
-        graph
-    } else {
-        TransposedGraph(this)
+
+public fun <V,E> copyGraph(
+    graph: Graph,
+    vertexKeyProperty: VertexKeyProperty<V>,
+    edgekeyProperty: EdgeKeyProperty<E>,
+    forceMultiEdge: Boolean = false,
+    indexEdges: Boolean = false
+): KeyIsomorphism<MutableGraph, Graph, V, E> {
+    mutableGraph(graph.directed)
+
+    return object : KeyIsomorphism<MutableGraph, Graph, V, E> {
     }
 }
 
 /**
- * An integer property that simply returns the [Vertex.id] for every vertex. Note that while this is exposed as a
- * mutable property for convenience, all mutator methods are guaranteed to throw [UnsupportedOperationException].
+ * Returns a live view of the given graph with every edge direction reversed (transposed). The returned graph is
+ * guaranteed to use the same edge ids for transposed edges vs the original edges.
  */
-public val Graph.vertexIdProperty: MutableVertexKeyProperty<Int> get() = object : MutableVertexKeyProperty<Int> {
+public fun Graph.asTransposed(): Graph {
+    return if (!directed) {
+        this
+    } else if (this is AbstractTransposedGraph) {
+        graph
+    } else {
+        if (this is ImmutableGraph) {
+            asTransposed()
+        } else {
+            TransposedGraph(this)
+        }
+    }
+}
+
+/**
+ * Returns a live view of the given graph with every edge treated as undirected. The returned graph is guaranteed to
+ * use the same vertex and edge ids as the original graph. Since edges in opposite directions between the same vertices
+ * become parallel undirected edges, the returned graph always supports multi-edges.
+ */
+public fun Graph.asUndirected(): Graph {
+    return if (!directed) {
+        this
+    } else if (this is ImmutableGraph) {
+        asUndirected()
+    } else {
+        UndirectedGraph(this)
+    }
+}
+
+/**
+ * Returns a live view of the given graph as a directed graph ([GraphHomomorphism.source] is the live view,
+ * [GraphHomomorphism.target] is the original).
+ */
+public fun <E> Graph.asDirected(edgeKeyProperty: EdgeKeyProperty<E>): GraphHomomorphism<Graph, Graph, VertexIsomorphism<Graph, Graph>, EdgeHomomorphism<Graph, Graph>> {
+    if (this is ImmutableGraph) return asDirected(edgeKeyProperty)
+    if (directed) return isomorphism(this)
+
+    val edgeHomomorphism = createAssociatedDiGraph(this)
+    return homomorphism(vertexIdentityIsomorphism(edgeHomomorphism.source, this), edgeHomomorphism)
+}
+
+/** An integer property that simply returns the [Vertex.id] for every vertex. */
+public val Graph.vertexIdProperty: VertexKeyProperty<Int>
+    get() = object : VertexKeyProperty<Int> {
     override val graph: Graph get() = this@vertexIdProperty
     override val type: PropertyType<Int> get() = propertyTypeOf()
     override fun get(vertex: Vertex): Int = vertex.id
     override fun hasVertex(key: Int): Boolean = graph.vertices.contains(Vertex(key))
     override fun getVertex(key: Int): Vertex = Vertex(key)
-    override fun set(vertex: Vertex, value: Int) = throw UnsupportedOperationException()
 }
 
-/**
- * A long property that simply returns the [Edge.id] for every edge. Note that while this is exposed as a mutable
- * property for convenience, all mutator methods are guaranteed to throw [UnsupportedOperationException].
- */
-public val Graph.edgeIdProperty: MutableEdgeKeyProperty<Long> get() = object : MutableEdgeKeyProperty<Long> {
+/** A long property that simply returns the [Edge.id] for every edge. */
+public val Graph.edgeIdProperty: EdgeKeyProperty<Long>
+    get() = object : EdgeKeyProperty<Long> {
     override val graph: Graph get() = this@edgeIdProperty
     override val type: PropertyType<Long> get() = propertyTypeOf()
     override fun get(edge: Edge): Long = edge.id
     override fun hasEdge(key: Long): Boolean = graph.edges.contains(Edge(key))
     override fun getEdge(key: Long): Edge = Edge(key)
-    override fun set(edge: Edge, value: Long) = throw UnsupportedOperationException()
 }
 
 /** A base class that provides some basic functionality to implement [Graph]. */
 @Suppress("INAPPLICABLE_JVM_NAME")
-public abstract class AbstractGraph : Graph {
+public abstract class AbstractGraph<TEdgeSet : EdgeSet> : Graph {
 
     /** Should be implemented to throw [IllegalArgumentException] if `vertex` does not belong to this graph. */
     @JvmName("validateVertex")
     protected abstract fun validateVertex(vertex: Vertex): Vertex
-
-    /** Should be implemented to throw [IllegalArgumentException] if `edge` does not belong to this graph. */
-    @JvmName("validateEdge")
-    protected abstract fun validateEdge(edge: Edge): Edge
 
     @JvmName("outDegree")
     override fun outDegree(vertex: Vertex): Int = getOutDegree(validateVertex(vertex))
@@ -1252,11 +1172,11 @@ public abstract class AbstractGraph : Graph {
     }
 
     @JvmName("outgoingEdges")
-    override fun outgoingEdges(vertex: Vertex): EdgeSet = getOutgoingEdges(validateVertex(vertex))
+    override fun outgoingEdges(vertex: Vertex): TEdgeSet = getOutgoingEdges(validateVertex(vertex))
 
     /** Will only ever be invoked if `vertex` is valid. */
     @JvmName("getOutgoingEdges")
-    protected abstract fun getOutgoingEdges(vertex: Vertex): EdgeSet
+    protected abstract fun getOutgoingEdges(vertex: Vertex): TEdgeSet
 
     @JvmName("outgoingEdge")
     override fun outgoingEdge(vertex: Vertex): Edge {
@@ -1272,13 +1192,13 @@ public abstract class AbstractGraph : Graph {
     }
 
     @JvmName("incomingEdges")
-    override fun incomingEdges(vertex: Vertex): EdgeSet {
+    override fun incomingEdges(vertex: Vertex): TEdgeSet {
         return if (!directed) outgoingEdges(vertex) else getIncomingEdges(validateVertex(vertex))
     }
 
     /** Will only ever be invoked if `vertex` is valid and `directed` is true. */
     @JvmName("getIncomingEdges")
-    protected abstract fun getIncomingEdges(vertex: Vertex): EdgeSet
+    protected abstract fun getIncomingEdges(vertex: Vertex): TEdgeSet
 
     @JvmName("incomingEdge")
     override fun incomingEdge(vertex: Vertex): Edge {
@@ -1303,13 +1223,13 @@ public abstract class AbstractGraph : Graph {
     protected abstract fun containsEdge(source: Vertex, target: Vertex): Boolean
 
     @JvmName("edges")
-    override fun edges(source: Vertex, target: Vertex): EdgeSet {
+    override fun edges(source: Vertex, target: Vertex): TEdgeSet {
         return getEdges(validateVertex(source), validateVertex(target))
     }
 
     /** Will only ever be invoked if `source` and `target` are valid. */
     @JvmName("getEdges")
-    protected abstract fun getEdges(source: Vertex, target: Vertex): EdgeSet
+    protected abstract fun getEdges(source: Vertex, target: Vertex): TEdgeSet
 
     @JvmName("edge")
     override fun edge(source: Vertex, target: Vertex): Edge {

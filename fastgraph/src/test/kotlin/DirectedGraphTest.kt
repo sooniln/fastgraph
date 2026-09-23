@@ -1,5 +1,6 @@
 package io.github.sooniln.fastgraph
 
+import io.github.sooniln.fastgraph.properties.VertexProperty
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
@@ -10,7 +11,7 @@ class DirectedGraphTest {
     private lateinit var graph: Graph
     private lateinit var valueGraph: ValueGraph<String, Float>
     private lateinit var vertexName: VertexProperty<String>
-    private lateinit var edgeWeight: EdgeProperty<Float>
+    private lateinit var edgeWeight: io.github.sooniln.fastgraph.properties.EdgeProperty<Float>
     private var v0: Vertex = Vertex(-1)
     private var v1: Vertex = Vertex(-1)
     private var v2: Vertex = Vertex(-1)
@@ -62,23 +63,21 @@ class DirectedGraphTest {
     fun vertices(immutable: Boolean) {
         constructGraph(immutable)
 
-        context(valueGraph) {
-            assertThat(graph.vertices).containsExactlyInAnyOrder(v0, v1, v2, v3)
-            assertThat(graph.vertices.size).isEqualTo(graph.vertices.iterator().asSequence().count())
-            assertThat(graph.vertices.contains(v0)).isTrue
-            assertThat(graph.vertices.contains(v1)).isTrue
-            assertThat(graph.vertices.contains(v2)).isTrue
-            assertThat(graph.vertices.contains(v3)).isTrue
+        assertThat(graph.vertices).containsExactlyInAnyOrder(v0, v1, v2, v3)
+        assertThat(graph.vertices.size).isEqualTo(graph.vertices.iterator().asSequence().count())
+        assertThat(graph.vertices.contains(v0)).isTrue
+        assertThat(graph.vertices.contains(v1)).isTrue
+        assertThat(graph.vertices.contains(v2)).isTrue
+        assertThat(graph.vertices.contains(v3)).isTrue
 
-            assertThat(graph.vertices.contains(Vertex(99))).isFalse
-            assertThat(graph.vertices.contains(Vertex(-1))).isFalse
-            assertThat(graph.isEmpty()).isFalse
+        assertThat(graph.vertices.contains(Vertex(99))).isFalse
+        assertThat(graph.vertices.contains(Vertex(-1))).isFalse
+        assertThat(graph.isEmpty()).isFalse
 
-            assertThat(v0.key).isEqualTo("v0")
-            assertThat(v1.key).isEqualTo("v1")
-            assertThat(v2.key).isEqualTo("v2")
-            assertThat(v3.key).isEqualTo("v3")
-        }
+        assertThat(valueGraph.vertexKeys[v0]).isEqualTo("v0")
+        assertThat(valueGraph.vertexKeys[v1]).isEqualTo("v1")
+        assertThat(valueGraph.vertexKeys[v2]).isEqualTo("v2")
+        assertThat(valueGraph.vertexKeys[v3]).isEqualTo("v3")
     }
 
     @ParameterizedTest(name = "immutable={0}")
@@ -86,15 +85,13 @@ class DirectedGraphTest {
     fun outDegree(immutable: Boolean) {
         constructGraph(immutable)
 
-        context(graph) {
-            assertThat(v0.outDegree).isEqualTo(2)
-            assertThat(v1.outDegree).isEqualTo(1)
-            assertThat(v2.outDegree).isEqualTo(1)
-            assertThat(v3.outDegree).isEqualTo(0)
+        assertThat(graph.outDegree(v0)).isEqualTo(2)
+        assertThat(graph.outDegree(v1)).isEqualTo(1)
+        assertThat(graph.outDegree(v2)).isEqualTo(1)
+        assertThat(graph.outDegree(v3)).isEqualTo(0)
 
-            assertThrows<IllegalArgumentException> { Vertex(99).outDegree }
-            assertThrows<IllegalArgumentException> { Vertex(-1).outDegree }
-        }
+        assertThrows<IllegalArgumentException> { graph.outDegree(Vertex(99)) }
+        assertThrows<IllegalArgumentException> { graph.outDegree(Vertex(-1)) }
     }
 
     @ParameterizedTest(name = "immutable={0}")
@@ -102,15 +99,13 @@ class DirectedGraphTest {
     fun inDegree(immutable: Boolean) {
         constructGraph(immutable)
 
-        context(graph) {
-            assertThat(v0.inDegree).isEqualTo(2)
-            assertThat(v1.inDegree).isEqualTo(1)
-            assertThat(v2.inDegree).isEqualTo(1)
-            assertThat(v3.inDegree).isEqualTo(0)
+        assertThat(graph.inDegree(v0)).isEqualTo(2)
+        assertThat(graph.inDegree(v1)).isEqualTo(1)
+        assertThat(graph.inDegree(v2)).isEqualTo(1)
+        assertThat(graph.inDegree(v3)).isEqualTo(0)
 
-            assertThrows<IllegalArgumentException> { Vertex(99).inDegree }
-            assertThrows<IllegalArgumentException> { Vertex(-1).inDegree }
-        }
+        assertThrows<IllegalArgumentException> { graph.inDegree(Vertex(99)) }
+        assertThrows<IllegalArgumentException> { graph.inDegree(Vertex(-1)) }
     }
 
     @ParameterizedTest(name = "immutable={0}")
@@ -118,37 +113,35 @@ class DirectedGraphTest {
     fun successors(immutable: Boolean) {
         constructGraph(immutable)
 
-        context(graph) {
-            assertThat(v0.successors()).containsExactlyInAnyOrder(v0, v1)
-            assertThat(v0.successors().size).isEqualTo(v0.successors().iterator().asSequence().count())
-            assertThat(v0.successors().contains(v0)).isTrue
-            assertThat(v0.successors().contains(v1)).isTrue
-            assertThat(v0.successors().contains(v2)).isFalse
-            assertThat(v0.successors().contains(v3)).isFalse
+        assertThat(graph.successors(v0)).containsExactlyInAnyOrder(v0, v1)
+        assertThat(graph.successors(v0).size).isEqualTo(graph.successors(v0).iterator().asSequence().count())
+        assertThat(graph.successors(v0).contains(v0)).isTrue
+        assertThat(graph.successors(v0).contains(v1)).isTrue
+        assertThat(graph.successors(v0).contains(v2)).isFalse
+        assertThat(graph.successors(v0).contains(v3)).isFalse
 
-            assertThat(v1.successors()).containsExactlyInAnyOrder(v2)
-            assertThat(v1.successors().size).isEqualTo(v1.successors().iterator().asSequence().count())
-            assertThat(v1.successors().contains(v0)).isFalse
-            assertThat(v1.successors().contains(v1)).isFalse
-            assertThat(v1.successors().contains(v2)).isTrue
-            assertThat(v1.successors().contains(v3)).isFalse
+        assertThat(graph.successors(v1)).containsExactlyInAnyOrder(v2)
+        assertThat(graph.successors(v1).size).isEqualTo(graph.successors(v1).iterator().asSequence().count())
+        assertThat(graph.successors(v1).contains(v0)).isFalse
+        assertThat(graph.successors(v1).contains(v1)).isFalse
+        assertThat(graph.successors(v1).contains(v2)).isTrue
+        assertThat(graph.successors(v1).contains(v3)).isFalse
 
-            assertThat(v2.successors()).containsExactlyInAnyOrder(v0)
-            assertThat(v2.successors().size).isEqualTo(v2.successors().iterator().asSequence().count())
-            assertThat(v2.successors().contains(v0)).isTrue
-            assertThat(v2.successors().contains(v1)).isFalse
-            assertThat(v2.successors().contains(v2)).isFalse
-            assertThat(v2.successors().contains(v3)).isFalse
+        assertThat(graph.successors(v2)).containsExactlyInAnyOrder(v0)
+        assertThat(graph.successors(v2).size).isEqualTo(graph.successors(v2).iterator().asSequence().count())
+        assertThat(graph.successors(v2).contains(v0)).isTrue
+        assertThat(graph.successors(v2).contains(v1)).isFalse
+        assertThat(graph.successors(v2).contains(v2)).isFalse
+        assertThat(graph.successors(v2).contains(v3)).isFalse
 
-            assertThat(v3.successors()).isEmpty()
-            assertThat(v3.successors().size).isEqualTo(v3.successors().iterator().asSequence().count())
-            assertThat(v3.successors().contains(v0)).isFalse
-            assertThat(v3.successors().contains(v1)).isFalse
-            assertThat(v3.successors().contains(v2)).isFalse
-            assertThat(v3.successors().contains(v3)).isFalse
+        assertThat(graph.successors(v3)).isEmpty()
+        assertThat(graph.successors(v3).size).isEqualTo(graph.successors(v3).iterator().asSequence().count())
+        assertThat(graph.successors(v3).contains(v0)).isFalse
+        assertThat(graph.successors(v3).contains(v1)).isFalse
+        assertThat(graph.successors(v3).contains(v2)).isFalse
+        assertThat(graph.successors(v3).contains(v3)).isFalse
 
-            assertThrows<IllegalArgumentException> { Vertex(99).successors() }
-        }
+        assertThrows<IllegalArgumentException> { graph.successors(Vertex(99)) }
     }
 
     @ParameterizedTest(name = "immutable={0}")
@@ -170,37 +163,35 @@ class DirectedGraphTest {
     fun predecessors(immutable: Boolean) {
         constructGraph(immutable)
 
-        context(graph) {
-            assertThat(v0.predecessors()).containsExactlyInAnyOrder(v0, v2)
-            assertThat(v0.predecessors().size).isEqualTo(v0.predecessors().iterator().asSequence().count())
-            assertThat(v0.predecessors().contains(v0)).isTrue
-            assertThat(v0.predecessors().contains(v1)).isFalse
-            assertThat(v0.predecessors().contains(v2)).isTrue
-            assertThat(v0.predecessors().contains(v3)).isFalse
+        assertThat(graph.predecessors(v0)).containsExactlyInAnyOrder(v0, v2)
+        assertThat(graph.predecessors(v0).size).isEqualTo(graph.predecessors(v0).iterator().asSequence().count())
+        assertThat(graph.predecessors(v0).contains(v0)).isTrue
+        assertThat(graph.predecessors(v0).contains(v1)).isFalse
+        assertThat(graph.predecessors(v0).contains(v2)).isTrue
+        assertThat(graph.predecessors(v0).contains(v3)).isFalse
 
-            assertThat(v1.predecessors()).containsExactlyInAnyOrder(v0)
-            assertThat(v1.predecessors().size).isEqualTo(v1.predecessors().iterator().asSequence().count())
-            assertThat(v1.predecessors().contains(v0)).isTrue
-            assertThat(v1.predecessors().contains(v1)).isFalse
-            assertThat(v1.predecessors().contains(v2)).isFalse
-            assertThat(v1.predecessors().contains(v3)).isFalse
+        assertThat(graph.predecessors(v1)).containsExactlyInAnyOrder(v0)
+        assertThat(graph.predecessors(v1).size).isEqualTo(graph.predecessors(v1).iterator().asSequence().count())
+        assertThat(graph.predecessors(v1).contains(v0)).isTrue
+        assertThat(graph.predecessors(v1).contains(v1)).isFalse
+        assertThat(graph.predecessors(v1).contains(v2)).isFalse
+        assertThat(graph.predecessors(v1).contains(v3)).isFalse
 
-            assertThat(v2.predecessors()).containsExactlyInAnyOrder(v1)
-            assertThat(v2.predecessors().size).isEqualTo(v2.predecessors().iterator().asSequence().count())
-            assertThat(v2.predecessors().contains(v0)).isFalse
-            assertThat(v2.predecessors().contains(v1)).isTrue
-            assertThat(v2.predecessors().contains(v2)).isFalse
-            assertThat(v2.predecessors().contains(v3)).isFalse
+        assertThat(graph.predecessors(v2)).containsExactlyInAnyOrder(v1)
+        assertThat(graph.predecessors(v2).size).isEqualTo(graph.predecessors(v2).iterator().asSequence().count())
+        assertThat(graph.predecessors(v2).contains(v0)).isFalse
+        assertThat(graph.predecessors(v2).contains(v1)).isTrue
+        assertThat(graph.predecessors(v2).contains(v2)).isFalse
+        assertThat(graph.predecessors(v2).contains(v3)).isFalse
 
-            assertThat(v3.predecessors()).isEmpty()
-            assertThat(v3.predecessors().size).isEqualTo(v3.predecessors().iterator().asSequence().count())
-            assertThat(v3.predecessors().contains(v0)).isFalse
-            assertThat(v3.predecessors().contains(v1)).isFalse
-            assertThat(v3.predecessors().contains(v2)).isFalse
-            assertThat(v3.predecessors().contains(v3)).isFalse
+        assertThat(graph.predecessors(v3)).isEmpty()
+        assertThat(graph.predecessors(v3).size).isEqualTo(graph.predecessors(v3).iterator().asSequence().count())
+        assertThat(graph.predecessors(v3).contains(v0)).isFalse
+        assertThat(graph.predecessors(v3).contains(v1)).isFalse
+        assertThat(graph.predecessors(v3).contains(v2)).isFalse
+        assertThat(graph.predecessors(v3).contains(v3)).isFalse
 
-            assertThrows<IllegalArgumentException> { Vertex(99).predecessors() }
-        }
+        assertThrows<IllegalArgumentException> { graph.predecessors(Vertex(99)) }
     }
 
     @ParameterizedTest(name = "immutable={0}")
@@ -222,37 +213,35 @@ class DirectedGraphTest {
     fun outgoingEdges(immutable: Boolean) {
         constructGraph(immutable)
 
-        context(graph) {
-            assertThat(v0.outgoingEdges()).containsExactlyInAnyOrder(e0, e3)
-            assertThat(v0.outgoingEdges().size).isEqualTo(v0.outgoingEdges().iterator().asSequence().count())
-            assertThat(v0.outgoingEdges().contains(e0)).isTrue
-            assertThat(v0.outgoingEdges().contains(e1)).isFalse
-            assertThat(v0.outgoingEdges().contains(e2)).isFalse
-            assertThat(v0.outgoingEdges().contains(e3)).isTrue
+        assertThat(graph.outgoingEdges(v0)).containsExactlyInAnyOrder(e0, e3)
+        assertThat(graph.outgoingEdges(v0).size).isEqualTo(graph.outgoingEdges(v0).iterator().asSequence().count())
+        assertThat(graph.outgoingEdges(v0).contains(e0)).isTrue
+        assertThat(graph.outgoingEdges(v0).contains(e1)).isFalse
+        assertThat(graph.outgoingEdges(v0).contains(e2)).isFalse
+        assertThat(graph.outgoingEdges(v0).contains(e3)).isTrue
 
-            assertThat(v1.outgoingEdges()).containsExactlyInAnyOrder(e1)
-            assertThat(v1.outgoingEdges().size).isEqualTo(v1.outgoingEdges().iterator().asSequence().count())
-            assertThat(v1.outgoingEdges().contains(e0)).isFalse
-            assertThat(v1.outgoingEdges().contains(e1)).isTrue
-            assertThat(v1.outgoingEdges().contains(e2)).isFalse
-            assertThat(v1.outgoingEdges().contains(e3)).isFalse
+        assertThat(graph.outgoingEdges(v1)).containsExactlyInAnyOrder(e1)
+        assertThat(graph.outgoingEdges(v1).size).isEqualTo(graph.outgoingEdges(v1).iterator().asSequence().count())
+        assertThat(graph.outgoingEdges(v1).contains(e0)).isFalse
+        assertThat(graph.outgoingEdges(v1).contains(e1)).isTrue
+        assertThat(graph.outgoingEdges(v1).contains(e2)).isFalse
+        assertThat(graph.outgoingEdges(v1).contains(e3)).isFalse
 
-            assertThat(v2.outgoingEdges()).containsExactlyInAnyOrder(e2)
-            assertThat(v2.outgoingEdges().size).isEqualTo(v2.outgoingEdges().iterator().asSequence().count())
-            assertThat(v2.outgoingEdges().contains(e0)).isFalse
-            assertThat(v2.outgoingEdges().contains(e1)).isFalse
-            assertThat(v2.outgoingEdges().contains(e2)).isTrue
-            assertThat(v2.outgoingEdges().contains(e3)).isFalse
+        assertThat(graph.outgoingEdges(v2)).containsExactlyInAnyOrder(e2)
+        assertThat(graph.outgoingEdges(v2).size).isEqualTo(graph.outgoingEdges(v2).iterator().asSequence().count())
+        assertThat(graph.outgoingEdges(v2).contains(e0)).isFalse
+        assertThat(graph.outgoingEdges(v2).contains(e1)).isFalse
+        assertThat(graph.outgoingEdges(v2).contains(e2)).isTrue
+        assertThat(graph.outgoingEdges(v2).contains(e3)).isFalse
 
-            assertThat(v3.outgoingEdges()).isEmpty()
-            assertThat(v3.outgoingEdges().size).isEqualTo(v3.outgoingEdges().iterator().asSequence().count())
-            assertThat(v3.outgoingEdges().contains(e0)).isFalse
-            assertThat(v3.outgoingEdges().contains(e1)).isFalse
-            assertThat(v3.outgoingEdges().contains(e2)).isFalse
-            assertThat(v3.outgoingEdges().contains(e3)).isFalse
+        assertThat(graph.outgoingEdges(v3)).isEmpty()
+        assertThat(graph.outgoingEdges(v3).size).isEqualTo(graph.outgoingEdges(v3).iterator().asSequence().count())
+        assertThat(graph.outgoingEdges(v3).contains(e0)).isFalse
+        assertThat(graph.outgoingEdges(v3).contains(e1)).isFalse
+        assertThat(graph.outgoingEdges(v3).contains(e2)).isFalse
+        assertThat(graph.outgoingEdges(v3).contains(e3)).isFalse
 
-            assertThrows<IllegalArgumentException> { Vertex(99).outgoingEdges() }
-        }
+        assertThrows<IllegalArgumentException> { graph.outgoingEdges(Vertex(99)) }
     }
 
     @ParameterizedTest(name = "immutable={0}")
@@ -274,37 +263,35 @@ class DirectedGraphTest {
     fun incomingEdges(immutable: Boolean) {
         constructGraph(immutable)
 
-        context(graph) {
-            assertThat(v0.incomingEdges()).containsExactlyInAnyOrder(e2, e3)
-            assertThat(v0.incomingEdges().size).isEqualTo(v0.incomingEdges().iterator().asSequence().count())
-            assertThat(v0.incomingEdges().contains(e0)).isFalse
-            assertThat(v0.incomingEdges().contains(e1)).isFalse
-            assertThat(v0.incomingEdges().contains(e2)).isTrue
-            assertThat(v0.incomingEdges().contains(e3)).isTrue
+        assertThat(graph.incomingEdges(v0)).containsExactlyInAnyOrder(e2, e3)
+        assertThat(graph.incomingEdges(v0).size).isEqualTo(graph.incomingEdges(v0).iterator().asSequence().count())
+        assertThat(graph.incomingEdges(v0).contains(e0)).isFalse
+        assertThat(graph.incomingEdges(v0).contains(e1)).isFalse
+        assertThat(graph.incomingEdges(v0).contains(e2)).isTrue
+        assertThat(graph.incomingEdges(v0).contains(e3)).isTrue
 
-            assertThat(v1.incomingEdges()).containsExactlyInAnyOrder(e0)
-            assertThat(v1.incomingEdges().size).isEqualTo(v1.incomingEdges().iterator().asSequence().count())
-            assertThat(v1.incomingEdges().contains(e0)).isTrue
-            assertThat(v1.incomingEdges().contains(e1)).isFalse
-            assertThat(v1.incomingEdges().contains(e2)).isFalse
-            assertThat(v1.incomingEdges().contains(e3)).isFalse
+        assertThat(graph.incomingEdges(v1)).containsExactlyInAnyOrder(e0)
+        assertThat(graph.incomingEdges(v1).size).isEqualTo(graph.incomingEdges(v1).iterator().asSequence().count())
+        assertThat(graph.incomingEdges(v1).contains(e0)).isTrue
+        assertThat(graph.incomingEdges(v1).contains(e1)).isFalse
+        assertThat(graph.incomingEdges(v1).contains(e2)).isFalse
+        assertThat(graph.incomingEdges(v1).contains(e3)).isFalse
 
-            assertThat(v2.incomingEdges()).containsExactlyInAnyOrder(e1)
-            assertThat(v2.incomingEdges().size).isEqualTo(v2.incomingEdges().iterator().asSequence().count())
-            assertThat(v2.incomingEdges().contains(e0)).isFalse
-            assertThat(v2.incomingEdges().contains(e1)).isTrue
-            assertThat(v2.incomingEdges().contains(e2)).isFalse
-            assertThat(v2.incomingEdges().contains(e3)).isFalse
+        assertThat(graph.incomingEdges(v2)).containsExactlyInAnyOrder(e1)
+        assertThat(graph.incomingEdges(v2).size).isEqualTo(graph.incomingEdges(v2).iterator().asSequence().count())
+        assertThat(graph.incomingEdges(v2).contains(e0)).isFalse
+        assertThat(graph.incomingEdges(v2).contains(e1)).isTrue
+        assertThat(graph.incomingEdges(v2).contains(e2)).isFalse
+        assertThat(graph.incomingEdges(v2).contains(e3)).isFalse
 
-            assertThat(v3.incomingEdges()).isEmpty()
-            assertThat(v3.incomingEdges().size).isEqualTo(v3.incomingEdges().iterator().asSequence().count())
-            assertThat(v3.incomingEdges().contains(e0)).isFalse
-            assertThat(v3.incomingEdges().contains(e1)).isFalse
-            assertThat(v3.incomingEdges().contains(e2)).isFalse
-            assertThat(v3.incomingEdges().contains(e3)).isFalse
+        assertThat(graph.incomingEdges(v3)).isEmpty()
+        assertThat(graph.incomingEdges(v3).size).isEqualTo(graph.incomingEdges(v3).iterator().asSequence().count())
+        assertThat(graph.incomingEdges(v3).contains(e0)).isFalse
+        assertThat(graph.incomingEdges(v3).contains(e1)).isFalse
+        assertThat(graph.incomingEdges(v3).contains(e2)).isFalse
+        assertThat(graph.incomingEdges(v3).contains(e3)).isFalse
 
-            assertThrows<IllegalArgumentException> { Vertex(99).incomingEdges() }
-        }
+        assertThrows<IllegalArgumentException> { graph.incomingEdges(Vertex(99)) }
     }
 
     @ParameterizedTest(name = "immutable={0}")
@@ -326,21 +313,19 @@ class DirectedGraphTest {
     fun edges(immutable: Boolean) {
         constructGraph(immutable)
 
-        context(valueGraph) {
-            assertThat(graph.edges).containsExactlyInAnyOrder(e0, e1, e2, e3)
-            assertThat(graph.edges.size).isEqualTo(graph.edges.iterator().asSequence().count())
-            assertThat(graph.edges.contains(e0)).isTrue
-            assertThat(graph.edges.contains(e1)).isTrue
-            assertThat(graph.edges.contains(e2)).isTrue
-            assertThat(graph.edges.contains(e3)).isTrue
-            assertThat(graph.edges.contains(Edge(99L))).isFalse
-            assertThat(graph.edges.contains(Edge(-1L))).isFalse
+        assertThat(graph.edges).containsExactlyInAnyOrder(e0, e1, e2, e3)
+        assertThat(graph.edges.size).isEqualTo(graph.edges.iterator().asSequence().count())
+        assertThat(graph.edges.contains(e0)).isTrue
+        assertThat(graph.edges.contains(e1)).isTrue
+        assertThat(graph.edges.contains(e2)).isTrue
+        assertThat(graph.edges.contains(e3)).isTrue
+        assertThat(graph.edges.contains(Edge(99L))).isFalse
+        assertThat(graph.edges.contains(Edge(-1L))).isFalse
 
-            assertThat(e0.value).isEqualTo(1.5f)
-            assertThat(e1.value).isEqualTo(2.0f)
-            assertThat(e2.value).isEqualTo(2.1f)
-            assertThat(e3.value).isEqualTo(1.0f)
-        }
+        assertThat(valueGraph.edgeValues[e0]).isEqualTo(1.5f)
+        assertThat(valueGraph.edgeValues[e1]).isEqualTo(2.0f)
+        assertThat(valueGraph.edgeValues[e2]).isEqualTo(2.1f)
+        assertThat(valueGraph.edgeValues[e3]).isEqualTo(1.0f)
     }
 
     @ParameterizedTest(name = "immutable={0}")
@@ -348,16 +333,14 @@ class DirectedGraphTest {
     fun edgeSourceAndTarget(immutable: Boolean) {
         constructGraph(immutable)
 
-        context(graph) {
-            assertThat(e0.source).isEqualTo(v0)
-            assertThat(e0.target).isEqualTo(v1)
-            assertThat(e1.source).isEqualTo(v1)
-            assertThat(e1.target).isEqualTo(v2)
-            assertThat(e2.source).isEqualTo(v2)
-            assertThat(e2.target).isEqualTo(v0)
-            assertThat(e3.source).isEqualTo(v0)
-            assertThat(e3.target).isEqualTo(v0)
-        }
+        assertThat(graph.edgeSource(e0)).isEqualTo(v0)
+        assertThat(graph.edgeTarget(e0)).isEqualTo(v1)
+        assertThat(graph.edgeSource(e1)).isEqualTo(v1)
+        assertThat(graph.edgeTarget(e1)).isEqualTo(v2)
+        assertThat(graph.edgeSource(e2)).isEqualTo(v2)
+        assertThat(graph.edgeTarget(e2)).isEqualTo(v0)
+        assertThat(graph.edgeSource(e3)).isEqualTo(v0)
+        assertThat(graph.edgeTarget(e3)).isEqualTo(v0)
     }
 
     @ParameterizedTest(name = "immutable={0}")
@@ -485,19 +468,17 @@ class DirectedGraphTest {
     fun edgeOpposite(immutable: Boolean) {
         constructGraph(immutable)
 
-        context(graph) {
-            assertThat(e0.opposite(v0)).isEqualTo(v1)
-            assertThat(e0.opposite(v1)).isEqualTo(v0)
-            assertThat(e1.opposite(v1)).isEqualTo(v2)
-            assertThat(e1.opposite(v2)).isEqualTo(v1)
-            assertThat(e2.opposite(v2)).isEqualTo(v0)
-            assertThat(e2.opposite(v0)).isEqualTo(v2)
-            assertThat(e3.opposite(v0)).isEqualTo(v0)
+        assertThat(graph.edgeOpposite(e0, v0)).isEqualTo(v1)
+        assertThat(graph.edgeOpposite(e0, v1)).isEqualTo(v0)
+        assertThat(graph.edgeOpposite(e1, v1)).isEqualTo(v2)
+        assertThat(graph.edgeOpposite(e1, v2)).isEqualTo(v1)
+        assertThat(graph.edgeOpposite(e2, v2)).isEqualTo(v0)
+        assertThat(graph.edgeOpposite(e2, v0)).isEqualTo(v2)
+        assertThat(graph.edgeOpposite(e3, v0)).isEqualTo(v0)
 
-            assertThrows<IllegalArgumentException> { e0.opposite(v2) }
-            assertThrows<IllegalArgumentException> { e0.opposite(v3) }
-            assertThrows<IllegalArgumentException> { e3.opposite(v1) }
-        }
+        assertThrows<IllegalArgumentException> { graph.edgeOpposite(e0, v2) }
+        assertThrows<IllegalArgumentException> { graph.edgeOpposite(e0, v3) }
+        assertThrows<IllegalArgumentException> { graph.edgeOpposite(e3, v1) }
     }
 
     @ParameterizedTest(name = "immutable={0}")
@@ -508,6 +489,8 @@ class DirectedGraphTest {
         // in a directed graph the two-argument forms are just edgeSource/edgeTarget with a consistency check
         assertThat(graph.edgeSource(e0, v1)).isEqualTo(v0)
         assertThat(graph.edgeTarget(e0, v0)).isEqualTo(v1)
+        assertThat(graph.edgeSource(e1, v2)).isEqualTo(v1)
+        assertThat(graph.edgeTarget(e1, v1)).isEqualTo(v2)
         assertThat(graph.edgeSource(e2, v0)).isEqualTo(v2)
         assertThat(graph.edgeTarget(e2, v2)).isEqualTo(v0)
         assertThat(graph.edgeSource(e3, v0)).isEqualTo(v0)
@@ -515,61 +498,36 @@ class DirectedGraphTest {
 
         assertThat(graph.edgeSource(e0, graph.createVertexReference(v1))).isEqualTo(v0)
         assertThat(graph.edgeTarget(e0, graph.createVertexReference(v0))).isEqualTo(v1)
-
-        context(graph) {
-            assertThat(e0.source(v1)).isEqualTo(v0)
-            assertThat(e0.target(v0)).isEqualTo(v1)
-            assertThat(e1.source(v2)).isEqualTo(v1)
-            assertThat(e1.target(v1)).isEqualTo(v2)
-        }
     }
 
     @ParameterizedTest(name = "immutable={0}")
     @ValueSource(booleans = [true, false])
-    fun edgeDestructuring(immutable: Boolean) {
+    fun singularVertexAccessors(immutable: Boolean) {
         constructGraph(immutable)
 
-        context(graph) {
-            val (source, target) = e0
-            assertThat(source).isEqualTo(v0)
-            assertThat(target).isEqualTo(v1)
+        assertThat(graph.successor(v1)).isEqualTo(v2)
+        assertThat(graph.predecessor(v1)).isEqualTo(v0)
+        assertThat(graph.outgoingEdge(v1)).isEqualTo(e1)
+        assertThat(graph.incomingEdge(v1)).isEqualTo(e0)
+        assertThat(graph.successor(v2)).isEqualTo(v0)
+        assertThat(graph.predecessor(v2)).isEqualTo(v1)
+        assertThat(graph.outgoingEdge(v2)).isEqualTo(e2)
+        assertThat(graph.incomingEdge(v2)).isEqualTo(e1)
 
-            val (loopSource, loopTarget) = e3
-            assertThat(loopSource).isEqualTo(v0)
-            assertThat(loopTarget).isEqualTo(v0)
-        }
-    }
+        // v0 has several neighbours and edges in both directions, v3 has none
+        assertThrows<IllegalStateException> { graph.successor(v0) }
+        assertThrows<IllegalStateException> { graph.predecessor(v0) }
+        assertThrows<IllegalStateException> { graph.outgoingEdge(v0) }
+        assertThrows<IllegalStateException> { graph.incomingEdge(v0) }
+        assertThrows<IllegalStateException> { graph.successor(v3) }
+        assertThrows<IllegalStateException> { graph.predecessor(v3) }
+        assertThrows<IllegalStateException> { graph.outgoingEdge(v3) }
+        assertThrows<IllegalStateException> { graph.incomingEdge(v3) }
 
-    @ParameterizedTest(name = "immutable={0}")
-    @ValueSource(booleans = [true, false])
-    fun singularVertexContextMembers(immutable: Boolean) {
-        constructGraph(immutable)
-
-        context(graph) {
-            assertThat(v1.successor()).isEqualTo(v2)
-            assertThat(v1.predecessor()).isEqualTo(v0)
-            assertThat(v1.outgoingEdge()).isEqualTo(e1)
-            assertThat(v1.incomingEdge()).isEqualTo(e0)
-            assertThat(v2.successor()).isEqualTo(v0)
-            assertThat(v2.predecessor()).isEqualTo(v1)
-            assertThat(v2.outgoingEdge()).isEqualTo(e2)
-            assertThat(v2.incomingEdge()).isEqualTo(e1)
-
-            // v0 has several neighbours and edges in both directions, v3 has none
-            assertThrows<IllegalStateException> { v0.successor() }
-            assertThrows<IllegalStateException> { v0.predecessor() }
-            assertThrows<IllegalStateException> { v0.outgoingEdge() }
-            assertThrows<IllegalStateException> { v0.incomingEdge() }
-            assertThrows<IllegalStateException> { v3.successor() }
-            assertThrows<IllegalStateException> { v3.predecessor() }
-            assertThrows<IllegalStateException> { v3.outgoingEdge() }
-            assertThrows<IllegalStateException> { v3.incomingEdge() }
-
-            assertThrows<IllegalArgumentException> { Vertex(99).successor() }
-            assertThrows<IllegalArgumentException> { Vertex(99).predecessor() }
-            assertThrows<IllegalArgumentException> { Vertex(99).outgoingEdge() }
-            assertThrows<IllegalArgumentException> { Vertex(99).incomingEdge() }
-        }
+        assertThrows<IllegalArgumentException> { graph.successor(Vertex(99)) }
+        assertThrows<IllegalArgumentException> { graph.predecessor(Vertex(99)) }
+        assertThrows<IllegalArgumentException> { graph.outgoingEdge(Vertex(99)) }
+        assertThrows<IllegalArgumentException> { graph.incomingEdge(Vertex(99)) }
     }
 
     @ParameterizedTest(name = "immutable={0}")
@@ -577,19 +535,17 @@ class DirectedGraphTest {
     fun edgeToAndEdgesTo(immutable: Boolean) {
         constructGraph(immutable)
 
-        context(graph) {
-            assertThat(v0.edgeTo(v1)).isEqualTo(e0)
-            assertThat(v1.edgeTo(v2)).isEqualTo(e1)
-            assertThat(v2.edgeTo(v0)).isEqualTo(e2)
-            assertThrows<IllegalStateException> { v1.edgeTo(v0) }
-            assertThrows<IllegalStateException> { v0.edgeTo(v3) }
+        assertThat(graph.edge(v0, v1)).isEqualTo(e0)
+        assertThat(graph.edge(v1, v2)).isEqualTo(e1)
+        assertThat(graph.edge(v2, v0)).isEqualTo(e2)
+        assertThrows<IllegalStateException> { graph.edge(v1, v0) }
+        assertThrows<IllegalStateException> { graph.edge(v0, v3) }
 
-            assertThat(v0.edgesTo(v1)).containsExactlyInAnyOrder(e0)
-            assertThat(v1.edgesTo(v0)).isEmpty()
-            assertThat(v0.edgesTo(v3)).isEmpty()
+        assertThat(graph.edges(v0, v1)).containsExactlyInAnyOrder(e0)
+        assertThat(graph.edges(v1, v0)).isEmpty()
+        assertThat(graph.edges(v0, v3)).isEmpty()
 
-            assertThrows<IllegalArgumentException> { v0.edgeTo(Vertex(99)) }
-            assertThrows<IllegalArgumentException> { Vertex(99).edgesTo(v0) }
-        }
+        assertThrows<IllegalArgumentException> { graph.edge(v0, Vertex(99)) }
+        assertThrows<IllegalArgumentException> { graph.edges(Vertex(99), v0) }
     }
 }

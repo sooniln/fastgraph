@@ -16,3 +16,26 @@ internal inline fun <T : Any> cheapLazy(crossinline initializer: () -> T): Lazy<
     override fun isInitialized(): Boolean = _value != null
     override fun toString(): String = _value?.toString() ?: "<uninitialized>"
 }
+
+internal inline fun <T : Any> cheapSynchronizedLazy(crossinline initializer: () -> T): Lazy<T> = object : Lazy<T> {
+    private var _value: T? = null
+
+    override val value: T
+        get() {
+            var v = _value
+            if (v == null) {
+                v = synchronized (this) {
+                    v = _value
+                    if (v == null) {
+                        v = initializer()
+                        _value = v
+                    }
+                    return@synchronized v
+                }
+            }
+            return v
+        }
+
+    override fun isInitialized(): Boolean = _value != null
+    override fun toString(): String = _value?.toString() ?: "<uninitialized>"
+}

@@ -1,14 +1,9 @@
 package io.github.sooniln.fastgraph.filtered
 
-import io.github.sooniln.fastcollect.Int2AnyHashMap
-import io.github.sooniln.fastcollect.getOrPut
-import io.github.sooniln.fastcollect.replaceOrSet
-import io.github.sooniln.fastgraph.Graph
-import io.github.sooniln.fastgraph.MutableVertexProperty
-import io.github.sooniln.fastgraph.PropertyType
-import io.github.sooniln.fastgraph.Vertex
-import io.github.sooniln.fastgraph.VertexFunction
-import io.github.sooniln.fastgraph.VertexPredicate
+import io.github.sooniln.fastcollect.*
+import io.github.sooniln.fastgraph.*
+import io.github.sooniln.fastgraph.properties.MutableVertexProperty
+import io.github.sooniln.fastgraph.properties.PropertyType
 import io.github.sooniln.fastgraph.internal.throwIllegalVertex
 
 internal class PredicatedVertexProperty<T>(
@@ -47,5 +42,14 @@ internal class PredicatedVertexProperty<T>(
         return property.replaceOrSet(vertex.id, value) { defaultValueFunction.apply(vertex) }
     }
 
-    fun trimToSize() = property.trimToSize()
+    fun trimToSize() {
+        val it = property.iterator()
+        while (it.hasNext()) {
+            val entry = it.next()
+            if (!predicate.test(Vertex(entry.key))) {
+                it.remove()
+            }
+        }
+        property.trimToSize()
+    }
 }

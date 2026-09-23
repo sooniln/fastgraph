@@ -1,5 +1,6 @@
 package io.github.sooniln.fastgraph
 
+import io.github.sooniln.fastgraph.properties.propertyTypeOf
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
@@ -85,7 +86,10 @@ class ValueGraphTest {
 
         assertThat(graph.directed).isEqualTo(directed)
         assertThat(graph.multiEdge).isTrue
-        assertThat(graph.graph).isInstanceOf(IndexedEdgeGraph::class.java)
+        assertThat(graph.graph.edges).isInstanceOf(IndexedEdgeSet::class.java)
+        // the wrapper delegates its topology, so the set guarantees reach through it
+        assertThat(graph.vertices).isInstanceOf(IdentityIndexedVertexSet::class.java)
+        assertThat(graph.edges).isInstanceOf(IdentityIndexedEdgeSet::class.java)
         assertThat(graph.vertexKeys.graph).isSameAs(graph.graph)
         assertThat(graph.edgeValues.graph).isSameAs(graph.graph)
         assertThat(graph.vertexKeys.type).isEqualTo(propertyTypeOf<String>())
@@ -93,20 +97,17 @@ class ValueGraphTest {
         assertThat(graph.vertices).containsExactlyInAnyOrderElementsOf(graph.graph.vertices)
         assertThat(graph.edges).containsExactlyInAnyOrderElementsOf(graph.graph.edges)
 
-        context(graph) {
-            val a = graph.getVertex("a")
-            val b = graph.getVertex("b")
-            assertThat(a.key).isEqualTo("a")
-            assertThat(a.edgesTo(b).map { it.value }).containsExactlyInAnyOrder(1.5f, 2.5f)
-            assertThat(b.edgeTo(b).value).isEqualTo(0f)
-            assertThat(graph.vertices.map { it.key }).containsExactlyInAnyOrder("a", "b")
-        }
+        val a = graph.getVertex("a")
+        val b = graph.getVertex("b")
+        assertThat(graph.vertexKeys[a]).isEqualTo("a")
+        assertThat(graph.graph.edges(a, b).map { graph.edgeValues[it] }).containsExactlyInAnyOrder(1.5f, 2.5f)
+        assertThat(graph.edgeValues[graph.graph.edge(b, b)]).isEqualTo(0f)
+        assertThat(graph.vertices.map { graph.vertexKeys[it] }).containsExactlyInAnyOrder("a", "b")
 
         // keyed mutations are visible through the wrapped graph and its properties
         val c = graph.addVertex("c")
         assertThat(graph.graph.vertices).contains(c)
         assertThat(graph.vertexKeys[c]).isEqualTo("c")
-        context(graph) { assertThat(c.key).isEqualTo("c") }
         val cc = graph.addEdge(c, c)
         assertThat(graph.edgeValues[cc]).isEqualTo(0f)
         graph.removeEdge(cc)

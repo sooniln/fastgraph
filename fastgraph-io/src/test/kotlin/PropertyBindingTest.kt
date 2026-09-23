@@ -1,6 +1,6 @@
 package io.github.sooniln.fastgraph.io
 
-import io.github.sooniln.fastgraph.propertyTypeOf
+import io.github.sooniln.fastgraph.properties.propertyTypeOf
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows

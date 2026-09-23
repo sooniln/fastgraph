@@ -1,7 +1,7 @@
 package io.github.sooniln.fastgraph
 
+import io.github.sooniln.fastgraph.filtered.filter
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
@@ -38,10 +38,10 @@ class IndexedGraphTest {
 
     @ParameterizedTest(name = "immutable={0}")
     @ValueSource(booleans = [true, false])
-    fun graphIsIndexedVertexGraph(immutable: Boolean) {
+    fun graphHasIndexedVertexSet(immutable: Boolean) {
         constructGraph(immutable, indexEdges = false)
 
-        assertThat(graph).isInstanceOf(IndexedVertexGraph::class.java)
+        assertThat(graph.vertices).isInstanceOf(IndexedVertexSet::class.java)
     }
 
     @ParameterizedTest(name = "immutable={0}, directed={1}")
@@ -73,18 +73,18 @@ class IndexedGraphTest {
 
     @ParameterizedTest(name = "immutable={0}")
     @ValueSource(booleans = [true, false])
-    fun graphWithoutIndexEdgesIsNotIndexedEdgeGraph(immutable: Boolean) {
+    fun graphWithoutIndexEdgesHasNoIndexedEdgeSet(immutable: Boolean) {
         constructGraph(immutable, indexEdges = false)
 
-        assertThat(graph).isNotInstanceOf(IndexedEdgeGraph::class.java)
+        assertThat(graph.edges).isNotInstanceOf(IndexedEdgeSet::class.java)
     }
 
     @ParameterizedTest(name = "immutable={0}")
     @ValueSource(booleans = [true, false])
-    fun graphWithIndexEdgesIsIndexedEdgeGraph(immutable: Boolean) {
+    fun graphWithIndexEdgesHasIndexedEdgeSet(immutable: Boolean) {
         constructGraph(immutable, indexEdges = true)
 
-        assertThat(graph).isInstanceOf(IndexedEdgeGraph::class.java)
+        assertThat(graph.edges).isInstanceOf(IndexedEdgeSet::class.java)
     }
 
     @ParameterizedTest(name = "immutable={0}, directed={1}")
@@ -212,7 +212,7 @@ class IndexedGraphTest {
 
     @ParameterizedTest(name = "directed={0}")
     @ValueSource(booleans = [true, false])
-    fun edgeListenersAreNotifiedBeforeMutationInIndexedEdgeGraph(directed: Boolean) {
+    fun edgeListenersAreNotifiedBeforeMutationWithIndexedEdgeSet(directed: Boolean) {
         constructGraph(immutable = false, indexEdges = true, directed = directed)
         val mutableGraph = graph as MutableGraph
         val edges = graph.edges as IndexedEdgeSet
@@ -302,7 +302,7 @@ class IndexedGraphTest {
 
     @ParameterizedTest(name = "directed={0}")
     @ValueSource(booleans = [true, false])
-    fun edgeListenersAreNotifiedBeforeMutationInCanonicalEdgeGraph(directed: Boolean) {
+    fun edgeListenersAreNotifiedBeforeMutationWithCanonicalEdgeSet(directed: Boolean) {
         constructGraph(immutable = false, indexEdges = false, directed = directed)
         val mutableGraph = graph as MutableGraph
         val events = ArrayList<String>()
@@ -377,5 +377,60 @@ class IndexedGraphTest {
         assertThrows<NoSuchElementException> { emptyVertexSet().last() }
         assertThrows<NoSuchElementException> { emptyEdgeSet().first() }
         assertThrows<NoSuchElementException> { emptyEdgeSet().last() }
+    }
+
+    // --- set guarantees propagate through wrapping views ----------------------------------------------------------
+
+    @ParameterizedTest(name = "immutable={0}")
+    @ValueSource(booleans = [true, false])
+    fun transposedViewKeepsVertexAndEdgeSetGuarantees(immutable: Boolean) {
+        constructGraph(immutable, indexEdges = true)
+        val transposed = graph.asTransposed()
+
+        assertThat(transposed.vertices).isInstanceOf(IdentityIndexedVertexSet::class.java)
+        assertThat(transposed.edges).isInstanceOf(IdentityIndexedEdgeSet::class.java)
+    }
+
+    @ParameterizedTest(name = "immutable={0}")
+    @ValueSource(booleans = [true, false])
+    fun transposedViewHidesCanonicalEdges(immutable: Boolean) {
+        // a canonical edge id encodes its endpoints in the untransposed orientation, so the transposed view must not
+        // advertise them - otherwise anything decoding the id directly reports the wrong direction
+        constructGraph(immutable, indexEdges = false)
+        assertThat(graph.edges).isInstanceOf(CanonicalEdgeSet::class.java)
+
+        val transposed = graph.asTransposed()
+        assertThat(transposed.edges).isNotInstanceOf(CanonicalEdgeSet::class.java)
+        assertThat(transposed.vertices).isInstanceOf(IdentityIndexedVertexSet::class.java)
+    }
+
+    @ParameterizedTest(name = "immutable={0}")
+    @ValueSource(booleans = [true, false])
+    fun filteringNoVerticesKeepsTheVertexSetGuarantee(immutable: Boolean) {
+        constructGraph(immutable, indexEdges = true)
+
+        val filtered = graph.filter(inducingEdges = graph.edges)
+        assertThat(filtered.vertices).isInstanceOf(IdentityIndexedVertexSet::class.java)
+        // the edge set is a subset, so it keeps no index guarantee
+        assertThat(filtered.edges).isNotInstanceOf(IndexedEdgeSet::class.java)
+    }
+
+    @ParameterizedTest(name = "immutable={0}")
+    @ValueSource(booleans = [true, false])
+    fun filteringKeepsCanonicalEdges(immutable: Boolean) {
+        // filtering never rewrites an edge id, so the endpoints stay decodable
+        constructGraph(immutable, indexEdges = false)
+
+        assertThat(graph.filter(inducingEdges = graph.edges).edges).isInstanceOf(CanonicalEdgeSet::class.java)
+        assertThat(graph.filter({ true }, { true }).edges).isInstanceOf(CanonicalEdgeSet::class.java)
+    }
+
+    @ParameterizedTest(name = "immutable={0}")
+    @ValueSource(booleans = [true, false])
+    fun inducedSubsetDropsTheVertexIndexGuarantee(immutable: Boolean) {
+        constructGraph(immutable, indexEdges = true)
+        val subset = graph.filter(vertexSetOf(graph.vertices.first()), graph.edges)
+
+        assertThat(subset.vertices).isNotInstanceOf(IndexedVertexSet::class.java)
     }
 }

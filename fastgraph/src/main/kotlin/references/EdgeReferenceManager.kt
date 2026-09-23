@@ -3,7 +3,6 @@ package io.github.sooniln.fastgraph.references
 import io.github.sooniln.fastcollect.Long2AnyHashMap
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeChangeListener
-import io.github.sooniln.fastgraph.EdgeReference
 import io.github.sooniln.fastgraph.Graph
 import java.lang.ref.ReferenceQueue
 import java.lang.ref.WeakReference
