@@ -6,16 +6,20 @@
 package io.github.sooniln.fastgraph
 
 import io.github.sooniln.fastgraph.homomorphisms.EdgeHomomorphism
+import io.github.sooniln.fastgraph.homomorphisms.EdgeIsomorphism
 import io.github.sooniln.fastgraph.homomorphisms.GraphHomomorphism
+import io.github.sooniln.fastgraph.homomorphisms.GraphIsomorphism
 import io.github.sooniln.fastgraph.homomorphisms.VertexIsomorphism
 import io.github.sooniln.fastgraph.homomorphisms.homomorphism
-import io.github.sooniln.fastgraph.homomorphisms.isomorphism
-import io.github.sooniln.fastgraph.homomorphisms.vertexIdentityIsomorphism
+import io.github.sooniln.fastgraph.homomorphisms.selfIsomorphism
+import io.github.sooniln.fastgraph.homomorphisms.transferInto
+import io.github.sooniln.fastgraph.homomorphisms.selfVertexIsomorphism
 import io.github.sooniln.fastgraph.internal.AbstractTransposedGraph
 import io.github.sooniln.fastgraph.internal.AdjacencyListGraph
 import io.github.sooniln.fastgraph.internal.AdjacencyListNetwork
 import io.github.sooniln.fastgraph.internal.TransposedGraph
 import io.github.sooniln.fastgraph.internal.UndirectedGraph
+import io.github.sooniln.fastgraph.internal.copyToMutableGraph
 import io.github.sooniln.fastgraph.internal.createAssociatedDiGraph
 import io.github.sooniln.fastgraph.properties.EdgeKeyProperty
 import io.github.sooniln.fastgraph.properties.MutableEdgeKeyProperty
@@ -1085,18 +1089,43 @@ public fun <V, E> mutableValueGraph(graph: MutableGraph, vertexKeys: MutableVert
     }
 }
 
+/**
+ * An isomorphism from a graph copy ([GraphIsomorphism.source]) to the original graph ([GraphIsomorphism.target]).
+ */
+public typealias GraphCopy<GS> = GraphIsomorphism<GS, Graph, VertexIsomorphism<GS, Graph>, EdgeIsomorphism<GS, Graph>>
 
-public fun <V,E> copyGraph(
-    graph: Graph,
-    vertexKeyProperty: VertexKeyProperty<V>,
-    edgekeyProperty: EdgeKeyProperty<E>,
+/**
+ * Returns a copy of this graph as a [MutableGraph]. The copy is the [GraphIsomorphism.target] of the returned
+ * isomorphism, whose source is this graph. Vertex and edge ids in the copy may differ from those in this graph, so
+ * [GraphIsomorphism.vertexMap]/[GraphIsomorphism.edgeMap] (or
+ * [io.github.sooniln.fastgraph.homomorphisms.transferInto]) must be used to relate vertices, edges, and properties
+ * between the two. As with any homomorphism, the returned isomorphism is only valid until either graph is modified.
+ *
+ * The copy supports multi-edges if this graph does or if [forceMultiEdge] is true, and indexes edges if this graph
+ * does (its [Graph.edges] is an [IndexedEdgeSet]) or if [indexEdges] is true. See [mutableGraph] for more information
+ * on these options.
+ */
+@JvmOverloads
+public fun Graph.toMutableGraph(forceMultiEdge: Boolean = false, indexEdges: Boolean = false): GraphCopy<MutableGraph> {
+    return copyToMutableGraph(this, forceMultiEdge, indexEdges)
+}
+
+/**
+ * Returns a copy of this value graph as a [MutableValueGraph], with the same vertex keys and edge values. Edges added
+ * to the copy afterward are initialized with [defaultEdgeValueFunction]. See [toMutableGraph] for the other options.
+ */
+@JvmOverloads
+public fun <V, E> ValueGraph<V, E>.toMutableValueGraph(
+    defaultEdgeValueFunction: EdgeFunction<E>,
     forceMultiEdge: Boolean = false,
     indexEdges: Boolean = false
-): KeyIsomorphism<MutableGraph, Graph, V, E> {
-    mutableGraph(graph.directed)
-
-    return object : KeyIsomorphism<MutableGraph, Graph, V, E> {
-    }
+): MutableValueGraph<V, E> {
+    val copy = graph.toMutableGraph(forceMultiEdge, indexEdges)
+    val keys = copy.target.createVertexKeyProperty(vertexKeys.type)
+    copy.transferInto(vertexKeys, keys)
+    val values = copy.target.createEdgeProperty(edgeValues.type, defaultEdgeValueFunction)
+    copy.transferInto(edgeValues, values)
+    return mutableValueGraph(copy.target, keys, values)
 }
 
 /**
@@ -1138,10 +1167,10 @@ public fun Graph.asUndirected(): Graph {
  */
 public fun <E> Graph.asDirected(edgeKeyProperty: EdgeKeyProperty<E>): GraphHomomorphism<Graph, Graph, VertexIsomorphism<Graph, Graph>, EdgeHomomorphism<Graph, Graph>> {
     if (this is ImmutableGraph) return asDirected(edgeKeyProperty)
-    if (directed) return isomorphism(this)
+    if (directed) return selfIsomorphism(this)
 
     val edgeHomomorphism = createAssociatedDiGraph(this)
-    return homomorphism(vertexIdentityIsomorphism(edgeHomomorphism.source, this), edgeHomomorphism)
+    return homomorphism(selfVertexIsomorphism(edgeHomomorphism.source, this), edgeHomomorphism)
 }
 
 /** An integer property that simply returns the [Vertex.id] for every vertex. */

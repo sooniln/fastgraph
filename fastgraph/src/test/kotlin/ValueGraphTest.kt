@@ -145,7 +145,7 @@ class ValueGraphTest {
         // the vertex id property is the way to say "no vertex data"
         val ids = valueGraph(graph, graph.vertexIdProperty, edgeValues)
         assertThat(ids.vertexKeys[v]).isEqualTo(v.id)
-        val immutable = graph.toImmutableGraph()
+        val immutable = graph.toImmutableGraph().target
         assertThrows<IllegalArgumentException> { ImmutableValueGraph(immutable, vertexKeys, immutable.createEdgeProperty<String>()) }
         assertThrows<IllegalArgumentException> { ImmutableValueGraph(immutable, immutable.createVertexKeyProperty<String>(), edgeValues) }
         val immutableValueGraph = ImmutableValueGraph(immutable, immutable.createVertexKeyProperty<String>(), immutable.createEdgeProperty<String>())
@@ -238,6 +238,6 @@ class ValueGraphTest {
             }
         }
         assertThat(complete.density()).isEqualTo(1.0)
-        assertThat(complete.toImmutableGraph().density()).isEqualTo(1.0)
+        assertThat(complete.toImmutableGraph().target.density()).isEqualTo(1.0)
     }
 }

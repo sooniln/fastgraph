@@ -8,11 +8,11 @@ package io.github.sooniln.fastgraph.homomorphisms
 
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.Graph
-import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.properties.PropertyType
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.properties.EdgeKeyProperty
 import io.github.sooniln.fastgraph.properties.EdgeProperty
+import io.github.sooniln.fastgraph.properties.MutableVertexProperty
 import io.github.sooniln.fastgraph.properties.VertexKeyProperty
 import io.github.sooniln.fastgraph.properties.VertexProperty
 import io.github.sooniln.fastgraph.properties.propertyTypeOf
@@ -40,6 +40,8 @@ public interface GraphIsomorphism<out GS : Graph, out GT : Graph, out VH : Verte
     override val vertexHomomorphism: VH
     override val edgeHomomorphism: EH
 }
+
+public typealias Isomorphism<GS, GT> = GraphIsomorphism<GS, GT, VertexIsomorphism<GS, GT>, EdgeIsomorphism<GS, GT>>
 
 public fun <GS : Graph, GT : Graph, VH: VertexHomomorphism<GS, GT>, EH: EdgeHomomorphism<GS, GT>> homomorphism(
     vertexHomomorphism: VH,
@@ -78,16 +80,44 @@ public fun <GS : Graph, GT : Graph, VH: VertexIsomorphism<GS, GT>, EH: EdgeIsomo
     return SimpleGraphIsomorphism(vertexIsomorphism, edgeIsomorphism)
 }
 
-public fun <GS : Graph, GT : Graph> isomorphism(vertexIsomorphism:  VertexIsomorphism<GS, GT>): GraphIsomorphism<GS, GT, VertexIsomorphism<GS, GT>, EdgeIsomorphism<GS, GT>> {
+public fun <GS : Graph, GT : Graph> isomorphism(vertexIsomorphism:  VertexIsomorphism<GS, GT>): Isomorphism<GS, GT> {
     return SimpleGraphIsomorphism(vertexIsomorphism, DerivedEdgeIsomorphism(vertexIsomorphism))
 }
 
-public fun <G : Graph> isomorphism(graph:  G): GraphIsomorphism<G, G, VertexIsomorphism<G, G>, EdgeIsomorphism<G, G>> {
-    return SimpleGraphIsomorphism(vertexIdentityIsomorphism(graph), edgeIsomorphism(graph))
+public fun <G : Graph> selfIsomorphism(graph:  G): Isomorphism<G, G> {
+    return SimpleGraphIsomorphism(selfVertexIsomorphism(graph), selfEdgeIsomorphism(graph))
 }
 
-public fun <GS : ImmutableGraph, GT : ImmutableGraph> emptyIsomorphism(source: GS, target: GT): GraphIsomorphism<GS, GT, VertexIsomorphism<GS, GT>, EdgeIsomorphism<GS, GT>> {
+public fun <GS : Graph, GT : Graph> emptyIsomorphism(source: GS, target: GT): Isomorphism<GS, GT> {
     return SimpleGraphIsomorphism(emptyVertexIsomorphism(source, target), emptyEdgeIsomorphism(source, target))
+}
+
+/**
+ * Returns an [EdgeIsomorphism] derived from the given [VertexIsomorphism], where [VertexIsomorphism.target] is a copy
+ * of [VertexIsomorphism.source]. Unlike a general derived edge isomorphism, the target may be a multi-edge graph since a
+ * copy never contains parallel edges that are not present in the source.
+ */
+internal fun <GS : Graph, GT : Graph> copyEdgeIsomorphism(vertexIsomorphism: VertexIsomorphism<GS, GT>): EdgeIsomorphism<GS, GT> {
+    return CopyDerivedEdgeIsomorphism(vertexIsomorphism)
+}
+
+/**
+ * Sets `to[vertexMap[vertex]] = from[vertex]` for every vertex in [GraphHomomorphism.source]. [from] must accept
+ * source vertices, and [to] must belong to [GraphHomomorphism.target]. If several source vertices map to the same
+ * target vertex, the value from the source vertex iterated last wins.
+ */
+public fun <T> GraphHomomorphism<*, *, *, *>.transferInto(from: VertexProperty<out T>, to: MutableVertexProperty<in T>) {
+    require(to.graph === target)
+    if (vertexHomomorphism.isIdentity) {
+        for (vertex in source.vertices) {
+            to[vertex] = from[vertex]
+        }
+    } else {
+        val vertexMap = vertexMap
+        for (vertex in source.vertices) {
+            to[vertexMap[vertex]] = from[vertex]
+        }
+    }
 }
 
 private class SimpleGraphHomomorphism<out GS : Graph, out GT : Graph, out VH : VertexHomomorphism<GS, GT>, out EH: EdgeHomomorphism<GS, GT>>(
@@ -182,7 +212,7 @@ private class DerivedEdgeMonomorphism<out GS : Graph, out GT : Graph>(
 
         override fun hasEdge(key: Edge): Boolean {
             val edgeSource = target.edgeSource(key)
-            val edgeTarget = source.edgeTarget(key)
+            val edgeTarget = target.edgeTarget(key)
             val sourceEdgeSource = vertexMonomorphism.vertexMap.getVertex(edgeSource)
             val sourceEdgeTarget = vertexMonomorphism.vertexMap.getVertex(edgeTarget)
             return source.hasEdge(sourceEdgeSource, sourceEdgeTarget)
@@ -190,7 +220,7 @@ private class DerivedEdgeMonomorphism<out GS : Graph, out GT : Graph>(
 
         override fun getEdge(key: Edge): Edge {
             val edgeSource = target.edgeSource(key)
-            val edgeTarget = source.edgeTarget(key)
+            val edgeTarget = target.edgeTarget(key)
             val sourceEdgeSource = vertexMonomorphism.vertexMap.getVertex(edgeSource)
             val sourceEdgeTarget = vertexMonomorphism.vertexMap.getVertex(edgeTarget)
             return source.edge(sourceEdgeSource, sourceEdgeTarget)
@@ -223,7 +253,7 @@ private class DerivedEdgeIsomorphism<out GS : Graph, out GT : Graph>(
 
         override fun hasEdge(key: Edge): Boolean {
             val edgeSource = target.edgeSource(key)
-            val edgeTarget = source.edgeTarget(key)
+            val edgeTarget = target.edgeTarget(key)
             val sourceEdgeSource = vertexIsomorphism.vertexMap.getVertex(edgeSource)
             val sourceEdgeTarget = vertexIsomorphism.vertexMap.getVertex(edgeTarget)
             return source.hasEdge(sourceEdgeSource, sourceEdgeTarget)
@@ -231,7 +261,42 @@ private class DerivedEdgeIsomorphism<out GS : Graph, out GT : Graph>(
 
         override fun getEdge(key: Edge): Edge {
             val edgeSource = target.edgeSource(key)
-            val edgeTarget = source.edgeTarget(key)
+            val edgeTarget = target.edgeTarget(key)
+            val sourceEdgeSource = vertexIsomorphism.vertexMap.getVertex(edgeSource)
+            val sourceEdgeTarget = vertexIsomorphism.vertexMap.getVertex(edgeTarget)
+            return source.edge(sourceEdgeSource, sourceEdgeTarget)
+        }
+    }
+}
+
+private class CopyDerivedEdgeIsomorphism<out GS : Graph, out GT : Graph>(
+    private val vertexIsomorphism: VertexIsomorphism<GS, GT>,
+) : EdgeIsomorphism<GS, GT> {
+
+    init {
+        require(!source.multiEdge) { "An EdgeIsomorphism cannot be derived from a VertexIsomorphism on a multi-edge graph." }
+    }
+
+    override val source: GS get() = vertexIsomorphism.source
+    override val target: GT get() = vertexIsomorphism.target
+
+    override val edgeMap: EdgeKeyProperty<Edge> = object : EdgeKeyProperty<Edge> {
+        override val graph: Graph get() = source
+        override val type: PropertyType<Edge> get() = propertyTypeOf()
+
+        override fun get(edge: Edge): Edge {
+            val edgeSource = source.edgeSource(edge)
+            val edgeTarget = source.edgeTarget(edge)
+            val targetEdgeSource = vertexIsomorphism.vertexMap[edgeSource]
+            val targetEdgeTarget = vertexIsomorphism.vertexMap[edgeTarget]
+            return target.edge(targetEdgeSource, targetEdgeTarget)
+        }
+
+        override fun hasEdge(key: Edge): Boolean = target.edges.contains(key)
+
+        override fun getEdge(key: Edge): Edge {
+            val edgeSource = target.edgeSource(key)
+            val edgeTarget = target.edgeTarget(key)
             val sourceEdgeSource = vertexIsomorphism.vertexMap.getVertex(edgeSource)
             val sourceEdgeTarget = vertexIsomorphism.vertexMap.getVertex(edgeTarget)
             return source.edge(sourceEdgeSource, sourceEdgeTarget)

@@ -215,7 +215,7 @@ class DotWriterTest {
 
         // an immutable copy has the same ids, so it writes the same statements (iteration order may differ)
         val immutableOutput = ByteArrayOutputStream()
-        writeDot(immutableOutput, DotGraph(graph.toImmutableGraph()))
+        writeDot(immutableOutput, DotGraph(graph.toImmutableGraph().target))
         assertThat(immutableOutput.toString(Charsets.UTF_8).lines())
             .containsExactlyInAnyOrderElementsOf(mutableOutput.toString(Charsets.UTF_8).lines())
 

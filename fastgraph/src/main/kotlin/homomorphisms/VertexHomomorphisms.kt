@@ -8,7 +8,6 @@ package io.github.sooniln.fastgraph.homomorphisms
 
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.Graph
-import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.properties.PropertyType
 import io.github.sooniln.fastgraph.internal.throwIllegalVertex
 import io.github.sooniln.fastgraph.properties.VertexKeyProperty
@@ -19,10 +18,6 @@ import io.github.sooniln.fastgraph.properties.propertyTypeOf
  * A graph homomorphism maps every vertex of one [source] graph, to a vertex of another [target] graph, such that
  * edges are respected: if two vertices are joined by an edge in [source], their mapped vertices in [target] must also
  * be joined by an edge. It is important to note that the mapping is only one way, from [source] to [target].
- *
- * A Homomorphism is only valid so long as no changes have been made to [source] or [target] topology which would
- * invalidate the homomorphism. As there is no method of detecting whether any given change invalidates the
- * homomorphism, the behavior of this class is undefined if such a change is made.
  */
 public sealed interface VertexHomomorphism<out GS : Graph, out GT : Graph> {
     public val source: GS
@@ -40,12 +35,8 @@ public sealed interface VertexHomomorphism<out GS : Graph, out GT : Graph> {
  * in [target] (no two vertices in the source can map to the same target vertex). Note that this does not imply that
  * either vertices or edges are surjective ([target] may have vertices/edges that are not mapped to by [source]).
  *
- * Some literature differentiates between monomorphism and strict/regular monomorphism. This interface represents a
- * (loose) monomorphism, and not a strict/regular monomorphism.
- *
- * A [VertexHomomorphism] is only valid so long as no changes have been made to [source] or [target] topology which would
- * invalidate the homomorphism. As there is no method of detecting whether any given change invalidates the
- * homomorphism, the behavior of this class is undefined if such a change is made.
+ * Some literature differentiates between monomorphism and strict/regular monomorphism. This interface represents
+ * (loose) monomorphism, and not strict/regular monomorphism.
  */
 public sealed interface VertexMonomorphism<out GS : Graph, out GT : Graph> : VertexHomomorphism<GS, GT> {
 
@@ -58,46 +49,43 @@ public sealed interface VertexMonomorphism<out GS : Graph, out GT : Graph> : Ver
 
 /**
  * An isomorphism is a surjective [VertexMonomorphism] (a full bijection), where there is no vertex or edge in [target] that
- * does not have a mapping from [source]. Less formally, and isomorphism is a mapping such that every vertex and edge in
+ * does not have a mapping from [source]. Less formally, an isomorphism is a mapping such that every vertex and edge in
  * [source] is mapped to a distinct vertex and edge in [target] AND vice versa - the source and target graph are
  * structurally completely identical.
- *
- * A [VertexHomomorphism] is only valid so long as no changes have been made to [source] or [target] topology which would
- * invalidate the homomorphism. As there is no method of detecting whether any given change invalidates the
- * homomorphism, the behavior of this class is undefined if such a change is made.
  */
 public sealed interface VertexIsomorphism<out GS : Graph, out GT : Graph> : VertexMonomorphism<GS, GT>
 
-public fun <GS : Graph, GT : Graph> vertexIdentityIsomorphism(source: GS, target: GT) : VertexIsomorphism<GS, GT> {
-    return VertexIdentityIsomorphism(source, target)
+/** Returns a [VertexIsomorphism] relating all vertices of the graph to themselves. */
+public fun <G : Graph> selfVertexIsomorphism(graph: G) : VertexIsomorphism<G, G> {
+    return SelfVertexIsomorphism(graph)
 }
 
-public fun <G : Graph> vertexIdentityIsomorphism(graph: G) : VertexIsomorphism<G, G> {
-    return SelfVertexIdentityIsomorphism(graph)
-}
-
-public fun <GS : ImmutableGraph, GT : ImmutableGraph> emptyVertexIsomorphism(source: GS, target: GT) : VertexIsomorphism<GS, GT> {
+/**
+ * Returns an [VertexIsomorphism] relating an empty vertex set to another empty vertex set. This isomorphism becomes
+ * invalid if the vertex set of either graph ever becomes non-empty.
+ */
+public fun <GS : Graph, GT : Graph> emptyVertexIsomorphism(source: GS, target: GT) : VertexIsomorphism<GS, GT> {
     return EmptyVertexIsomorphism(source, target)
 }
 
-private class VertexIdentityIsomorphism<out GS : Graph, out GT : Graph>(
-    override val source: GS, override val target: GT
-) : VertexIsomorphism<GS, GT> {
-    override val vertexMap: VertexKeyProperty<Vertex> = object : VertexKeyProperty<Vertex> {
-        override val graph: Graph get() = source
-        override val type: PropertyType<Vertex> get() = propertyTypeOf()
-        override fun get(vertex: Vertex): Vertex = vertex
-        override fun hasVertex(key: Vertex): Boolean = true
-        override fun getVertex(key: Vertex): Vertex = key
-    }
+internal fun <GS : Graph, GT : Graph> identityVertexIsomorphism(source: GS, target: GT) : VertexIsomorphism<GS, GT> {
+    return SimpleVertexIsomorphism(source, target, IdentityVertexKeyProperty(source))
 }
 
-private class SelfVertexIdentityIsomorphism<out G: Graph>(private val graph: G) : VertexIsomorphism<G, G> {
+internal fun <GS : Graph, GT : Graph> keyVertexIsomorphism(
+    source: GS,
+    target: GT,
+    keyProperty: VertexKeyProperty<Vertex>,
+) : VertexIsomorphism<GS, GT> {
+    return SimpleVertexIsomorphism(source, target, keyProperty)
+}
+
+private class SelfVertexIsomorphism<out G: Graph>(private val graph: G) : VertexIsomorphism<G, G> {
     override val source: G get() = graph
     override val target: G get() = graph
 
     override val vertexMap: VertexKeyProperty<Vertex> = object : VertexKeyProperty<Vertex> {
-        override val graph: Graph get() = this@SelfVertexIdentityIsomorphism.graph
+        override val graph: Graph get() = this@SelfVertexIsomorphism.graph
         override val type: PropertyType<Vertex> get() = propertyTypeOf()
         override fun get(vertex: Vertex): Vertex = vertex
         override fun hasVertex(key: Vertex): Boolean = true
@@ -105,7 +93,7 @@ private class SelfVertexIdentityIsomorphism<out G: Graph>(private val graph: G) 
     }
 }
 
-private class EmptyVertexIsomorphism<GS : ImmutableGraph, GT : ImmutableGraph>(
+private class EmptyVertexIsomorphism<GS : Graph, GT : Graph>(
     override val source: GS,
     override val target: GT,
 ) : VertexIsomorphism<GS, GT> {
@@ -120,5 +108,27 @@ private class EmptyVertexIsomorphism<GS : ImmutableGraph, GT : ImmutableGraph>(
         override fun get(vertex: Vertex): Vertex = throwIllegalVertex(vertex)
         override fun hasVertex(key: Vertex): Boolean = false
         override fun getVertex(key: Vertex): Vertex = throwIllegalVertex(key)
+    }
+}
+
+private class SimpleVertexIsomorphism<out GS : Graph, out GT : Graph>(
+    override val source: GS,
+    override val target: GT,
+    override val vertexMap: VertexKeyProperty<Vertex>,
+) : VertexIsomorphism<GS, GT> {
+    init {
+        require(vertexMap.graph === source)
+        require(source.vertices.size == target.vertices.size)
+        // TODO: when do we want a fuller check?
+    }
+}
+
+private class IdentityVertexKeyProperty(override val graph: Graph) : VertexKeyProperty<Vertex> {
+    override val type: PropertyType<Vertex> get() = propertyTypeOf()
+    override fun get(vertex: Vertex): Vertex = vertex
+    override fun hasVertex(key: Vertex): Boolean = graph.vertices.contains(key)
+    override fun getVertex(key: Vertex): Vertex {
+        require(hasVertex(key))
+        return key
     }
 }

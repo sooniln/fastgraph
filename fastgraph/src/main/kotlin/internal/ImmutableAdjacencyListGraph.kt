@@ -1,5 +1,6 @@
 package io.github.sooniln.fastgraph.internal
 
+import io.github.sooniln.fastcollect.Int2IntHashMap
 import io.github.sooniln.fastgraph.AbstractEdgeSet
 import io.github.sooniln.fastgraph.AbstractGraph
 import io.github.sooniln.fastgraph.AbstractVertexSequencedSet
@@ -9,18 +10,25 @@ import io.github.sooniln.fastgraph.CanonicalEdgeGraph
 import io.github.sooniln.fastgraph.CanonicalEdgeSet
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeIterator
-import io.github.sooniln.fastgraph.EdgeSet
 import io.github.sooniln.fastgraph.Graph
+import io.github.sooniln.fastgraph.GraphCopy
 import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.IdentityIndexedVertexSet
 import io.github.sooniln.fastgraph.InternalImmutableGraph
-import io.github.sooniln.fastgraph.MutableCanonicalEdgeSet
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexIterator
 import io.github.sooniln.fastgraph.VertexSet
 import io.github.sooniln.fastgraph.edgeIteratorOf
-import io.github.sooniln.fastgraph.edgeSetOf
 import io.github.sooniln.fastgraph.emptyEdgeSet
+import io.github.sooniln.fastgraph.homomorphisms.Isomorphism
+import io.github.sooniln.fastgraph.homomorphisms.identityEdgeIsomorphism
+import io.github.sooniln.fastgraph.homomorphisms.identityVertexIsomorphism
+import io.github.sooniln.fastgraph.homomorphisms.isomorphism
+import io.github.sooniln.fastgraph.homomorphisms.keyVertexIsomorphism
+import io.github.sooniln.fastgraph.properties.PropertyType
+import io.github.sooniln.fastgraph.properties.VertexKeyProperty
+import io.github.sooniln.fastgraph.properties.VertexProperty
+import io.github.sooniln.fastgraph.properties.propertyTypeOf
 import io.github.sooniln.fastgraph.util.cheapLazy
 import java.util.BitSet
 
@@ -124,20 +132,30 @@ internal class ImmutableAdjacencyListGraph private constructor(
         }
 
         companion object {
-            fun createSuccessors(graph: Graph): Adjacencies {
-                require(graph.vertices is IdentityIndexedVertexSet)
-                require(graph.edges is CanonicalEdgeSet)
+            fun createSuccessors(graph: Graph, vertexMap: IntArray?, reverseVertexMap: Int2IntHashMap?): Adjacencies {
+                require(!graph.multiEdge)
+                require(vertexMap != null || graph.vertices is IdentityIndexedVertexSet)
+                require(reverseVertexMap != null || graph.vertices is IdentityIndexedVertexSet)
+                require((vertexMap == null) == (reverseVertexMap == null))
+                if (vertexMap != null) require(vertexMap.size == graph.vertices.size)
+                reverseVertexMap?.ensureCapacity(graph.vertices.size)
 
                 val numVertices = graph.vertices.size
                 val offsets = IntArray(numVertices + 1)
-                for (vertexId in 0..<numVertices) {
-                    offsets[vertexId + 1] = offsets[vertexId] + graph.successorsCount(Vertex(vertexId))
+                var vertexId = 0
+                for (vertex in graph.vertices) {
+                    vertexMap?.set(vertexId, vertex.id)
+                    reverseVertexMap?.set(vertex.id, vertexId)
+
+                    offsets[vertexId + 1] = offsets[vertexId] + graph.successorsCount(vertex)
+                    ++vertexId
                 }
                 val targets = IntArray(offsets[numVertices])
-                for (vertexId in 0..<numVertices) {
+                vertexId = 0
+                for (vertex in graph.vertices) {
                     var i = offsets[vertexId]
-                    for (successor in graph.successors(Vertex(vertexId))) {
-                        targets[i++] = successor.id
+                    for (successor in graph.successors(vertex)) {
+                        targets[i++] = if (reverseVertexMap != null) reverseVertexMap[successor.id] else successor.id
                     }
                     targets.sort(offsets[vertexId], i)
                 }
@@ -257,8 +275,45 @@ internal class ImmutableAdjacencyListGraph private constructor(
     }
 
     companion object {
-        fun copy(graph: Graph): ImmutableGraph {
-            return ImmutableAdjacencyListGraph(graph.directed, Adjacencies.createSuccessors(graph), graph.edges.size)
+        fun copy(graph: Graph): GraphCopy<ImmutableGraph> {
+            if (graph.vertices is IdentityIndexedVertexSet) {
+                val copy = ImmutableAdjacencyListGraph(
+                    graph.directed,
+                    Adjacencies.createSuccessors(graph, null, null),
+                    graph.edges.size)
+                val vertexIsomorphism = identityVertexIsomorphism(copy, graph)
+                return if (graph is CanonicalEdgeGraph) {
+                    isomorphism(vertexIsomorphism, identityEdgeIsomorphism(copy, graph))
+                } else {
+                    isomorphism(vertexIsomorphism)
+                }
+            } else {
+                val vertexMap = IntArray(graph.vertices.size)
+                val reverseVertexMap = Int2IntHashMap(graph.vertices.size)
+                val copy = ImmutableAdjacencyListGraph(
+                    graph.directed,
+                    Adjacencies.createSuccessors(graph, vertexMap, reverseVertexMap),
+                    graph.edges.size)
+                val vertexKeyProperty = CopyVertexProperty(copy, vertexMap, reverseVertexMap)
+                return isomorphism(keyVertexIsomorphism(copy, graph, vertexKeyProperty))
+            }
+        }
+
+        private class CopyVertexProperty(
+            private val copy: ImmutableAdjacencyListGraph,
+            private val vertexMap: IntArray,
+            private val reverseVertexMap: Int2IntHashMap,
+        ) : VertexKeyProperty<Vertex> {
+            init {
+                require(copy.vertices.size == vertexMap.size)
+                require(vertexMap.size == reverseVertexMap.size)
+            }
+
+            override val graph: Graph get() = copy
+            override val type: PropertyType<Vertex> get() = propertyTypeOf()
+            override fun get(vertex: Vertex): Vertex = Vertex(vertexMap[vertex.id])
+            override fun hasVertex(key: Vertex): Boolean = reverseVertexMap.containsKey(key.id)
+            override fun getVertex(key: Vertex): Vertex = Vertex(reverseVertexMap.getValue(key.id))
         }
     }
 }

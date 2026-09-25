@@ -1,16 +1,19 @@
 package io.github.sooniln.fastgraph.internal
 
 import io.github.sooniln.fastcollect.Int2IntHashMap
-import io.github.sooniln.fastcollect.Int2IntMap
+import io.github.sooniln.fastcollect.Int2LongHashMap
+import io.github.sooniln.fastcollect.Long2IntHashMap
 import io.github.sooniln.fastgraph.AbstractEdgeSequencedSet
 import io.github.sooniln.fastgraph.AbstractEdgeSet
 import io.github.sooniln.fastgraph.AbstractGraph
 import io.github.sooniln.fastgraph.AbstractVertexSequencedSet
 import io.github.sooniln.fastgraph.AbstractVertexSet
+import io.github.sooniln.fastgraph.CanonicalEdgeGraph
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.EdgeIterator
 import io.github.sooniln.fastgraph.EdgeSet
 import io.github.sooniln.fastgraph.Graph
+import io.github.sooniln.fastgraph.GraphCopy
 import io.github.sooniln.fastgraph.ImmutableGraph
 import io.github.sooniln.fastgraph.IdentityIndexedEdge
 import io.github.sooniln.fastgraph.IdentityIndexedEdgeSet
@@ -19,6 +22,19 @@ import io.github.sooniln.fastgraph.InternalImmutableGraph
 import io.github.sooniln.fastgraph.Vertex
 import io.github.sooniln.fastgraph.VertexIterator
 import io.github.sooniln.fastgraph.VertexSet
+import io.github.sooniln.fastgraph.homomorphisms.Isomorphism
+import io.github.sooniln.fastgraph.homomorphisms.identityEdgeIsomorphism
+import io.github.sooniln.fastgraph.homomorphisms.identityVertexIsomorphism
+import io.github.sooniln.fastgraph.homomorphisms.isomorphism
+import io.github.sooniln.fastgraph.homomorphisms.keyEdgeIsomorphism
+import io.github.sooniln.fastgraph.homomorphisms.keyVertexIsomorphism
+import io.github.sooniln.fastgraph.internal.ImmutableAdjacencyListGraph.Companion.CopyVertexProperty
+import io.github.sooniln.fastgraph.properties.EdgeKeyProperty
+import io.github.sooniln.fastgraph.properties.EdgeProperty
+import io.github.sooniln.fastgraph.properties.PropertyType
+import io.github.sooniln.fastgraph.properties.VertexKeyProperty
+import io.github.sooniln.fastgraph.properties.VertexProperty
+import io.github.sooniln.fastgraph.properties.propertyTypeOf
 import io.github.sooniln.fastgraph.util.cheapLazy
 
 internal class ImmutableAdjacencyListNetwork private constructor(
@@ -156,34 +172,70 @@ internal class ImmutableAdjacencyListNetwork private constructor(
         }
 
         companion object {
-            fun createSuccessors(graph: Graph): Adjacencies {
-                require(graph.vertices is IdentityIndexedVertexSet)
-                require(graph.edges is IdentityIndexedEdgeSet)
+            fun createSuccessors(
+                graph: Graph,
+                vertexMap: IntArray?,
+                reverseVertexMap: Int2IntHashMap?,
+                edgeMap: LongArray?,
+                reverseEdgeMap: Long2IntHashMap?,
+            ): Adjacencies {
+                require((vertexMap == null) == (reverseVertexMap == null))
+                require(vertexMap != null || graph.vertices is IdentityIndexedVertexSet)
+                if (vertexMap != null) require(vertexMap.size == graph.vertices.size)
+                reverseVertexMap?.ensureCapacity(graph.vertices.size)
+
+                require((edgeMap == null) == (reverseEdgeMap == null))
+                require(edgeMap != null || graph.edges is IdentityIndexedEdgeSet)
+                if (edgeMap != null) require(edgeMap.size == graph.edges.size)
+                reverseEdgeMap?.ensureCapacity(graph.edges.size)
 
                 val n = graph.vertices.size
                 val targetOffsets = IntArray(n + 1)
                 var numEdgeIds = 0
-                for (vertexId in 0..<n) {
-                    val vertex = Vertex(vertexId)
+                var vertexId = 0
+                for (vertex in graph.vertices) {
+                    vertexMap?.set(vertexId, vertex.id)
+                    reverseVertexMap?.set(vertex.id, vertexId)
+
                     targetOffsets[vertexId + 1] = targetOffsets[vertexId] + graph.successorsCount(vertex)
                     numEdgeIds += graph.outgoingEdgeCount(vertex)
+                    vertexId++
                 }
                 val targets = IntArray(targetOffsets[n])
-                for (vertexId in 0..<n) {
+                vertexId = 0
+                for (vertex in graph.vertices) {
                     var i = targetOffsets[vertexId]
-                    for (successor in graph.successors(Vertex(vertexId))) { targets[i++] = successor.id }
+                    for (successor in graph.successors(vertex)) {
+                        targets[i++] = if (reverseVertexMap != null) reverseVertexMap[successor.id] else successor.id
+                    }
                     targets.sort(targetOffsets[vertexId], i)
+                    vertexId++
                 }
                 val edgeOffsets = IntArray(targets.size + 1)
                 val edgeIds = IntArray(numEdgeIds)
-                for (vertexId in 0..<n) {
-                    val vertex = Vertex(vertexId)
+                vertexId = 0
+                var edgeId = 0
+                for (vertex in graph.vertices) {
                     for (slot in targetOffsets[vertexId]..<targetOffsets[vertexId + 1]) {
                         var i = edgeOffsets[slot]
-                        for (edge in graph.edges(vertex, Vertex(targets[slot]))) { edgeIds[i++] = IdentityIndexedEdge.from(edge).id }
-                        edgeIds.sort(edgeOffsets[slot], i)
+                        val successor = if (reverseVertexMap != null) {
+                            Vertex(reverseVertexMap[targets[slot]])
+                        } else {
+                            Vertex(targets[slot])
+                        }
+                        for (edge in graph.edges(vertex, successor)) {
+                            edgeMap?.set(edgeId, edge.id)
+                            if (reverseEdgeMap != null) {
+                                reverseEdgeMap[edge.id] = edgeId
+                                edgeIds[i++] = edgeId++
+                            } else {
+                                edgeIds[i++] = IdentityIndexedEdge.from(edge).id
+                            }
+                        }
+                        if (reverseEdgeMap != null) edgeIds.sort(edgeOffsets[slot], i)
                         edgeOffsets[slot + 1] = i
                     }
+                    vertexId++
                 }
                 return Adjacencies(targetOffsets, targets, edgeOffsets, edgeIds)
             }
@@ -283,15 +335,95 @@ internal class ImmutableAdjacencyListNetwork private constructor(
     }
 
     companion object {
-        fun copy(graph: Graph): ImmutableGraph {
-            return ImmutableAdjacencyListNetwork(
+        fun copy(graph: Graph): GraphCopy<ImmutableGraph> {
+            val vertexMap: IntArray?
+            val reverseVertexMap: Int2IntHashMap?
+            val edgeMap: LongArray?
+            val reverseEdgeMap: Long2IntHashMap?
+
+            if (graph.vertices is IdentityIndexedVertexSet) {
+                vertexMap = null
+                reverseVertexMap = null
+            } else {
+                vertexMap = IntArray(graph.vertices.size)
+                reverseVertexMap = Int2IntHashMap(graph.vertices.size)
+            }
+            if (graph.edges is IdentityIndexedEdgeSet) {
+                edgeMap = null
+                reverseEdgeMap = null
+            } else {
+                edgeMap = LongArray(graph.edges.size)
+                reverseEdgeMap = Long2IntHashMap(graph.edges.size)
+            }
+
+            val adjacencies = Adjacencies.createSuccessors(graph, vertexMap, reverseVertexMap, edgeMap, reverseEdgeMap)
+            val edgeValues = EdgeValueArray(LongArray(graph.edges.size))
+            for (edge in graph.edges) {
+                val copyEdgeId = if (reverseEdgeMap != null) reverseEdgeMap[edge.id] else IdentityIndexedEdge.from(edge).id
+                val copySource: Vertex
+                val copyTarget: Vertex
+                if (reverseVertexMap != null) {
+                    copySource = Vertex(reverseVertexMap.getValue(graph.edgeSource(edge).id))
+                    copyTarget = Vertex(reverseVertexMap.getValue(graph.edgeTarget(edge).id))
+                } else {
+                    copySource = graph.edgeSource(edge)
+                    copyTarget = graph.edgeTarget(edge)
+                }
+
+                edgeValues[copyEdgeId] = EdgeValue(graph.directed, copySource, copyTarget)
+            }
+
+            val copy = ImmutableAdjacencyListNetwork(
                 graph.directed,
                 graph.multiEdge,
-                Adjacencies.createSuccessors(graph),
-                EdgeValueArray(graph.edges.size) { index ->
-                    val edge = Edge(index.toLong())
-                    EdgeValue(graph.directed, graph.edgeSource(edge), graph.edgeTarget(edge))
-                })
+                adjacencies,
+                edgeValues
+            )
+            val vertexIsomorphism = if (vertexMap == null) {
+                identityVertexIsomorphism(copy, graph)
+            } else {
+                keyVertexIsomorphism(copy, graph, CopyVertexProperty(copy, vertexMap, reverseVertexMap!!))
+            }
+            val edgeIsomorphism = if (edgeMap == null) {
+                identityEdgeIsomorphism(copy, graph)
+            } else {
+                keyEdgeIsomorphism(copy, graph, CopyEdgeProperty(copy, edgeMap, reverseEdgeMap!!))
+            }
+            return isomorphism(vertexIsomorphism, edgeIsomorphism)
+        }
+
+        private class CopyVertexProperty(
+            private val copy: ImmutableAdjacencyListNetwork,
+            private val vertexMap: IntArray,
+            private val reverseVertexMap: Int2IntHashMap,
+        ) : VertexKeyProperty<Vertex> {
+            init {
+                require(copy.vertices.size == vertexMap.size)
+                require(vertexMap.size == reverseVertexMap.size)
+            }
+
+            override val graph: Graph get() = copy
+            override val type: PropertyType<Vertex> get() = propertyTypeOf()
+            override fun get(vertex: Vertex): Vertex = Vertex(vertexMap[vertex.id])
+            override fun hasVertex(key: Vertex): Boolean = reverseVertexMap.containsKey(key.id)
+            override fun getVertex(key: Vertex): Vertex = Vertex(reverseVertexMap.getValue(key.id))
+        }
+
+        private class CopyEdgeProperty(
+            private val copy: ImmutableAdjacencyListNetwork,
+            private val edgeMap: LongArray,
+            private val reverseEdgeMap: Long2IntHashMap,
+        ) : EdgeKeyProperty<Edge> {
+            init {
+                require(copy.edges.size == edgeMap.size)
+                require(edgeMap.size == reverseEdgeMap.size)
+            }
+
+            override val graph: Graph get() = copy
+            override val type: PropertyType<Edge> get() = propertyTypeOf()
+            override fun get(edge: Edge): Edge = Edge(edgeMap[IdentityIndexedEdge.from(edge).id])
+            override fun hasEdge(key: Edge): Boolean = reverseEdgeMap.containsKey(key.id)
+            override fun getEdge(key: Edge): Edge = IdentityIndexedEdge(reverseEdgeMap.getValue(key.id)).toEdge()
         }
     }
 }

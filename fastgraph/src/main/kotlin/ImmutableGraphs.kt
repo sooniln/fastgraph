@@ -8,9 +8,12 @@ package io.github.sooniln.fastgraph
 import io.github.sooniln.fastgraph.homomorphisms.EdgeHomomorphism
 import io.github.sooniln.fastgraph.homomorphisms.GraphHomomorphism
 import io.github.sooniln.fastgraph.homomorphisms.VertexIsomorphism
+import io.github.sooniln.fastgraph.homomorphisms.emptyIsomorphism
 import io.github.sooniln.fastgraph.homomorphisms.homomorphism
-import io.github.sooniln.fastgraph.homomorphisms.isomorphism
-import io.github.sooniln.fastgraph.homomorphisms.vertexIdentityIsomorphism
+import io.github.sooniln.fastgraph.homomorphisms.identityVertexIsomorphism
+import io.github.sooniln.fastgraph.homomorphisms.selfIsomorphism
+import io.github.sooniln.fastgraph.internal.ImmutableAdjacencyListGraph
+import io.github.sooniln.fastgraph.internal.ImmutableAdjacencyListNetwork
 import io.github.sooniln.fastgraph.internal.ImmutableEdgeReference
 import io.github.sooniln.fastgraph.internal.ImmutableTransposedGraph
 import io.github.sooniln.fastgraph.internal.ImmutableUndirectedGraph
@@ -23,7 +26,6 @@ import io.github.sooniln.fastgraph.properties.MutableEdgeProperty
 import io.github.sooniln.fastgraph.properties.MutableVertexKeyProperty
 import io.github.sooniln.fastgraph.properties.MutableVertexProperty
 import io.github.sooniln.fastgraph.properties.PropertyType
-import io.github.sooniln.fastgraph.properties.copyInto
 import io.github.sooniln.fastgraph.properties.emptyEdgeProperty
 import io.github.sooniln.fastgraph.properties.emptyVertexProperty
 import io.github.sooniln.fastgraph.properties.propertyTypeOf
@@ -115,24 +117,43 @@ public inline fun <reified V, reified E> emptyImmutableValueGraph(directed: Bool
     return emptyImmutableValueGraph(directed, propertyTypeOf(), propertyTypeOf())
 }
 
-public fun <V, E> ValueGraph<V, E>.toImmutableValueGraph(): ImmutableValueGraph<V, E> {
-    if (this is ImmutableValueGraph) {
+/**
+ * TODO
+ */
+// TODO: allow passing in key property?
+@JvmOverloads
+public fun Graph.toImmutableGraph(indexEdges: Boolean = false): GraphCopy<ImmutableGraph> {
+    return if (this is ImmutableGraph && (!indexEdges || edges is IndexedEdgeSet)) {
+        selfIsomorphism(this)
+    } else if (isEmpty()) {
+        emptyIsomorphism(emptyImmutableGraph(directed), this)
+    } else if (multiEdge || indexEdges || edges is IndexedEdgeSet) {
+        ImmutableAdjacencyListNetwork.copy(this)
+    } else {
+        ImmutableAdjacencyListGraph.copy(this)
+    }
+}
+
+/**
+ * TODO
+ */
+// TODO: use key property?
+@JvmOverloads
+public fun <V, E> ValueGraph<V, E>.toImmutableValueGraph(
+    indexEdges: Boolean = false
+): ImmutableValueGraph<V, E> {
+    if (this is ImmutableValueGraph && (!indexEdges || graph.edges is IndexedEdgeSet)) {
         return this
-    } else if (graph.isEmpty()) {
-        return emptyImmutableValueGraph(
-            graph.directed,
-            vertexKeys.type,
-            edgeValues.type)
+    } else if (isEmpty()) {
+        return emptyImmutableValueGraph(graph.directed, vertexKeys.type, edgeValues.type)
     }
 
-    val graph = graph.toImmutableGraph()
-    // the property initializer and key copy are safe because (1) ImmutableGraph is a sealed type (2) we know all
-    // implementations will never retain a reference to the initializer post-construction (3) we know all copy
-    // implementations return identity isomorphisms (all vertex/edge ids are the same)
-    return ImmutableValueGraph(
-        graph,
-        graph.createVertexKeyProperty(vertexKeys.type).also { vertexKeys.copyInto(it) },
-        graph.createEdgeProperty(edgeValues.type) { edge -> edgeValues[edge] })
+    val graphCopy = graph.toImmutableGraph(indexEdges)
+    check(graphCopy.source !== graphCopy.target)
+
+    val vertexKeysCopy = graphCopy.copy(vertexKeys)
+    val edgeValuesCopy = graphCopy.copy(edgeValues)
+    return ImmutableValueGraph(graphCopy.source, vertexKeysCopy, edgeValuesCopy)
 }
 
 /**
@@ -144,7 +165,7 @@ public inline fun buildImmutableGraph(
     indexEdges: Boolean = false,
     builder: GraphBuilder.() -> Unit
 ): ImmutableGraph {
-    return buildGraph(directed, multiEdge, indexEdges, builder).toImmutableGraph()
+    return buildGraph(directed, multiEdge, indexEdges, builder).toImmutableGraph(indexEdges).source
 }
 
 /**
@@ -158,7 +179,7 @@ public inline fun <reified V, reified E> buildImmutableValueGraph(
     indexEdges: Boolean = false,
     builder: ValueGraphBuilder<V, E>.() -> Unit
 ): ImmutableValueGraph<V, E> {
-    return buildValueGraph(directed, edgeInitializer, multiEdge, indexEdges, builder).toImmutableValueGraph()
+    return buildValueGraph(directed, edgeInitializer, multiEdge, indexEdges, builder).toImmutableValueGraph(indexEdges)
 }
 
 /**
@@ -215,10 +236,10 @@ public fun ImmutableGraph.asUndirected(): ImmutableGraph {
  * [GraphHomomorphism.target] is the original).
  */
 public fun ImmutableGraph.asDirected(): GraphHomomorphism<ImmutableGraph, ImmutableGraph, VertexIsomorphism<ImmutableGraph, ImmutableGraph>, EdgeHomomorphism<ImmutableGraph, ImmutableGraph>> {
-    if (directed) return isomorphism(this)
+    if (directed) return selfIsomorphism(this)
 
     val edgeHomomorphism = createAssociatedDiGraph(this)
-    return homomorphism(vertexIdentityIsomorphism(edgeHomomorphism.source, this), edgeHomomorphism)
+    return homomorphism(identityVertexIsomorphism(edgeHomomorphism.source, this), edgeHomomorphism)
 }
 
 private class EmptyGraph(override val directed: Boolean) : ImmutableGraph {
@@ -228,7 +249,7 @@ private class EmptyGraph(override val directed: Boolean) : ImmutableGraph {
     }
 
     override val multiEdge: Boolean
-        get() = false
+        get() = true
 
     override val vertices: IdentityIndexedVertexSet
         get() = emptyVertexSet()

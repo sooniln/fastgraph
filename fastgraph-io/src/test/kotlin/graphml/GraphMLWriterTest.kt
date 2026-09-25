@@ -286,7 +286,7 @@ class GraphMLWriterTest {
 
         // an immutable copy has the same ids, so it writes the same elements (iteration order may differ)
         val immutableOutput = ByteArrayOutputStream()
-        writeGraphML(immutableOutput, GraphMLGraph(graph.toImmutableGraph()))
+        writeGraphML(immutableOutput, GraphMLGraph(graph.toImmutableGraph().target))
         assertThat(immutableOutput.toString(Charsets.UTF_8).lines())
             .containsExactlyInAnyOrderElementsOf(mutableOutput.toString(Charsets.UTF_8).lines())
 

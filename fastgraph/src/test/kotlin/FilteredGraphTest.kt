@@ -548,7 +548,7 @@ class FilteredGraphTest {
         assertThat(filteredGraph.vertices).containsExactlyInAnyOrder(v0, v1)
         assertThat(filteredGraph.edges).containsExactlyInAnyOrder(e0)
         assertThat(filteredGraph.edges.contains(e1)).isFalse
-        assertThat(filteredGraph.toImmutableGraph()).isSameAs(filteredGraph)
+        assertThat(filteredGraph.toImmutableGraph().target).isSameAs(filteredGraph)
 
         // registration silently succeeds and does nothing on an immutable filtered graph, rather than throwing
         val vertexListener = RecordingVertexListener()

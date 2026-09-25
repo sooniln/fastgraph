@@ -53,7 +53,7 @@ class ImmutableGraphsTest {
         val v1 = mutable.addVertex()
         val e0 = mutable.addEdge(v0, v1)
 
-        val immutable = mutable.toImmutableGraph()
+        val immutable = mutable.toImmutableGraph().target
 
         assertThat(immutable).isInstanceOf(ImmutableGraph::class.java)
         assertThat(immutable.vertices).containsExactlyInAnyOrder(v0, v1)
@@ -77,7 +77,7 @@ class ImmutableGraphsTest {
             addVertex()
         }
 
-        assertThat(immutable.toImmutableGraph()).isSameAs(immutable)
+        assertThat(immutable.toImmutableGraph().target).isSameAs(immutable)
     }
 
     @ParameterizedTest(name = "directed={0}")
@@ -148,7 +148,7 @@ class ImmutableGraphsTest {
             edges += mutable.addEdge(a, a)
         }
 
-        val immutable = mutable.toImmutableGraph()
+        val immutable = mutable.toImmutableGraph().target
 
         assertThat(immutable).isInstanceOf(ImmutableGraph::class.java)
         assertThat(immutable.directed).isEqualTo(directed)
@@ -193,25 +193,31 @@ class ImmutableGraphsTest {
 
     @ParameterizedTest(name = "directed={0}")
     @ValueSource(booleans = [true, false])
-    fun toImmutableGraphIsUnsupportedForViewsWithOpaqueIds(directed: Boolean) {
+    fun toImmutableGraphCopiesViewsWithOpaqueIds(directed: Boolean) {
         val mutable = mutableGraph(directed)
         val v0 = mutable.addVertex()
         val v1 = mutable.addVertex()
         mutable.addEdge(v0, v1)
 
-        // views do not guarantee identity-indexed vertices, so there is nothing to copy them into yet
-        assertThrows<UnsupportedOperationException> { mutable.filter(vertexSetOf(v0, v1), mutable.edges).toImmutableGraph() }
-        assertThrows<UnsupportedOperationException> { mutable.filter({ true }, { true }).toImmutableGraph() }
-        if (directed) {
-            assertThrows<UnsupportedOperationException> { mutable.asTransposed().toImmutableGraph() }
+        // views do not guarantee identity-indexed vertices, so their copies are related to them through the isomorphism
+        for (view in listOfNotNull(
+            mutable.filter(vertexSetOf(v0, v1), mutable.edges),
+            mutable.filter({ true }, { true }),
+            if (directed) mutable.asTransposed() else null)) {
+            val copy = view.toImmutableGraph()
+            assertThat(copy.target.vertices).hasSize(2)
+            assertThat(copy.target.edges).hasSize(1)
+            val edge = view.edges.single()
+            assertThat(setOf(copy.target.edgeSource(copy.edgeMap[edge]), copy.target.edgeTarget(copy.edgeMap[edge])))
+                .isEqualTo(setOf(copy.vertexMap[view.edgeSource(edge)], copy.vertexMap[view.edgeTarget(edge)]))
         }
 
-        // ... except for empty views, which become the empty immutable graph
-        assertThat(mutable.filter({ false }, { true }).toImmutableGraph()).isSameAs(io.github.sooniln.fastgraph.emptyImmutableGraph(directed))
+        // empty views become the empty immutable graph
+        assertThat(mutable.filter({ false }, { true }).toImmutableGraph().target).isSameAs(io.github.sooniln.fastgraph.emptyImmutableGraph(directed))
 
         // a path tree is already immutable
         val tree = mutable.breadthFirstPathForest(v0)
-        assertThat(tree.toImmutableGraph()).isSameAs(tree)
+        assertThat(tree.toImmutableGraph().target).isSameAs(tree)
     }
 
     @ParameterizedTest(name = "directed={0}")
@@ -221,10 +227,10 @@ class ImmutableGraphsTest {
 
         assertThat(io.github.sooniln.fastgraph.emptyImmutableGraph(directed)).isSameAs(empty)
         assertThat(io.github.sooniln.fastgraph.emptyImmutableGraph(!directed)).isNotSameAs(empty)
-        assertThat(mutableGraph(directed).toImmutableGraph()).isSameAs(empty)
-        assertThat(mutableGraph(directed, multiEdge = true).toImmutableGraph()).isSameAs(empty)
+        assertThat(mutableGraph(directed).toImmutableGraph().target).isSameAs(empty)
+        assertThat(mutableGraph(directed, multiEdge = true).toImmutableGraph().target).isSameAs(empty)
         assertThat(emptyGraph(directed)).isSameAs(empty)
-        assertThat(empty.multiEdge).isFalse
+        assertThat(empty.multiEdge).isTrue
         assertThat(empty.vertices).isInstanceOf(IdentityIndexedVertexSet::class.java)
         assertThat(empty.edges).isInstanceOf(IdentityIndexedEdgeSet::class.java)
 
@@ -306,7 +312,7 @@ class ImmutableGraphsTest {
         val v0 = mutable.addVertex()
         val v1 = mutable.addVertex()
         val e0 = mutable.addEdge(v0, v1)
-        val immutable = mutable.toImmutableGraph()
+        val immutable = mutable.toImmutableGraph().target
 
         assertThat(immutable.createVertexReference(v1).unstable).isEqualTo(v1)
         assertThat(immutable.createEdgeReference(e0).unstable).isEqualTo(e0)

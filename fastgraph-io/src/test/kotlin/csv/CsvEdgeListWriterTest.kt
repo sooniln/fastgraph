@@ -177,7 +177,7 @@ class CsvEdgeListWriterTest {
         writeCsvEdgeList(mutableOutput, CsvEdgeListGraph(graph, vertexProperty))
 
         // an immutable copy writes the same edge list (the key property is copied onto the copy)
-        val immutable = graph.toImmutableGraph()
+        val immutable = graph.toImmutableGraph().target
         val immutableKeys = immutable.createVertexKeyProperty<String>()
         vertexProperty.copyInto(immutableKeys)
         val immutableOutput = ByteArrayOutputStream()

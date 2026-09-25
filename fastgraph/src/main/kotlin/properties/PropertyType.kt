@@ -5,6 +5,7 @@
 
 package io.github.sooniln.fastgraph.properties
 
+import kotlin.jvm.javaObjectType
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlin.reflect.typeOf
@@ -59,6 +60,9 @@ public value class PropertyType<out T> private constructor(public val kType: KTy
     public fun isUnitType(): Boolean {
         return kType == unit.kType
     }
+
+    @Suppress("UNCHECKED_CAST")
+    public val javaClass: Class<@UnsafeVariance T & Any>? get() = (kType?.classifier as? KClass<T & Any>)?.javaObjectType
 
     override fun toString(): String = kType.toString()
 

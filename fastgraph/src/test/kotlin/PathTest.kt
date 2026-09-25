@@ -651,7 +651,7 @@ class PathTest {
         assertThat(tree.multiEdge).isFalse
         assertThat(tree.isEmpty()).isFalse
         assertThat(tree.roots).containsExactly(v0)
-        assertThat(tree.toImmutableGraph()).isSameAs(tree)
+        assertThat(tree.toImmutableGraph().target).isSameAs(tree)
 
         // the root has no parent
         assertThat(tree.outDegree(v0)).isEqualTo(0)

@@ -274,7 +274,7 @@ class PropertyTest {
             val v1 = addVertex()
             addEdge(v0, v1)
         }
-        val immutable = mutable.toImmutableGraph()
+        val immutable = mutable.toImmutableGraph().target
 
         var vertexCalls = 0
         var edgeCalls = 0
@@ -616,7 +616,7 @@ class PropertyTest {
             addEdge(v0, v1)
             addEdge(v1, v1)
         }
-        val immutable = mutable.toImmutableGraph()
+        val immutable = mutable.toImmutableGraph().target
         val vertexSource = mutable.createVertexProperty { vertex -> "v${vertex.id}" }
         val edgeSource = mutable.createEdgeProperty { edge -> "e${edge.id}" }
 

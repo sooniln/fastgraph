@@ -8,21 +8,21 @@ package io.github.sooniln.fastgraph.homomorphisms
 
 import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.Graph
-import io.github.sooniln.fastgraph.ImmutableGraph
+import io.github.sooniln.fastgraph.IdentityIndexedEdgeSet
+import io.github.sooniln.fastgraph.Edge
+import io.github.sooniln.fastgraph.Edge
 import io.github.sooniln.fastgraph.internal.throwIllegalEdge
 import io.github.sooniln.fastgraph.properties.PropertyType
 import io.github.sooniln.fastgraph.properties.EdgeKeyProperty
 import io.github.sooniln.fastgraph.properties.EdgeProperty
+import io.github.sooniln.fastgraph.properties.EdgeKeyProperty
+import io.github.sooniln.fastgraph.properties.EdgeKeyProperty
 import io.github.sooniln.fastgraph.properties.propertyTypeOf
 
 /**
  * A graph homomorphism maps every edge of one [source] graph, to a edge of another [target] graph, such that
  * edges are respected: if two edges are joined by an edge in [source], their mapped edges in [target] must also
  * be joined by an edge. It is important to note that the mapping is only one way, from [source] to [target].
- *
- * A Homomorphism is only valid so long as no changes have been made to [source] or [target] topology which would
- * invalidate the homomorphism. As there is no method of detecting whether any given change invalidates the
- * homomorphism, the behavior of this class is undefined if such a change is made.
  */
 public sealed interface EdgeHomomorphism<out GS : Graph, out GT : Graph> {
     public val source: GS
@@ -43,12 +43,8 @@ internal interface InternalEdgeHomomorphism<out GS : Graph, out GT : Graph> : Ed
  * in [target] (no two edges in the source can map to the same target edge). Note that this does not imply that
  * either edges or edges are surjective ([target] may have edges/edges that are not mapped to by [source]).
  *
- * Some literature differentiates between monomorphism and strict/regular monomorphism. This interface represents a
- * (loose) monomorphism, and not a strict/regular monomorphism.
- *
- * A [EdgeHomomorphism] is only valid so long as no changes have been made to [source] or [target] topology which would
- * invalidate the homomorphism. As there is no method of detecting whether any given change invalidates the
- * homomorphism, the behavior of this class is undefined if such a change is made.
+ * Some literature differentiates between monomorphism and strict/regular monomorphism. This interface represents
+ * (loose) monomorphism, and not strict/regular monomorphism.
  */
 public sealed interface EdgeMonomorphism<out GS : Graph, out GT : Graph> : EdgeHomomorphism<GS, GT> {
 
@@ -61,22 +57,35 @@ public sealed interface EdgeMonomorphism<out GS : Graph, out GT : Graph> : EdgeH
 
 /**
  * An isomorphism is a surjective [EdgeMonomorphism] (a full bijection), where there is no edge or edge in [target] that
- * does not have a mapping from [source]. Less formally, and isomorphism is a mapping such that every edge and edge in
+ * does not have a mapping from [source]. Less formally, an isomorphism is a mapping such that every edge and edge in
  * [source] is mapped to a distinct edge and edge in [target] AND vice versa - the source and target graph are
  * structurally completely identical.
- *
- * A [EdgeHomomorphism] is only valid so long as no changes have been made to [source] or [target] topology which would
- * invalidate the homomorphism. As there is no method of detecting whether any given change invalidates the
- * homomorphism, the behavior of this class is undefined if such a change is made.
  */
 public sealed interface EdgeIsomorphism<out GS : Graph, out GT : Graph> : EdgeMonomorphism<GS, GT>
 
-public fun <G : Graph> edgeIsomorphism(graph: G) : EdgeIsomorphism<G, G> {
+/** Returns an [EdgeIsomorphism] relating all edges of the graph to themselves. */
+public fun <G : Graph> selfEdgeIsomorphism(graph: G) : EdgeIsomorphism<G, G> {
     return SelfEdgeIsomorphism(graph)
 }
 
-public fun <GS : ImmutableGraph, GT : ImmutableGraph> emptyEdgeIsomorphism(source: GS, target: GT) : EdgeIsomorphism<GS, GT> {
+/**
+ * Returns an [EdgeIsomorphism] relating an empty edge set to another empty edge set. This isomorphism becomes invalid
+ * if the edge set of either graph ever becomes non-empty.
+ */
+public fun <GS : Graph, GT : Graph> emptyEdgeIsomorphism(source: GS, target: GT) : EdgeIsomorphism<GS, GT> {
     return EmptyEdgeIsomorphism(source, target)
+}
+
+internal fun <GS : Graph, GT : Graph> identityEdgeIsomorphism(source: GS, target: GT) : EdgeIsomorphism<GS, GT> {
+    return SimpleEdgeIsomorphism(source, target, IdentityEdgeKeyProperty(source))
+}
+
+internal fun <GS : Graph, GT : Graph> keyEdgeIsomorphism(
+    source: GS,
+    target: GT,
+    keyProperty: EdgeKeyProperty<Edge>,
+) : EdgeIsomorphism<GS, GT> {
+    return SimpleEdgeIsomorphism(source, target, keyProperty)
 }
 
 private class SelfEdgeIsomorphism<out G: Graph>(private val graph: G) : EdgeIsomorphism<G, G> {
@@ -92,7 +101,7 @@ private class SelfEdgeIsomorphism<out G: Graph>(private val graph: G) : EdgeIsom
     }
 }
 
-private class EmptyEdgeIsomorphism<GS : ImmutableGraph, GT : ImmutableGraph>(
+private class EmptyEdgeIsomorphism<GS : Graph, GT : Graph>(
     override val source: GS,
     override val target: GT,
 ) : EdgeIsomorphism<GS, GT> {
@@ -107,5 +116,27 @@ private class EmptyEdgeIsomorphism<GS : ImmutableGraph, GT : ImmutableGraph>(
         override fun get(edge: Edge): Edge = throwIllegalEdge(source, edge)
         override fun hasEdge(key: Edge): Boolean = false
         override fun getEdge(key: Edge): Edge = throwIllegalEdge(target, key)
+    }
+}
+
+private class SimpleEdgeIsomorphism<out GS : Graph, out GT : Graph>(
+    override val source: GS,
+    override val target: GT,
+    override val edgeMap: EdgeKeyProperty<Edge>,
+) : EdgeIsomorphism<GS, GT> {
+    init {
+        require(edgeMap.graph === source)
+        require(source.vertices.size == target.vertices.size)
+        // TODO: when do we want a fuller check?
+    }
+}
+
+private class IdentityEdgeKeyProperty(override val graph: Graph) : EdgeKeyProperty<Edge> {
+    override val type: PropertyType<Edge> get() = propertyTypeOf()
+    override fun get(edge: Edge): Edge = edge
+    override fun hasEdge(key: Edge): Boolean = graph.edges.contains(key)
+    override fun getEdge(key: Edge): Edge {
+        require(hasEdge(key))
+        return key
     }
 }

@@ -37,7 +37,7 @@ class CollectionTest {
             e12 = addEdge(v2, v1)
             e02 = addEdge(v0, v2)
         }
-        immutable = mutable.toImmutableGraph()
+        immutable = mutable.toImmutableGraph().target
         tree = mutable.buildPathForest {
             addRoot(v0)
             setParentEdge(v2, e02)
