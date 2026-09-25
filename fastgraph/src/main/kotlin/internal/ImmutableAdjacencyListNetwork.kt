@@ -69,8 +69,10 @@ internal class ImmutableAdjacencyListNetwork private constructor(
             return Vertex(targets[start])
         }
 
+        fun adjacencyCount(vertex: Vertex): Int = end(vertex) - start(vertex)
+
         fun adjacencies(vertex: Vertex): VertexSet = object : AbstractVertexSet() {
-            override val size: Int get() = end(vertex) - start(vertex)
+            override val size: Int get() = adjacencyCount(vertex)
             override fun contains(element: Vertex): Boolean = isAdjacent(vertex, element)
             override fun iterator(): VertexIterator = object : VertexIterator {
                 private var i = start(vertex)
@@ -163,8 +165,8 @@ internal class ImmutableAdjacencyListNetwork private constructor(
                 var numEdgeIds = 0
                 for (vertexId in 0..<n) {
                     val vertex = Vertex(vertexId)
-                    targetOffsets[vertexId + 1] = targetOffsets[vertexId] + graph.successors(vertex).size
-                    numEdgeIds += graph.outgoingEdges(vertex).size
+                    targetOffsets[vertexId + 1] = targetOffsets[vertexId] + graph.successorsCount(vertex)
+                    numEdgeIds += graph.outgoingEdgeCount(vertex)
                 }
                 val targets = IntArray(targetOffsets[n])
                 for (vertexId in 0..<n) {
@@ -217,12 +219,16 @@ internal class ImmutableAdjacencyListNetwork private constructor(
         return if (!directed) degree + selfLoopCounts[vertex.id] else degree
     }
     override fun getInDegree(vertex: Vertex): Int = predecessors.degree(vertex)
+    override fun getSuccessorsCount(vertex: Vertex): Int = successors.adjacencyCount(vertex)
     override fun getSuccessors(vertex: Vertex): VertexSet = successors.adjacencies(vertex)
     override fun getSuccessor(vertex: Vertex): Vertex = successors.adjacency(vertex)
+    override fun getPredecessorsCount(vertex: Vertex): Int = predecessors.adjacencyCount(vertex)
     override fun getPredecessors(vertex: Vertex): VertexSet = predecessors.adjacencies(vertex)
     override fun getPredecessor(vertex: Vertex): Vertex = predecessors.adjacency(vertex)
+    override fun getOutgoingEdgeCount(vertex: Vertex): Int = successors.degree(vertex)
     override fun getOutgoingEdges(vertex: Vertex): EdgeSet = OutgoingEdges(vertex)
     override fun getOutgoingEdge(vertex: Vertex): Edge = successors.edge(vertex)
+    override fun getIncomingEdgeCount(vertex: Vertex): Int = predecessors.degree(vertex)
     override fun getIncomingEdges(vertex: Vertex): EdgeSet = IncomingEdges(vertex)
     override fun getIncomingEdge(vertex: Vertex): Edge = predecessors.edge(vertex)
 
@@ -234,6 +240,8 @@ internal class ImmutableAdjacencyListNetwork private constructor(
     override fun edgeTarget(edge: Edge): Vertex = edgeValues[edge.id.toInt()].target
 
     override fun containsEdge(source: Vertex, target: Vertex): Boolean = successors.isAdjacent(source, target)
+
+    override fun getEdgesCount(source: Vertex, target: Vertex): Int = successors.edges(source, target).size
 
     override fun getEdge(source: Vertex, target: Vertex): Edge = successors.edge(source, target)
     override fun getEdges(source: Vertex, target: Vertex): EdgeSet = EdgesBetween(source, target)

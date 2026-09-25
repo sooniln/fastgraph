@@ -100,6 +100,7 @@ private abstract class AbstractCanonicalEdgeAssociatedDiGraph<G : CanonicalEdgeG
 
     override fun outDegree(vertex: Vertex): Int = degree(vertex)
     override fun inDegree(vertex: Vertex): Int = degree(vertex)
+
     override fun outgoingEdges(vertex: Vertex): CanonicalEdgeSet = OutgoingEdgeSet(vertex, graph.outgoingEdges(vertex))
     override fun outgoingEdge(vertex: Vertex): Edge {
         val target = CanonicalEdge.from(graph.outgoingEdge(vertex)).opposite(vertex)
@@ -392,7 +393,7 @@ internal abstract class AbstractOpaqueEdgeDirectedGraph(protected val graph: Gra
 
     // an undirected self-loop counts twice towards degree in the original graph, but maps to a single directed edge
     // which counts once towards out-degree and once towards in-degree
-    private fun degree(vertex: Vertex): Int = graph.outDegree(vertex) - graph.edges(vertex, vertex).size
+    private fun degree(vertex: Vertex): Int = graph.outDegree(vertex) - graph.edgesCount(vertex, vertex)
 
     override fun outDegree(vertex: Vertex): Int = degree(vertex)
     override fun inDegree(vertex: Vertex): Int = degree(vertex)

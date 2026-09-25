@@ -30,12 +30,16 @@ internal abstract class AbstractTransposedGraph(val graph: Graph) : Graph by gra
 
     override fun outDegree(vertex: Vertex): Int = graph.inDegree(vertex)
     override fun inDegree(vertex: Vertex): Int = graph.outDegree(vertex)
+    override fun successorsCount(vertex: Vertex): Int = graph.predecessorsCount(vertex)
     override fun successors(vertex: Vertex): VertexSet = graph.predecessors(vertex)
     override fun successor(vertex: Vertex): Vertex = graph.predecessor(vertex)
+    override fun predecessorsCount(vertex: Vertex): Int = graph.successorsCount(vertex)
     override fun predecessors(vertex: Vertex): VertexSet = graph.successors(vertex)
     override fun predecessor(vertex: Vertex): Vertex = graph.successor(vertex)
+    override fun outgoingEdgeCount(vertex: Vertex): Int = graph.incomingEdgeCount(vertex)
     override fun outgoingEdges(vertex: Vertex): EdgeSet = graph.incomingEdges(vertex)
     override fun outgoingEdge(vertex: Vertex): Edge = graph.incomingEdge(vertex)
+    override fun incomingEdgeCount(vertex: Vertex): Int = graph.outgoingEdgeCount(vertex)
     override fun incomingEdges(vertex: Vertex): EdgeSet = graph.outgoingEdges(vertex)
     override fun incomingEdge(vertex: Vertex): Edge = graph.outgoingEdge(vertex)
 
@@ -52,6 +56,7 @@ internal abstract class AbstractTransposedGraph(val graph: Graph) : Graph by gra
     override fun edgeTarget(edge: Edge): Vertex = graph.edgeSource(edge)
 
     override fun hasEdge(source: Vertex, target: Vertex): Boolean = graph.hasEdge(target, source)
+    override fun edgesCount(source: Vertex, target: Vertex): Int = graph.edgesCount(target, source)
     override fun edge(source: Vertex, target: Vertex): Edge = graph.edge(target, source)
     override fun edges(source: Vertex, target: Vertex): EdgeSet = graph.edges(target, source)
 

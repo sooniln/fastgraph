@@ -412,10 +412,8 @@ public fun writeGraphML(
     for (vertex in graph.graph.vertices) {
         writer.writeStartElement("node")
         writer.writeAttribute("id", vertex.toId())
-        // these are capacity hints for the reader (see parseGraphML), so write the adjacency storage size rather than
-        // the degree (which counts undirected self-loops twice and multi-edges multiple times)
-        writer.writeAttribute("parse.indegree", graph.graph.predecessors(vertex).size.toString())
-        writer.writeAttribute("parse.outdegree", graph.graph.successors(vertex).size.toString())
+        writer.writeAttribute("parse.indegree", graph.graph.predecessorsCount(vertex).toString())
+        writer.writeAttribute("parse.outdegree", graph.graph.successorsCount(vertex).toString())
         for ((name, property) in graph.vertexProperties) {
             writer.writeStartElement("data")
             writer.writeAttribute("key", vertexKeyIds.getValue(name))

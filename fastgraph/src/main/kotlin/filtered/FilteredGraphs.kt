@@ -225,10 +225,14 @@ private abstract class AbstractFilteredGraph<G : Graph>(
     }
 
     override fun getOutDegree(vertex: Vertex): Int {
-        val degree = parent.outgoingEdges(vertex).count { edges.contains(it) }
+        val degree = getOutgoingEdgeCount(vertex)
         return if (directed) degree else degree + parent.edges(vertex, vertex).count { edges.contains(it) }
     }
-    override fun getInDegree(vertex: Vertex): Int = parent.incomingEdges(vertex).count { edges.contains(it) }
+    override fun getInDegree(vertex: Vertex): Int = getIncomingEdgeCount(vertex)
+    override fun getSuccessorsCount(vertex: Vertex): Int = parent.successors(vertex).count { containsEdge(vertex, it) }
+    override fun getPredecessorsCount(vertex: Vertex): Int = parent.predecessors(vertex).count { containsEdge(it, vertex) }
+    override fun getOutgoingEdgeCount(vertex: Vertex): Int = parent.outgoingEdges(vertex).count { edges.contains(it) }
+    override fun getIncomingEdgeCount(vertex: Vertex): Int = parent.incomingEdges(vertex).count { edges.contains(it) }
     override fun getSuccessors(vertex: Vertex): VertexSet = FilteredVertexSet(vertex, parent.successors(vertex), successors = true)
     override fun getPredecessors(vertex: Vertex): VertexSet = FilteredVertexSet(vertex, parent.predecessors(vertex), successors = false)
     override fun getOutgoingEdges(vertex: Vertex): EdgeSet = edges.filter(parent.outgoingEdges(vertex))
@@ -239,6 +243,10 @@ private abstract class AbstractFilteredGraph<G : Graph>(
 
     override fun containsEdge(source: Vertex, target: Vertex): Boolean {
         return parent.hasEdge(source, target) && parent.edges(source, target).any { edges.contains(it) }
+    }
+
+    override fun getEdgesCount(source: Vertex, target: Vertex): Int {
+        return parent.edges(source, target).count { edges.contains(it) }
     }
 
     override fun getEdge(source: Vertex, target: Vertex): Edge {

@@ -131,7 +131,7 @@ internal class ImmutableAdjacencyListGraph private constructor(
                 val numVertices = graph.vertices.size
                 val offsets = IntArray(numVertices + 1)
                 for (vertexId in 0..<numVertices) {
-                    offsets[vertexId + 1] = offsets[vertexId] + graph.successors(Vertex(vertexId)).size
+                    offsets[vertexId + 1] = offsets[vertexId] + graph.successorsCount(Vertex(vertexId))
                 }
                 val targets = IntArray(offsets[numVertices])
                 for (vertexId in 0..<numVertices) {
@@ -174,12 +174,16 @@ internal class ImmutableAdjacencyListGraph private constructor(
         return if (!directed && selfLoops.get(vertex.id)) degree + 1 else degree
     }
     override fun getInDegree(vertex: Vertex): Int = predecessors.degree(vertex)
+    override fun getSuccessorsCount(vertex: Vertex): Int = successors.degree(vertex)
     override fun getSuccessors(vertex: Vertex): VertexSet = successors.adjacencies(vertex)
     override fun getSuccessor(vertex: Vertex): Vertex = successors.adjacency(vertex)
+    override fun getPredecessorsCount(vertex: Vertex): Int = predecessors.degree(vertex)
     override fun getPredecessors(vertex: Vertex): VertexSet = predecessors.adjacencies(vertex)
     override fun getPredecessor(vertex: Vertex): Vertex = predecessors.adjacency(vertex)
+    override fun getOutgoingEdgeCount(vertex: Vertex): Int = successors.degree(vertex)
     override fun getOutgoingEdges(vertex: Vertex): CanonicalEdgeSet = OutgoingIncidentEdgeSet(vertex)
     override fun getOutgoingEdge(vertex: Vertex): Edge = canonicalEdge(vertex, successors.adjacency(vertex))
+    override fun getIncomingEdgeCount(vertex: Vertex): Int = predecessors.degree(vertex)
     override fun getIncomingEdges(vertex: Vertex): CanonicalEdgeSet = IncomingIncidentEdgeSet(vertex)
     override fun getIncomingEdge(vertex: Vertex): Edge = canonicalEdge(predecessors.adjacency(vertex), vertex)
 
@@ -194,6 +198,8 @@ internal class ImmutableAdjacencyListGraph private constructor(
     }
 
     override fun containsEdge(source: Vertex, target: Vertex): Boolean = successors.isAdjacent(source, target)
+
+    override fun getEdgesCount(source: Vertex, target: Vertex): Int = if (containsEdge(source, target)) 1 else 0
 
     override fun getEdge(source: Vertex, target: Vertex): Edge {
         check(containsEdge(source, target))

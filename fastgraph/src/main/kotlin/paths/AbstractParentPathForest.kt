@@ -119,6 +119,8 @@ internal abstract class AbstractParentPathForest(
         return childCount(index)
     }
 
+    override fun successorsCount(vertex: Vertex): Int = outDegree(vertex)
+
     override fun successors(vertex: Vertex): VertexSet {
         val index = vertexIndices[vertex.id]
         if (index < 0) throwIllegalVertex(vertex)
@@ -131,11 +133,15 @@ internal abstract class AbstractParentPathForest(
         return if (parentIndices[index] < 0) throw IllegalStateException() else Vertex(vertexIds[parentIndices[index]])
     }
 
+    override fun predecessorsCount(vertex: Vertex): Int = inDegree(vertex)
+
     override fun predecessors(vertex: Vertex): VertexSet {
         val index = vertexIndices[vertex.id]
         if (index < 0) throwIllegalVertex(vertex)
         return ChildVertexSet(index)
     }
+
+    override fun outgoingEdgeCount(vertex: Vertex): Int = outDegree(vertex)
 
     override fun outgoingEdges(vertex: Vertex): EdgeSet {
         val index = vertexIndices[vertex.id]
@@ -148,6 +154,7 @@ internal abstract class AbstractParentPathForest(
         if (index < 0) throwIllegalVertex(vertex)
         return if (parentIndices[index] < 0) throw IllegalStateException() else Edge(parentEdgeIds[index])
     }
+    override fun incomingEdgeCount(vertex: Vertex): Int = inDegree(vertex)
 
     override fun incomingEdges(vertex: Vertex): EdgeSet {
         val index = vertexIndices[vertex.id]
@@ -181,6 +188,8 @@ internal abstract class AbstractParentPathForest(
         if (targetIndex < 0) throwIllegalVertex(target)
         return parentIndices[sourceIndex] == targetIndex
     }
+
+    override fun edgesCount(source: Vertex, target: Vertex): Int = if (hasEdge(source, target)) 1 else 0
 
     override fun edges(
         source: Vertex,

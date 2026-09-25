@@ -257,12 +257,16 @@ internal class AdjacencyListNetwork(
         return if (!directed) successors.size + successors.edgeCountTo(vertex) else successors.size
     }
     override fun getInDegree(vertex: Vertex): Int = predecessors[vertex].size
+    override fun getSuccessorsCount(vertex: Vertex): Int = successors[vertex].vertexCount
     override fun getSuccessors(vertex: Vertex): VertexSet = successors[vertex].vertices
     override fun getSuccessor(vertex: Vertex): Vertex = successors[vertex].vertex
+    override fun getPredecessorsCount(vertex: Vertex): Int = predecessors[vertex].vertexCount
     override fun getPredecessors(vertex: Vertex): VertexSet = predecessors[vertex].vertices
     override fun getPredecessor(vertex: Vertex): Vertex = predecessors[vertex].vertex
+    override fun getOutgoingEdgeCount(vertex: Vertex): Int = successors[vertex].size
     override fun getOutgoingEdges(vertex: Vertex): EdgeSet = IncidentEdgeSet(true, vertex, successors[vertex])
     override fun getOutgoingEdge(vertex: Vertex): Edge = successors[vertex].edge
+    override fun getIncomingEdgeCount(vertex: Vertex): Int = predecessors[vertex].size
     override fun getIncomingEdges(vertex: Vertex): EdgeSet = IncidentEdgeSet(false, vertex, predecessors[vertex])
     override fun getIncomingEdge(vertex: Vertex): Edge = predecessors[vertex].edge
 
@@ -278,7 +282,9 @@ internal class AdjacencyListNetwork(
     override fun registerEdgeChangeListener(listener: EdgeChangeListener) = edgeListeners.register(listener)
     override fun unregisterEdgeChangeListener(listener: EdgeChangeListener) = edgeListeners.unregister(listener)
 
-    override fun containsEdge(source: Vertex, target: Vertex): Boolean = successors[source.id].contains(target)
+    override fun containsEdge(source: Vertex, target: Vertex): Boolean = successors[source].contains(target)
+
+    override fun getEdgesCount(source: Vertex, target: Vertex): Int = successors[source].edgeCountTo(target)
 
     override fun getEdge(source: Vertex, target: Vertex): Edge = successors[source].edgeTo(target)
 
@@ -355,6 +361,8 @@ internal class AdjacencyListNetwork(
 
         override var size = 0
             private set
+
+        val vertexCount: Int get() = map.size
 
         override val vertices: VertexSet get() = map.keys.asVertexSet()
 
@@ -581,7 +589,7 @@ internal class AdjacencyListNetwork(
             copy.ensureVertexCapacity(graph.vertices.size)
             copy.ensureEdgeCapacity(graph.edges.size)
             for (vertex in graph.vertices) {
-                val vertexCopy = copy.addVertex(graph.successors(vertex).size, 0)
+                val vertexCopy = copy.addVertex(graph.successorsCount(vertex), 0)
                 assert(vertexCopy.id == vertex.id)
             }
             for (edge in graph.edges) {

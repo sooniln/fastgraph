@@ -102,7 +102,7 @@ public interface Graph {
 
     /**
      * Returns the number of distinct successor vertices for the given vertex. This will always be equivalent to
-     * `successors(vertex).size`, but may not allocate a new collection . Distinct from [outDegree] in that it counts
+     * `successors(vertex).size`, but may not allocate a new collection. Distinct from [outDegree] in that it counts
      * the number of vertices rather than the number of edges.
      */
     @JvmName("successorsCount")
@@ -163,7 +163,7 @@ public interface Graph {
     /**
      * Returns the number of distinct outgoing edges for the given vertex. This will always be equivalent to
      * `outgoingEdges(vertex).size`, but may not allocate a new collection. Always equivalent to [outDegree] in a
-     * directed graph, but may not be equal to [inDegree] in an undirected graph (see notes on self-loops).
+     * directed graph, but may not be equal to [outDegree] in an undirected graph (see notes on self-loops).
      */
     @JvmName("outgoingEdgeCount")
     public fun outgoingEdgeCount(vertex: Vertex): Int = outgoingEdges(vertex).size
@@ -247,15 +247,23 @@ public interface Graph {
     public fun edgeTarget(edge: Edge): Vertex
 
     /**
+     * Returns true if the graph contains an edge with the given source and target. Note that for undirected edges
+     * either can serve as the source or target - for example it is possible that `hasEdge(a, b) == true` and also
+     * `edgeSource(edge) == b && edgeTarget(edge) == a` for an undirected edge. Throws [IllegalArgumentException] if
+     * passed a source or target vertex that is not in this graph.
+     */
+    @JvmName("hasEdge")
+    public fun hasEdge(source: Vertex, target: Vertex): Boolean = edgesCount(source, target) > 0
+
+    /**
      * Returns the number of distinct edges from the source vertex to the target vertex. This will always be equivalent
      * to `edges(source, target).size`, but may not allocate a new collection. Note that for undirected edges either can
      * serve as the source or target - for example it is possible that `edgeSource(edge(source, target)) == target`
-     * and/or `edgeTarget(edge(source, target)) == source target` for an undirected edge. Throws
-     * [IllegalArgumentException] if passed a source or target vertex that is not in this graph.
-     *
+     * and/or `edgeTarget(edge(source, target)) == source` for an undirected edge. Throws [IllegalArgumentException] if
+     * passed a source or target vertex that is not in this graph.
      */
     @JvmName("edgesCount")
-    public fun edgesCount(source: Vertex, target: Vertex): Int = edges.size
+    public fun edgesCount(source: Vertex, target: Vertex): Int = edges(source, target).size
 
     /**
      * Returns the set of edges from the given source to the given target. Will return an empty set if there are no such
@@ -267,8 +275,8 @@ public interface Graph {
     public fun edges(source: Vertex, target: Vertex): EdgeSet
 
     /**
-     * Returns the single edge with the given source and target (see undirected edge caveats discussed in [edgesCount]).
-     * If there are no edges or multiple edges with the given source and target, then [IllegalStateException] is thrown.
+     * Returns the single edge with the given source and target (see undirected edge caveats discussed in [hasEdge]). If
+     * there are no edges or multiple edges with the given source and target, then [IllegalStateException] is thrown.
      * Throws [IllegalArgumentException] if passed a vertex that is not in this graph.
      */
     @JvmName("edge")
@@ -791,11 +799,17 @@ public interface ValueGraph<V, E> {
     @JvmName("inDegree")
     public fun inDegree(vertex: Vertex): Int = graph.inDegree(vertex)
     /** A convenience method that calls the method of the same name on [graph]. */
+    @JvmName("successorsCount")
+    public fun successorsCount(vertex: Vertex): Int = graph.successorsCount(vertex)
+    /** A convenience method that calls the method of the same name on [graph]. */
     @JvmName("successors")
     public fun successors(vertex: Vertex): VertexSet = graph.successors(vertex)
     /** A convenience method that calls the method of the same name on [graph]. */
     @JvmName("successor")
     public fun successor(vertex: Vertex): Vertex = graph.successor(vertex)
+    /** A convenience method that calls the method of the same name on [graph]. */
+    @JvmName("predecessorsCount")
+    public fun predecessorsCount(vertex: Vertex): Int = graph.predecessorsCount(vertex)
     /** A convenience method that calls the method of the same name on [graph]. */
     @JvmName("predecessors")
     public fun predecessors(vertex: Vertex): VertexSet = graph.predecessors(vertex)
@@ -803,11 +817,17 @@ public interface ValueGraph<V, E> {
     @JvmName("predecessor")
     public fun predecessor(vertex: Vertex): Vertex = graph.predecessor(vertex)
     /** A convenience method that calls the method of the same name on [graph]. */
+    @JvmName("outgoingEdgeCount")
+    public fun outgoingEdgeCount(vertex: Vertex): Int = graph.outgoingEdgeCount(vertex)
+    /** A convenience method that calls the method of the same name on [graph]. */
     @JvmName("outgoingEdges")
     public fun outgoingEdges(vertex: Vertex): EdgeSet = graph.outgoingEdges(vertex)
     /** A convenience method that calls the method of the same name on [graph]. */
     @JvmName("outgoingEdge")
     public fun outgoingEdge(vertex: Vertex): Edge = graph.outgoingEdge(vertex)
+    /** A convenience method that calls the method of the same name on [graph]. */
+    @JvmName("incomingEdgeCount")
+    public fun incomingEdgeCount(vertex: Vertex): Int = graph.incomingEdgeCount(vertex)
     /** A convenience method that calls the method of the same name on [graph]. */
     @JvmName("incomingEdges")
     public fun incomingEdges(vertex: Vertex): EdgeSet = graph.incomingEdges(vertex)
@@ -823,6 +843,9 @@ public interface ValueGraph<V, E> {
     /** A convenience method that calls the method of the same name on [graph]. */
     @JvmName("hasEdge")
     public fun hasEdge(source: Vertex, target: Vertex): Boolean = graph.hasEdge(source, target)
+    /** A convenience method that calls the method of the same name on [graph]. */
+    @JvmName("edgesCount")
+    public fun edgesCount(source: Vertex, target: Vertex): Int = graph.edgesCount(source, target)
     /** A convenience method that calls the method of the same name on [graph]. */
     @JvmName("edges")
     public fun edges(source: Vertex, target: Vertex): EdgeSet = graph.edges(source, target)
@@ -1165,6 +1188,13 @@ public abstract class AbstractGraph<TEdgeSet : EdgeSet> : Graph {
     @JvmName("getInDegree")
     protected abstract fun getInDegree(vertex: Vertex): Int
 
+    @JvmName("successorsCount")
+    override fun successorsCount(vertex: Vertex): Int = getSuccessorsCount(validateVertex(vertex))
+
+    /** Will only ever be invoked if `vertex` is valid. */
+    @JvmName("getSuccessorsCount")
+    protected open fun getSuccessorsCount(vertex: Vertex): Int = getSuccessors(vertex).size
+
     @JvmName("successors")
     override fun successors(vertex: Vertex): VertexSet = getSuccessors(validateVertex(vertex))
 
@@ -1182,6 +1212,15 @@ public abstract class AbstractGraph<TEdgeSet : EdgeSet> : Graph {
         check (successors.size == 1)
         return successors.iterator().next()
     }
+
+    @JvmName("predecessorsCount")
+    override fun predecessorsCount(vertex: Vertex): Int {
+        return if (!directed) successorsCount(vertex) else getPredecessorsCount(validateVertex(vertex))
+    }
+
+    /** Will only ever be invoked if `vertex` is valid and `directed` is true. */
+    @JvmName("getPredecessorsCount")
+    protected open fun getPredecessorsCount(vertex: Vertex): Int = getPredecessors(vertex).size
 
     @JvmName("predecessors")
     override fun predecessors(vertex: Vertex): VertexSet {
@@ -1205,6 +1244,13 @@ public abstract class AbstractGraph<TEdgeSet : EdgeSet> : Graph {
         return predecessors.iterator().next()
     }
 
+    @JvmName("outgoingEdgeCount")
+    override fun outgoingEdgeCount(vertex: Vertex): Int = getOutgoingEdgeCount(validateVertex(vertex))
+
+    /** Will only ever be invoked if `vertex` is valid. */
+    @JvmName("getOutgoingEdgeCount")
+    protected open fun getOutgoingEdgeCount(vertex: Vertex): Int = getOutgoingEdges(vertex).size
+
     @JvmName("outgoingEdges")
     override fun outgoingEdges(vertex: Vertex): TEdgeSet = getOutgoingEdges(validateVertex(vertex))
 
@@ -1224,6 +1270,15 @@ public abstract class AbstractGraph<TEdgeSet : EdgeSet> : Graph {
         check (outgoingEdges.size == 1)
         return outgoingEdges.iterator().next()
     }
+
+    @JvmName("incomingEdgeCount")
+    override fun incomingEdgeCount(vertex: Vertex): Int {
+        return if (!directed) outgoingEdgeCount(vertex) else getIncomingEdgeCount(validateVertex(vertex))
+    }
+
+    /** Will only ever be invoked if `vertex` is valid and `directed` is true. */
+    @JvmName("getIncomingEdgeCount")
+    protected open fun getIncomingEdgeCount(vertex: Vertex): Int = getIncomingEdges(vertex).size
 
     @JvmName("incomingEdges")
     override fun incomingEdges(vertex: Vertex): TEdgeSet {
@@ -1255,6 +1310,15 @@ public abstract class AbstractGraph<TEdgeSet : EdgeSet> : Graph {
     /** Will only ever be invoked if `source` and `target` are valid. */
     @JvmName("containsEdge")
     protected abstract fun containsEdge(source: Vertex, target: Vertex): Boolean
+
+    @JvmName("edgesCount")
+    override fun edgesCount(source: Vertex, target: Vertex): Int {
+        return getEdgesCount(validateVertex(source), validateVertex(target))
+    }
+
+    /** Will only ever be invoked if `source` and `target` are valid. */
+    @JvmName("getEdgesCount")
+    protected open fun getEdgesCount(source: Vertex, target: Vertex): Int = getEdges(source, target).size
 
     @JvmName("edges")
     override fun edges(source: Vertex, target: Vertex): TEdgeSet {

@@ -35,14 +35,22 @@ internal abstract class AbstractUndirectedGraph(val graph: Graph) : Graph by gra
     override val multiEdge: Boolean get() = true
 
     private fun degree(vertex: Vertex): Int = graph.outDegree(vertex) + graph.inDegree(vertex)
+    private fun incidentEdgeCount(vertex: Vertex): Int {
+        return graph.outgoingEdgeCount(vertex) + graph.incomingEdgeCount(vertex) - graph.edgesCount(vertex, vertex)
+    }
+
     override fun outDegree(vertex: Vertex): Int = degree(vertex)
     override fun inDegree(vertex: Vertex): Int = degree(vertex)
+    override fun successorsCount(vertex: Vertex): Int = successors(vertex).size
     override fun successors(vertex: Vertex): VertexSet = NeighborVertexSet(vertex)
     override fun successor(vertex: Vertex): Vertex = super.successor(vertex)
+    override fun predecessorsCount(vertex: Vertex): Int = predecessors(vertex).size
     override fun predecessors(vertex: Vertex): VertexSet = NeighborVertexSet(vertex)
     override fun predecessor(vertex: Vertex): Vertex = super.predecessor(vertex)
+    override fun outgoingEdgeCount(vertex: Vertex): Int = incidentEdgeCount(vertex)
     override fun outgoingEdges(vertex: Vertex): EdgeSet = IncidentEdgeSet(vertex)
     override fun outgoingEdge(vertex: Vertex): Edge = super.outgoingEdge(vertex)
+    override fun incomingEdgeCount(vertex: Vertex): Int = incidentEdgeCount(vertex)
     override fun incomingEdges(vertex: Vertex): EdgeSet = IncidentEdgeSet(vertex)
     override fun incomingEdge(vertex: Vertex): Edge = super.incomingEdge(vertex)
 
@@ -55,8 +63,16 @@ internal abstract class AbstractUndirectedGraph(val graph: Graph) : Graph by gra
         graph.edges
     }
 
-    override fun hasEdge(source: Vertex, target: Vertex): Boolean =
-        graph.hasEdge(source, target) || graph.hasEdge(target, source)
+    override fun hasEdge(source: Vertex, target: Vertex): Boolean {
+        return graph.hasEdge(source, target) || graph.hasEdge(target, source)
+    }
+    override fun edgesCount(source: Vertex, target: Vertex): Int {
+        return if (source == target) {
+            graph.edgesCount(source, source)
+        } else {
+            graph.edgesCount(source, target) + graph.edgesCount(target, source)
+        }
+    }
     override fun edge(source: Vertex, target: Vertex): Edge = super.edge(source, target)
     override fun edges(source: Vertex, target: Vertex): EdgeSet {
         if (source == target) return graph.edges(source, source)
@@ -65,8 +81,9 @@ internal abstract class AbstractUndirectedGraph(val graph: Graph) : Graph by gra
             private val forwardEdges = graph.edges(source, target)
             private val backwardEdges = graph.edges(target, source)
             override val size: Int get() = forwardEdges.size + backwardEdges.size
-            override fun contains(element: Edge): Boolean =
-                forwardEdges.contains(element) || backwardEdges.contains(element)
+            override fun contains(element: Edge): Boolean {
+                return forwardEdges.contains(element) || backwardEdges.contains(element)
+            }
             override fun iterator(): EdgeIterator = object : EdgeIterator {
                 private val forwardIt = forwardEdges.iterator()
                 private val backwardIt = backwardEdges.iterator()
@@ -97,7 +114,7 @@ internal abstract class AbstractUndirectedGraph(val graph: Graph) : Graph by gra
         private val outgoingEdges = graph.outgoingEdges(vertex)
         private val incomingEdges = graph.incomingEdges(vertex)
 
-        override val size: Int get() = degree(vertex)
+        override val size: Int get() = incidentEdgeCount(vertex)
         override fun contains(element: Edge): Boolean =
             outgoingEdges.contains(element) || incomingEdges.contains(element)
         override fun iterator(): EdgeIterator = object : EdgeIterator {

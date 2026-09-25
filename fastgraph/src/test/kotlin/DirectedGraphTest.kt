@@ -115,6 +115,7 @@ class DirectedGraphTest {
 
         assertThat(graph.successors(v0)).containsExactlyInAnyOrder(v0, v1)
         assertThat(graph.successors(v0).size).isEqualTo(graph.successors(v0).iterator().asSequence().count())
+        assertThat(graph.successorsCount(v0)).isEqualTo(graph.successors(v0).size)
         assertThat(graph.successors(v0).contains(v0)).isTrue
         assertThat(graph.successors(v0).contains(v1)).isTrue
         assertThat(graph.successors(v0).contains(v2)).isFalse
@@ -122,6 +123,7 @@ class DirectedGraphTest {
 
         assertThat(graph.successors(v1)).containsExactlyInAnyOrder(v2)
         assertThat(graph.successors(v1).size).isEqualTo(graph.successors(v1).iterator().asSequence().count())
+        assertThat(graph.successorsCount(v1)).isEqualTo(graph.successors(v1).size)
         assertThat(graph.successors(v1).contains(v0)).isFalse
         assertThat(graph.successors(v1).contains(v1)).isFalse
         assertThat(graph.successors(v1).contains(v2)).isTrue
@@ -129,6 +131,7 @@ class DirectedGraphTest {
 
         assertThat(graph.successors(v2)).containsExactlyInAnyOrder(v0)
         assertThat(graph.successors(v2).size).isEqualTo(graph.successors(v2).iterator().asSequence().count())
+        assertThat(graph.successorsCount(v2)).isEqualTo(graph.successors(v2).size)
         assertThat(graph.successors(v2).contains(v0)).isTrue
         assertThat(graph.successors(v2).contains(v1)).isFalse
         assertThat(graph.successors(v2).contains(v2)).isFalse
@@ -136,6 +139,7 @@ class DirectedGraphTest {
 
         assertThat(graph.successors(v3)).isEmpty()
         assertThat(graph.successors(v3).size).isEqualTo(graph.successors(v3).iterator().asSequence().count())
+        assertThat(graph.successorsCount(v3)).isEqualTo(graph.successors(v3).size)
         assertThat(graph.successors(v3).contains(v0)).isFalse
         assertThat(graph.successors(v3).contains(v1)).isFalse
         assertThat(graph.successors(v3).contains(v2)).isFalse
@@ -165,6 +169,7 @@ class DirectedGraphTest {
 
         assertThat(graph.predecessors(v0)).containsExactlyInAnyOrder(v0, v2)
         assertThat(graph.predecessors(v0).size).isEqualTo(graph.predecessors(v0).iterator().asSequence().count())
+        assertThat(graph.predecessorsCount(v0)).isEqualTo(graph.predecessors(v0).size)
         assertThat(graph.predecessors(v0).contains(v0)).isTrue
         assertThat(graph.predecessors(v0).contains(v1)).isFalse
         assertThat(graph.predecessors(v0).contains(v2)).isTrue
@@ -172,6 +177,7 @@ class DirectedGraphTest {
 
         assertThat(graph.predecessors(v1)).containsExactlyInAnyOrder(v0)
         assertThat(graph.predecessors(v1).size).isEqualTo(graph.predecessors(v1).iterator().asSequence().count())
+        assertThat(graph.predecessorsCount(v1)).isEqualTo(graph.predecessors(v1).size)
         assertThat(graph.predecessors(v1).contains(v0)).isTrue
         assertThat(graph.predecessors(v1).contains(v1)).isFalse
         assertThat(graph.predecessors(v1).contains(v2)).isFalse
@@ -179,6 +185,7 @@ class DirectedGraphTest {
 
         assertThat(graph.predecessors(v2)).containsExactlyInAnyOrder(v1)
         assertThat(graph.predecessors(v2).size).isEqualTo(graph.predecessors(v2).iterator().asSequence().count())
+        assertThat(graph.predecessorsCount(v2)).isEqualTo(graph.predecessors(v2).size)
         assertThat(graph.predecessors(v2).contains(v0)).isFalse
         assertThat(graph.predecessors(v2).contains(v1)).isTrue
         assertThat(graph.predecessors(v2).contains(v2)).isFalse
@@ -186,6 +193,7 @@ class DirectedGraphTest {
 
         assertThat(graph.predecessors(v3)).isEmpty()
         assertThat(graph.predecessors(v3).size).isEqualTo(graph.predecessors(v3).iterator().asSequence().count())
+        assertThat(graph.predecessorsCount(v3)).isEqualTo(graph.predecessors(v3).size)
         assertThat(graph.predecessors(v3).contains(v0)).isFalse
         assertThat(graph.predecessors(v3).contains(v1)).isFalse
         assertThat(graph.predecessors(v3).contains(v2)).isFalse
@@ -215,6 +223,7 @@ class DirectedGraphTest {
 
         assertThat(graph.outgoingEdges(v0)).containsExactlyInAnyOrder(e0, e3)
         assertThat(graph.outgoingEdges(v0).size).isEqualTo(graph.outgoingEdges(v0).iterator().asSequence().count())
+        assertThat(graph.outgoingEdgeCount(v0)).isEqualTo(graph.outgoingEdges(v0).size)
         assertThat(graph.outgoingEdges(v0).contains(e0)).isTrue
         assertThat(graph.outgoingEdges(v0).contains(e1)).isFalse
         assertThat(graph.outgoingEdges(v0).contains(e2)).isFalse
@@ -222,6 +231,7 @@ class DirectedGraphTest {
 
         assertThat(graph.outgoingEdges(v1)).containsExactlyInAnyOrder(e1)
         assertThat(graph.outgoingEdges(v1).size).isEqualTo(graph.outgoingEdges(v1).iterator().asSequence().count())
+        assertThat(graph.outgoingEdgeCount(v1)).isEqualTo(graph.outgoingEdges(v1).size)
         assertThat(graph.outgoingEdges(v1).contains(e0)).isFalse
         assertThat(graph.outgoingEdges(v1).contains(e1)).isTrue
         assertThat(graph.outgoingEdges(v1).contains(e2)).isFalse
@@ -229,6 +239,7 @@ class DirectedGraphTest {
 
         assertThat(graph.outgoingEdges(v2)).containsExactlyInAnyOrder(e2)
         assertThat(graph.outgoingEdges(v2).size).isEqualTo(graph.outgoingEdges(v2).iterator().asSequence().count())
+        assertThat(graph.outgoingEdgeCount(v2)).isEqualTo(graph.outgoingEdges(v2).size)
         assertThat(graph.outgoingEdges(v2).contains(e0)).isFalse
         assertThat(graph.outgoingEdges(v2).contains(e1)).isFalse
         assertThat(graph.outgoingEdges(v2).contains(e2)).isTrue
@@ -236,6 +247,7 @@ class DirectedGraphTest {
 
         assertThat(graph.outgoingEdges(v3)).isEmpty()
         assertThat(graph.outgoingEdges(v3).size).isEqualTo(graph.outgoingEdges(v3).iterator().asSequence().count())
+        assertThat(graph.outgoingEdgeCount(v3)).isEqualTo(graph.outgoingEdges(v3).size)
         assertThat(graph.outgoingEdges(v3).contains(e0)).isFalse
         assertThat(graph.outgoingEdges(v3).contains(e1)).isFalse
         assertThat(graph.outgoingEdges(v3).contains(e2)).isFalse
@@ -265,6 +277,7 @@ class DirectedGraphTest {
 
         assertThat(graph.incomingEdges(v0)).containsExactlyInAnyOrder(e2, e3)
         assertThat(graph.incomingEdges(v0).size).isEqualTo(graph.incomingEdges(v0).iterator().asSequence().count())
+        assertThat(graph.incomingEdgeCount(v0)).isEqualTo(graph.incomingEdges(v0).size)
         assertThat(graph.incomingEdges(v0).contains(e0)).isFalse
         assertThat(graph.incomingEdges(v0).contains(e1)).isFalse
         assertThat(graph.incomingEdges(v0).contains(e2)).isTrue
@@ -272,6 +285,7 @@ class DirectedGraphTest {
 
         assertThat(graph.incomingEdges(v1)).containsExactlyInAnyOrder(e0)
         assertThat(graph.incomingEdges(v1).size).isEqualTo(graph.incomingEdges(v1).iterator().asSequence().count())
+        assertThat(graph.incomingEdgeCount(v1)).isEqualTo(graph.incomingEdges(v1).size)
         assertThat(graph.incomingEdges(v1).contains(e0)).isTrue
         assertThat(graph.incomingEdges(v1).contains(e1)).isFalse
         assertThat(graph.incomingEdges(v1).contains(e2)).isFalse
@@ -279,6 +293,7 @@ class DirectedGraphTest {
 
         assertThat(graph.incomingEdges(v2)).containsExactlyInAnyOrder(e1)
         assertThat(graph.incomingEdges(v2).size).isEqualTo(graph.incomingEdges(v2).iterator().asSequence().count())
+        assertThat(graph.incomingEdgeCount(v2)).isEqualTo(graph.incomingEdges(v2).size)
         assertThat(graph.incomingEdges(v2).contains(e0)).isFalse
         assertThat(graph.incomingEdges(v2).contains(e1)).isTrue
         assertThat(graph.incomingEdges(v2).contains(e2)).isFalse
@@ -286,6 +301,7 @@ class DirectedGraphTest {
 
         assertThat(graph.incomingEdges(v3)).isEmpty()
         assertThat(graph.incomingEdges(v3).size).isEqualTo(graph.incomingEdges(v3).iterator().asSequence().count())
+        assertThat(graph.incomingEdgeCount(v3)).isEqualTo(graph.incomingEdges(v3).size)
         assertThat(graph.incomingEdges(v3).contains(e0)).isFalse
         assertThat(graph.incomingEdges(v3).contains(e1)).isFalse
         assertThat(graph.incomingEdges(v3).contains(e2)).isFalse

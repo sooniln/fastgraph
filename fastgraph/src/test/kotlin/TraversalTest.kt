@@ -74,7 +74,7 @@ class TraversalTest {
     private fun Iterator<Vertex>.toList(): List<Vertex> = asSequence().toList()
 
     // traversals examine each outgoing edge once, whereas outDegree counts undirected self-loops twice
-    private fun outDegreeSum(vertices: Collection<Vertex>): Int = vertices.sumOf { graph.outgoingEdges(it).size }
+    private fun outDegreeSum(vertices: Collection<Vertex>): Int = vertices.sumOf { graph.outgoingEdgeCount(it) }
 
     // --- Argument validation, common to every traversal -------------------------------------------------------------
 

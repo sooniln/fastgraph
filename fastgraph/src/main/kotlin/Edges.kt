@@ -217,6 +217,48 @@ public interface EdgeCollection : Collection<Edge> {
     }
 }
 
+/** Returns true if at least one edge matches the given predicate. */
+public inline fun EdgeCollection.any(predicate: (Edge) -> Boolean): Boolean {
+    for (edge in this) {
+        if (predicate(edge)) return true
+    }
+    return false
+}
+
+/** Returns true if all edges match the given predicate. */
+public inline fun EdgeCollection.all(predicate: (Edge) -> Boolean): Boolean {
+    for (edge in this) {
+        if (!predicate(edge)) return false
+    }
+    return true
+}
+
+/** Returns true if no edges match the given predicate. */
+public inline fun EdgeCollection.none(predicate: (Edge) -> Boolean): Boolean {
+    for (edge in this) {
+        if (predicate(edge)) return false
+    }
+    return true
+}
+
+/** Returns the number of edges matching the given predicate. */
+public inline fun EdgeCollection.count(predicate: (Edge) -> Boolean): Int {
+    var count = 0
+    for (edge in this) {
+        if (predicate(edge)) ++count
+    }
+    return count
+}
+
+/** Returns the first edge matching the given predicate. Throws [NoSuchElementException] if no such edge exists. */
+@JvmName("first")
+public inline fun EdgeCollection.first(predicate: (Edge) -> Boolean): Edge {
+    for (edge in this) {
+        if (predicate(edge)) return edge
+    }
+    throw NoSuchElementException("No edge matching the predicate.")
+}
+
 /** A read-only ordered collection of edges. */
 @Suppress("INAPPLICABLE_JVM_NAME")
 public interface EdgeSequencedCollection : EdgeCollection, RandomAccess {
@@ -274,52 +316,6 @@ public interface EdgeSequencedCollection : EdgeCollection, RandomAccess {
 
 public val EdgeSequencedCollection.lastIndex: Int get() = size - 1
 
-// the following methods shadow the equivalent Iterable<Edge> methods from the standard library in order to avoid Edge
-// boxing/unboxing, and associated performance penalties. note that clients outside this package must import these
-// methods explicitly, otherwise the standard library versions will be used.
-
-/** Returns true if at least one edge matches the given predicate. */
-public inline fun EdgeCollection.any(predicate: (Edge) -> Boolean): Boolean {
-    for (edge in this) {
-        if (predicate(edge)) return true
-    }
-    return false
-}
-
-/** Returns true if all edges match the given predicate. */
-public inline fun EdgeCollection.all(predicate: (Edge) -> Boolean): Boolean {
-    for (edge in this) {
-        if (!predicate(edge)) return false
-    }
-    return true
-}
-
-/** Returns true if no edges match the given predicate. */
-public inline fun EdgeCollection.none(predicate: (Edge) -> Boolean): Boolean {
-    for (edge in this) {
-        if (predicate(edge)) return false
-    }
-    return true
-}
-
-/** Returns the number of edges matching the given predicate. */
-public inline fun EdgeCollection.count(predicate: (Edge) -> Boolean): Int {
-    var count = 0
-    for (edge in this) {
-        if (predicate(edge)) ++count
-    }
-    return count
-}
-
-/** Returns the first edge matching the given predicate. Throws [NoSuchElementException] if no such edge exists. */
-@JvmName("first")
-public inline fun EdgeCollection.first(predicate: (Edge) -> Boolean): Edge {
-    for (edge in this) {
-        if (predicate(edge)) return edge
-    }
-    throw NoSuchElementException("No edge matching the predicate.")
-}
-
 /** A read-only set of edges. */
 @Suppress("INAPPLICABLE_JVM_NAME")
 public interface EdgeSet : EdgeCollection, Set<Edge> {
@@ -332,6 +328,19 @@ public interface EdgeSet : EdgeCollection, Set<Edge> {
 /** A set of edges with an iterator that allows for removal. */
 public interface MutableEdgeSet : EdgeSet {
     override fun iterator(): MutableEdgeIterator
+}
+
+/** Removes all edges matching the given predicate. Returns true if any edges were removed. */
+public inline fun MutableEdgeSet.removeAll(predicate: (Edge) -> Boolean): Boolean {
+    var removed = false
+    val it = iterator()
+    while (it.hasNext()) {
+        if (predicate(it.next())) {
+            it.remove()
+            removed = true
+        }
+    }
+    return removed
 }
 
 /** A read-only ordered set of edges. */

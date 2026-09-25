@@ -133,6 +133,48 @@ public interface VertexCollection : Collection<Vertex> {
     }
 }
 
+/** Returns true if at least one vertex matches the given predicate. */
+public inline fun VertexCollection.any(predicate: (Vertex) -> Boolean): Boolean {
+    for (vertex in this) {
+        if (predicate(vertex)) return true
+    }
+    return false
+}
+
+/** Returns true if all vertices match the given predicate. */
+public inline fun VertexCollection.all(predicate: (Vertex) -> Boolean): Boolean {
+    for (vertex in this) {
+        if (!predicate(vertex)) return false
+    }
+    return true
+}
+
+/** Returns true if no vertices match the given predicate. */
+public inline fun VertexCollection.none(predicate: (Vertex) -> Boolean): Boolean {
+    for (vertex in this) {
+        if (predicate(vertex)) return false
+    }
+    return true
+}
+
+/** Returns the number of vertices matching the given predicate. */
+public inline fun VertexCollection.count(predicate: (Vertex) -> Boolean): Int {
+    var count = 0
+    for (vertex in this) {
+        if (predicate(vertex)) ++count
+    }
+    return count
+}
+
+/** Returns the first vertex matching the given predicate. Throws [NoSuchElementException] if no such vertex exists. */
+@JvmName("first")
+public inline fun VertexCollection.first(predicate: (Vertex) -> Boolean): Vertex {
+    for (vertex in this) {
+        if (predicate(vertex)) return vertex
+    }
+    throw NoSuchElementException("No vertex matching the predicate.")
+}
+
 /** A read-only ordered collection of vertices. */
 @Suppress("INAPPLICABLE_JVM_NAME")
 public interface VertexSequencedCollection : VertexCollection, RandomAccess {
@@ -192,52 +234,6 @@ public interface VertexSequencedCollection : VertexCollection, RandomAccess {
 
 public val VertexSequencedCollection.lastIndex: Int get() = size - 1
 
-// the following methods shadow the equivalent Iterable<Vertex> methods from the standard library in order to avoid
-// Vertex boxing/unboxing, and associated performance penalties. note that clients outside this package must import
-// these methods explicitly, otherwise the standard library versions will be used.
-
-/** Returns true if at least one vertex matches the given predicate. */
-public inline fun VertexCollection.any(predicate: (Vertex) -> Boolean): Boolean {
-    for (vertex in this) {
-        if (predicate(vertex)) return true
-    }
-    return false
-}
-
-/** Returns true if all vertices match the given predicate. */
-public inline fun VertexCollection.all(predicate: (Vertex) -> Boolean): Boolean {
-    for (vertex in this) {
-        if (!predicate(vertex)) return false
-    }
-    return true
-}
-
-/** Returns true if no vertices match the given predicate. */
-public inline fun VertexCollection.none(predicate: (Vertex) -> Boolean): Boolean {
-    for (vertex in this) {
-        if (predicate(vertex)) return false
-    }
-    return true
-}
-
-/** Returns the number of vertices matching the given predicate. */
-public inline fun VertexCollection.count(predicate: (Vertex) -> Boolean): Int {
-    var count = 0
-    for (vertex in this) {
-        if (predicate(vertex)) ++count
-    }
-    return count
-}
-
-/** Returns the first vertex matching the given predicate. Throws [NoSuchElementException] if no such vertex exists. */
-@JvmName("first")
-public inline fun VertexCollection.first(predicate: (Vertex) -> Boolean): Vertex {
-    for (vertex in this) {
-        if (predicate(vertex)) return vertex
-    }
-    throw NoSuchElementException("No vertex matching the predicate.")
-}
-
 /** A read-only set of vertices. */
 @Suppress("INAPPLICABLE_JVM_NAME")
 public interface VertexSet : VertexCollection, Set<Vertex> {
@@ -250,6 +246,19 @@ public interface VertexSet : VertexCollection, Set<Vertex> {
 /** A set of vertices with an iterator that allows for removal. */
 public interface MutableVertexSet : VertexSet {
     override fun iterator(): MutableVertexIterator
+}
+
+/** Removes all vertices matching the given predicate. Returns true if any vertices were removed. */
+public inline fun MutableVertexSet.removeAll(predicate: (Vertex) -> Boolean): Boolean {
+    var removed = false
+    val it = iterator()
+    while (it.hasNext()) {
+        if (predicate(it.next())) {
+            it.remove()
+            removed = true
+        }
+    }
+    return removed
 }
 
 /** A read-only ordered set of vertices. */

@@ -252,9 +252,13 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
         return if (!directed && successors.contains(vertex.id)) successors.size + 1 else successors.size
     }
     override fun getInDegree(vertex: Vertex): Int = predecessors[vertex].size
+    override fun getSuccessorsCount(vertex: Vertex): Int = successors[vertex].size
     override fun getSuccessors(vertex: Vertex): VertexSet = successors[vertex].asVertexSet()
+    override fun getPredecessorsCount(vertex: Vertex): Int = predecessors[vertex].size
     override fun getPredecessors(vertex: Vertex): VertexSet = predecessors[vertex].asVertexSet()
+    override fun getOutgoingEdgeCount(vertex: Vertex): Int = successors[vertex].size
     override fun getOutgoingEdges(vertex: Vertex): CanonicalEdgeSet = OutgoingEdgeSet(vertex)
+    override fun getIncomingEdgeCount(vertex: Vertex): Int = predecessors[vertex].size
     override fun getIncomingEdges(vertex: Vertex): CanonicalEdgeSet = IncomingEdgeSet(vertex)
 
     override val edges: MutableCanonicalEdgeSet = object : AbstractEdgeSet(), MutableCanonicalEdgeSet {
@@ -332,6 +336,8 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
     override fun unregisterEdgeChangeListener(listener: EdgeChangeListener) = edgeListeners.unregister(listener)
 
     override fun containsEdge(source: Vertex, target: Vertex): Boolean = successors[source].contains(target)
+
+    override fun getEdgesCount(source: Vertex, target: Vertex): Int = if (containsEdge(source, target)) 1 else 0
 
     override fun getEdge(source: Vertex, target: Vertex): Edge {
         check(containsEdge(source, target))
@@ -451,7 +457,7 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
             copy.ensureVertexCapacity(graph.vertices.size)
             copy.ensureEdgeCapacity(graph.edges.size)
             for (vertex in graph.vertices) {
-                val vertexCopy = copy.addVertex(graph.successors(vertex).size, 0)
+                val vertexCopy = copy.addVertex(graph.successorsCount(vertex), 0)
                 assert(vertexCopy.id == vertex.id)
             }
             for (edge in graph.edges) {
