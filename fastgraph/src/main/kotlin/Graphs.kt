@@ -83,22 +83,30 @@ public interface Graph {
     public fun isEmpty(): Boolean = vertices.size == 0
 
     /**
-     * Returns the number of outgoing edges from the given vertex. Equivalent to `outgoingEdges(vertex).size()`, but is
-     * likely to be cheaper (as [outgoingEdges] may return a new collection on every invocation). In an undirected graph
-     * all edges connected to this vertex are considered outgoing. Throws [IllegalArgumentException] if passed a vertex
-     * that is not in this graph.
+     * Returns the out-degree of the given vertex. In a directed graph this is equivalent to
+     * `outgoingEdges(vertex).size()`. In an undirected graph all edges connected to this vertex are considered
+     * outgoing, and a self-loop counts twice towards the degree (so that the sum of all degrees is always twice the
+     * number of edges). Throws [IllegalArgumentException] if passed a vertex that is not in this graph.
      */
     @JvmName("outDegree")
     public fun outDegree(vertex: Vertex): Int
 
     /**
-     * Returns the number of edges incoming to the given vertex. Equivalent to `incomingEdges(vertex).size()`, but is
-     * likely to be cheaper (as [incomingEdges] may return a new collection on every invocation). In an undirected graph
-     * all edges connected to this vertex are considered incoming. Throws [IllegalArgumentException] if passed a vertex
-     * that is not in this graph.
+     * Returns the in-degree of the given vertex. In a directed graph this is equivalent to
+     * `incomingEdges(vertex).size()`. In an undirected graph all edges connected to this vertex are considered
+     * incoming, and this is always equal to [outDegree] (see [outDegree] for how self-loops are counted). Throws
+     * [IllegalArgumentException] if passed a vertex that is not in this graph.
      */
     @JvmName("inDegree")
     public fun inDegree(vertex: Vertex): Int
+
+    /**
+     * Returns the number of distinct successor vertices for the given vertex. This will always be equivalent to
+     * `successors(vertex).size`, but may not allocate a new collection . Distinct from [outDegree] in that it counts
+     * the number of vertices rather than the number of edges.
+     */
+    @JvmName("successorsCount")
+    public fun successorsCount(vertex: Vertex): Int = successors(vertex).size
 
     /**
      * Returns the set of vertices that can be reached from the given vertex by traversing outgoing edges. In an
@@ -123,6 +131,14 @@ public interface Graph {
     }
 
     /**
+     * Returns the number of distinct predecessor vertices for the given vertex. This will always be equivalent to
+     * `predecessors(vertex).size`, but may not allocate new collection. Distinct from [inDegree] in that it counts the
+     * number of vertices rather than the number of edges.
+     */
+    @JvmName("predecessorsCount")
+    public fun predecessorsCount(vertex: Vertex): Int = predecessors(vertex).size
+
+    /**
      * Returns the set of vertices that can be reached from the given vertex by traversing incoming edges. In an
      * undirected graph all edges connected to this vertex are considered incoming. The returned value is a live view
      * that reflects changes to the underlying topology. If the vertex the collection is based on is removed from the
@@ -145,6 +161,14 @@ public interface Graph {
     }
 
     /**
+     * Returns the number of distinct outgoing edges for the given vertex. This will always be equivalent to
+     * `outgoingEdges(vertex).size`, but may not allocate a new collection. Always equivalent to [outDegree] in a
+     * directed graph, but may not be equal to [inDegree] in an undirected graph (see notes on self-loops).
+     */
+    @JvmName("outgoingEdgeCount")
+    public fun outgoingEdgeCount(vertex: Vertex): Int = outgoingEdges(vertex).size
+
+    /**
      * Returns the set of edges that are outgoing from this vertex. In an undirected graph all edges connected to this
      * vertex are considered outgoing. The returned value is a live view that reflects changes to the underlying
      * topology. If the vertex the collection is based on is removed from the graph the behavior of the collection is
@@ -165,6 +189,14 @@ public interface Graph {
         check (outgoingEdges.size == 1)
         return outgoingEdges.iterator().next()
     }
+
+    /**
+     * Returns the number of distinct incoming edges for the given vertex. This will always be equivalent to
+     * `incomingEdges(vertex).size`, but may not allocate a new collection. Always equivalent to [inDegree] in a
+     * directed graph, but may not be equal to [inDegree] in an undirected graph (see notes on self-loops).
+     */
+    @JvmName("incomingEdgeCount")
+    public fun incomingEdgeCount(vertex: Vertex): Int = incomingEdges(vertex).size
 
     /**
      * Returns the set of edges that are incoming to this vertex. In an undirected graph all edges connected to this
@@ -215,13 +247,15 @@ public interface Graph {
     public fun edgeTarget(edge: Edge): Vertex
 
     /**
-     * Returns true if the graph contains an edge with the given source and target. Note that for undirected edges
-     * either can serve as the source or target - for example it is possible that `hasEdge(a, b) == true` and also
-     * `edgeSource(edge) == b && edgeTarget(edge) == a` for an undirected edge. Throws [IllegalArgumentException] if
-     * passed a source or target vertex that is not in this graph.
+     * Returns the number of distinct edges from the source vertex to the target vertex. This will always be equivalent
+     * to `edges(source, target).size`, but may not allocate a new collection. Note that for undirected edges either can
+     * serve as the source or target - for example it is possible that `edgeSource(edge(source, target)) == target`
+     * and/or `edgeTarget(edge(source, target)) == source target` for an undirected edge. Throws
+     * [IllegalArgumentException] if passed a source or target vertex that is not in this graph.
+     *
      */
-    @JvmName("hasEdge")
-    public fun hasEdge(source: Vertex, target: Vertex): Boolean = !edges(source, target).isEmpty()
+    @JvmName("edgesCount")
+    public fun edgesCount(source: Vertex, target: Vertex): Int = edges.size
 
     /**
      * Returns the set of edges from the given source to the given target. Will return an empty set if there are no such
@@ -233,8 +267,8 @@ public interface Graph {
     public fun edges(source: Vertex, target: Vertex): EdgeSet
 
     /**
-     * Returns the single edge with the given source and target (see undirected edge caveats discussed in [hasEdge]). If
-     * there are no edges or multiple edges with the given source and target, then [IllegalStateException] is thrown.
+     * Returns the single edge with the given source and target (see undirected edge caveats discussed in [edgesCount]).
+     * If there are no edges or multiple edges with the given source and target, then [IllegalStateException] is thrown.
      * Throws [IllegalArgumentException] if passed a vertex that is not in this graph.
      */
     @JvmName("edge")
@@ -659,7 +693,7 @@ public interface GraphBuilder {
     public fun addVertex(outDegreeCapacity: Int, inDegreeCapacity: Int): Vertex = addVertex()
 
     /**
-     * Adds a new edge connecting the given source and target vertex. See [Graph.hasEdge] for caveats on how
+     * Adds a new edge connecting the given source and target vertex. See [Graph.edgesCount] for caveats on how
      * source/target are treated in undirected graphs. In a [MutableGraph] implementation that does not support
      * multi-edges, this method will throw [IllegalArgumentException] if there already exists an edge connecting those
      * vertices in the same direction.

@@ -169,6 +169,9 @@ class ImmutableGraphsTest {
                     .isEqualTo(setOf(mutable.edgeSource(edge), mutable.edgeTarget(edge)))
             }
         }
+        // handshake lemma (undirected self-loops count twice towards degree)
+        assertThat(immutable.vertices.sumOf { immutable.outDegree(it) })
+            .isEqualTo(if (directed) immutable.edges.size else 2 * immutable.edges.size)
         for (vertex in mutable.vertices) {
             assertThat(immutable.outDegree(vertex)).isEqualTo(mutable.outDegree(vertex))
             assertThat(immutable.inDegree(vertex)).isEqualTo(mutable.inDegree(vertex))

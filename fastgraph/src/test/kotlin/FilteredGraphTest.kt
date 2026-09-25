@@ -506,8 +506,9 @@ class FilteredGraphTest {
         assertThat(filteredGraph.edges).containsExactlyInAnyOrder(e0, e1, e2)
         assertThat(filteredGraph.edges(v0, v1)).containsExactlyInAnyOrder(e0, e1)
         assertThat(filteredGraph.edges(v1, v1)).containsExactlyInAnyOrder(e2)
-        assertThat(filteredGraph.outDegree(v1)).isEqualTo(if (directed) 1 else 3)
-        assertThat(filteredGraph.inDegree(v1)).isEqualTo(3)
+        // an undirected self-loop counts twice
+        assertThat(filteredGraph.outDegree(v1)).isEqualTo(if (directed) 1 else 4)
+        assertThat(filteredGraph.inDegree(v1)).isEqualTo(if (directed) 3 else 4)
     }
 
     @Test

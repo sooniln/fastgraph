@@ -180,6 +180,8 @@ class JGraphTTest {
 
             // self-loop counts twice towards degree
             assertThat(jgrapht.degreeOf("b")).isEqualTo(4)
+            assertThat(jgrapht.outDegreeOf("b")).isEqualTo(4)
+            assertThat(jgrapht.inDegreeOf("b")).isEqualTo(4)
             assertThat(jgrapht.edgesOf("b")).containsExactlyInAnyOrder("a-b", "b-c", "loop")
         }
 

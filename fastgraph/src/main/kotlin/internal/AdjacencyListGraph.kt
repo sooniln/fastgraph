@@ -246,7 +246,11 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
             override val size: Int get() = successors.size
         }
 
-    override fun getOutDegree(vertex: Vertex): Int = successors[vertex].size
+    override fun getOutDegree(vertex: Vertex): Int {
+        val successors = successors[vertex]
+        // an undirected self-loop is stored once, but counts twice towards degree
+        return if (!directed && successors.contains(vertex.id)) successors.size + 1 else successors.size
+    }
     override fun getInDegree(vertex: Vertex): Int = predecessors[vertex].size
     override fun getSuccessors(vertex: Vertex): VertexSet = successors[vertex].asVertexSet()
     override fun getPredecessors(vertex: Vertex): VertexSet = predecessors[vertex].asVertexSet()
@@ -447,7 +451,7 @@ internal class AdjacencyListGraph(override val directed: Boolean) : AbstractGrap
             copy.ensureVertexCapacity(graph.vertices.size)
             copy.ensureEdgeCapacity(graph.edges.size)
             for (vertex in graph.vertices) {
-                val vertexCopy = copy.addVertex(graph.outDegree(vertex), 0)
+                val vertexCopy = copy.addVertex(graph.successors(vertex).size, 0)
                 assert(vertexCopy.id == vertex.id)
             }
             for (edge in graph.edges) {

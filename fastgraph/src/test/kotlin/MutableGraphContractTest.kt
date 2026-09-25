@@ -98,7 +98,8 @@ class MutableGraphContractTest {
         // a rejected add leaves the topology untouched
         assertThat(graph.edges(a, b)).containsExactlyInAnyOrder(ab)
         assertThat(graph.edges(a, a)).containsExactlyInAnyOrder(aa)
-        assertThat(graph.outDegree(a)).isEqualTo(2)
+        // an undirected self-loop counts twice
+        assertThat(graph.outDegree(a)).isEqualTo(if (directed) 2 else 3)
     }
 
     @ParameterizedTest(name = "{0}, directed={1}")
@@ -125,8 +126,9 @@ class MutableGraphContractTest {
         } else {
             assertThat(graph.edges(a, b)).containsExactlyInAnyOrder(e0, e1, e2)
             assertThat(graph.edges(b, a)).containsExactlyInAnyOrder(e0, e1, e2)
-            assertThat(graph.outDegree(a)).isEqualTo(5)
-            assertThat(graph.inDegree(a)).isEqualTo(5)
+            // undirected self-loops count twice
+            assertThat(graph.outDegree(a)).isEqualTo(7)
+            assertThat(graph.inDegree(a)).isEqualTo(7)
         }
         assertThat(graph.successors(a)).containsExactlyInAnyOrder(a, b)
     }

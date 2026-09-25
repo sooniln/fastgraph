@@ -160,8 +160,7 @@ private open class JGraphTGraphView<V, E>(
         return if (graph.directed) {
             graph.outDegree(v) + graph.inDegree(v)
         } else {
-            // JGraphT counts an undirected self-loop twice, fastgraph counts it once
-            graph.outDegree(v) + graph.edges(v, v).size
+            graph.outDegree(v)
         }
     }
 

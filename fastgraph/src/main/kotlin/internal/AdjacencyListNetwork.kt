@@ -251,7 +251,11 @@ internal class AdjacencyListNetwork(
             override val size: Int get() = successors.size
     }
 
-    override fun getOutDegree(vertex: Vertex): Int = successors[vertex].size
+    override fun getOutDegree(vertex: Vertex): Int {
+        val successors = successors[vertex]
+        // an undirected self-loop is stored once, but counts twice towards degree
+        return if (!directed) successors.size + successors.edgeCountTo(vertex) else successors.size
+    }
     override fun getInDegree(vertex: Vertex): Int = predecessors[vertex].size
     override fun getSuccessors(vertex: Vertex): VertexSet = successors[vertex].vertices
     override fun getSuccessor(vertex: Vertex): Vertex = successors[vertex].vertex
@@ -487,17 +491,19 @@ internal class AdjacencyListNetwork(
             --size
         }
 
-        fun edgesTo(target: Vertex): EdgeAdjacencySet = object : EdgeAdjacencySet {
-            override val size: Int get() {
-                val v = map[target.id]
-                return if (v == Int.MIN_VALUE) {
-                    0
-                } else if (v < 0) {
-                    edgeListMap.getValue(v).size
-                } else {
-                    1
-                }
+        fun edgeCountTo(target: Vertex): Int {
+            val v = map[target.id]
+            return if (v == Int.MIN_VALUE) {
+                0
+            } else if (v < 0) {
+                edgeListMap.getValue(v).size
+            } else {
+                1
             }
+        }
+
+        fun edgesTo(target: Vertex): EdgeAdjacencySet = object : EdgeAdjacencySet {
+            override val size: Int get() = edgeCountTo(target)
 
             override fun contains(element: EdgeAdjacency): Boolean {
                 if (element.vertex != target) return false
@@ -575,7 +581,7 @@ internal class AdjacencyListNetwork(
             copy.ensureVertexCapacity(graph.vertices.size)
             copy.ensureEdgeCapacity(graph.edges.size)
             for (vertex in graph.vertices) {
-                val vertexCopy = copy.addVertex(graph.outDegree(vertex), 0)
+                val vertexCopy = copy.addVertex(graph.successors(vertex).size, 0)
                 assert(vertexCopy.id == vertex.id)
             }
             for (edge in graph.edges) {

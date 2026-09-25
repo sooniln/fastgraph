@@ -51,7 +51,8 @@ class GraphMLTest {
         assertThat(graph.edges(a, b)).hasSize(1)
         assertThat(graph.hasEdge(b, b)).isTrue()
         assertThat(graph.outDegree(a)).isEqualTo(1)
-        assertThat(graph.outDegree(b)).isEqualTo(2)
+        // the self-loop counts twice
+        assertThat(graph.outDegree(b)).isEqualTo(3)
     }
 
     @Test

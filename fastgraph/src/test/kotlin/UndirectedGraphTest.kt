@@ -85,10 +85,12 @@ class UndirectedGraphTest {
     fun outDegree(immutable: Boolean) {
         constructGraph(immutable)
 
-        assertThat(graph.outDegree(v0)).isEqualTo(3)
+        // the self-loop on v0 counts twice
+        assertThat(graph.outDegree(v0)).isEqualTo(4)
         assertThat(graph.outDegree(v1)).isEqualTo(2)
         assertThat(graph.outDegree(v2)).isEqualTo(2)
         assertThat(graph.outDegree(v3)).isEqualTo(0)
+        assertThat(graph.vertices.sumOf { graph.outDegree(it) }).isEqualTo(2 * graph.edges.size)
 
         assertThrows<IllegalArgumentException> { graph.outDegree(Vertex(99)) }
         assertThrows<IllegalArgumentException> { graph.outDegree(Vertex(-1)) }
@@ -99,7 +101,7 @@ class UndirectedGraphTest {
     fun inDegree(immutable: Boolean) {
         constructGraph(immutable)
 
-        assertThat(graph.inDegree(v0)).isEqualTo(3)
+        assertThat(graph.inDegree(v0)).isEqualTo(4)
         assertThat(graph.inDegree(v1)).isEqualTo(2)
         assertThat(graph.inDegree(v2)).isEqualTo(2)
         assertThat(graph.inDegree(v3)).isEqualTo(0)

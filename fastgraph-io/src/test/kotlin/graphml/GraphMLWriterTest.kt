@@ -219,6 +219,31 @@ class GraphMLWriterTest {
     }
 
     @Test
+    fun degreeHintsAreAdjacencyStorageSizes() {
+        val undirected = mutableGraph(directed = false)
+        val a = undirected.addVertex()
+        val b = undirected.addVertex()
+        undirected.addEdge(a, b)
+        undirected.addEdge(b, b)
+
+        var output = ByteArrayOutputStream()
+        writeGraphML(output, GraphMLGraph(undirected))
+        // b has a degree of 3 (the self-loop counts twice), but only 2 adjacent vertices (a and b)
+        assertThat(output.toString()).contains("<node id=\"n${b.id}\" parse.indegree=\"2\" parse.outdegree=\"2\">")
+
+        val network = mutableGraph(directed = true, multiEdge = true)
+        val c = network.addVertex()
+        val d = network.addVertex()
+        network.addEdge(c, d)
+        network.addEdge(c, d)
+
+        output = ByteArrayOutputStream()
+        writeGraphML(output, GraphMLGraph(network))
+        // c has an out-degree of 2, but only 1 adjacent vertex (d)
+        assertThat(output.toString()).contains("<node id=\"n${c.id}\" parse.indegree=\"0\" parse.outdegree=\"1\">")
+    }
+
+    @Test
     fun parallelEdgesAndSelfLoopsRoundTrip() {
         val graph = mutableGraph(directed = true, multiEdge = true)
         val a = graph.addVertex()

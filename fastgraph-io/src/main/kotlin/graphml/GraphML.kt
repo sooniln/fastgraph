@@ -155,7 +155,9 @@ private fun parseGraphML(
         else -> throw IllegalArgumentException("invalid edgedefault \"$edgeDefault\"")
     }
 
-    // GraphML-ParseInfo: parse.nodes/parse.edges are only used as capacity hints.
+    // GraphML-ParseInfo: parse.nodes/parse.edges (and parse.outdegree/parse.indegree on nodes) are only used as
+    // capacity hints. fastgraph writes parse.outdegree/parse.indegree as the adjacency storage size (the number of
+    // adjacent vertices) rather than the degree, so that they can be passed directly to addVertex().
     val numVertices = reader.getAttributeValue(null, "parse.nodes")?.toIntOrNull()
     val numEdges = reader.getAttributeValue(null, "parse.edges")?.toIntOrNull()
 
@@ -410,8 +412,10 @@ public fun writeGraphML(
     for (vertex in graph.graph.vertices) {
         writer.writeStartElement("node")
         writer.writeAttribute("id", vertex.toId())
-        writer.writeAttribute("parse.indegree", graph.graph.inDegree(vertex).toString())
-        writer.writeAttribute("parse.outdegree", graph.graph.outDegree(vertex).toString())
+        // these are capacity hints for the reader (see parseGraphML), so write the adjacency storage size rather than
+        // the degree (which counts undirected self-loops twice and multi-edges multiple times)
+        writer.writeAttribute("parse.indegree", graph.graph.predecessors(vertex).size.toString())
+        writer.writeAttribute("parse.outdegree", graph.graph.successors(vertex).size.toString())
         for ((name, property) in graph.vertexProperties) {
             writer.writeStartElement("data")
             writer.writeAttribute("key", vertexKeyIds.getValue(name))

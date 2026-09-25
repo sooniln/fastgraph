@@ -1,5 +1,7 @@
 package io.github.sooniln.fastgraph.internal
 
+import io.github.sooniln.fastcollect.Int2IntHashMap
+import io.github.sooniln.fastcollect.Int2IntMap
 import io.github.sooniln.fastgraph.AbstractEdgeSequencedSet
 import io.github.sooniln.fastgraph.AbstractEdgeSet
 import io.github.sooniln.fastgraph.AbstractGraph
@@ -162,7 +164,7 @@ internal class ImmutableAdjacencyListNetwork private constructor(
                 for (vertexId in 0..<n) {
                     val vertex = Vertex(vertexId)
                     targetOffsets[vertexId + 1] = targetOffsets[vertexId] + graph.successors(vertex).size
-                    numEdgeIds += graph.outDegree(vertex)
+                    numEdgeIds += graph.outgoingEdges(vertex).size
                 }
                 val targets = IntArray(targetOffsets[n])
                 for (vertexId in 0..<n) {
@@ -188,6 +190,19 @@ internal class ImmutableAdjacencyListNetwork private constructor(
 
     private val predecessors: Adjacencies by cheapLazy { check(directed); successors.transpose() }
 
+    // number of undirected self-loops per vertex, which count twice towards degree (null if there are none)
+    private val selfLoopCounts by cheapLazy {
+        check(!directed)
+        var selfLoopCounts = Int2IntHashMap(defaultValue = 0)
+        for (vertexId in 0..<successors.size) {
+            val count = successors.edges(Vertex(vertexId), Vertex(vertexId)).size
+            if (count > 0) {
+                selfLoopCounts[vertexId] = count
+            }
+        }
+        return@cheapLazy selfLoopCounts
+    }
+
     override fun validateVertex(vertex: Vertex): Vertex {
         if (vertex.id !in 0..<successors.size) throwIllegalVertex(vertex)
         return vertex
@@ -197,7 +212,10 @@ internal class ImmutableAdjacencyListNetwork private constructor(
         override val size: Int get() = successors.size
     }
 
-    override fun getOutDegree(vertex: Vertex): Int = successors.degree(vertex)
+    override fun getOutDegree(vertex: Vertex): Int {
+        val degree = successors.degree(vertex)
+        return if (!directed) degree + selfLoopCounts[vertex.id] else degree
+    }
     override fun getInDegree(vertex: Vertex): Int = predecessors.degree(vertex)
     override fun getSuccessors(vertex: Vertex): VertexSet = successors.adjacencies(vertex)
     override fun getSuccessor(vertex: Vertex): Vertex = successors.adjacency(vertex)

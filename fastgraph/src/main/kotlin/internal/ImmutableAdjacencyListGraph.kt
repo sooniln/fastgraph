@@ -22,6 +22,7 @@ import io.github.sooniln.fastgraph.edgeIteratorOf
 import io.github.sooniln.fastgraph.edgeSetOf
 import io.github.sooniln.fastgraph.emptyEdgeSet
 import io.github.sooniln.fastgraph.util.cheapLazy
+import java.util.BitSet
 
 internal class ImmutableAdjacencyListGraph private constructor(
     override val directed: Boolean,
@@ -130,7 +131,7 @@ internal class ImmutableAdjacencyListGraph private constructor(
                 val numVertices = graph.vertices.size
                 val offsets = IntArray(numVertices + 1)
                 for (vertexId in 0..<numVertices) {
-                    offsets[vertexId + 1] = offsets[vertexId] + graph.outDegree(Vertex(vertexId))
+                    offsets[vertexId + 1] = offsets[vertexId] + graph.successors(Vertex(vertexId)).size
                 }
                 val targets = IntArray(offsets[numVertices])
                 for (vertexId in 0..<numVertices) {
@@ -147,6 +148,18 @@ internal class ImmutableAdjacencyListGraph private constructor(
 
     private val predecessors: Adjacencies by cheapLazy { check(directed); successors.transpose() }
 
+    private val selfLoops: BitSet by cheapLazy {
+        check(!directed)
+
+        val selfLoops = BitSet()
+        for (vertexId in 0..<successors.size) {
+            if (successors.isAdjacent(Vertex(vertexId), Vertex(vertexId))) {
+                selfLoops.set(vertexId)
+            }
+        }
+        return@cheapLazy selfLoops
+    }
+
     override fun validateVertex(vertex: Vertex): Vertex {
         if (vertex.id !in 0..<successors.size) throwIllegalVertex(vertex)
         return vertex
@@ -156,7 +169,10 @@ internal class ImmutableAdjacencyListGraph private constructor(
         override val size: Int get() = successors.size
     }
 
-    override fun getOutDegree(vertex: Vertex): Int = successors.degree(vertex)
+    override fun getOutDegree(vertex: Vertex): Int {
+        val degree = successors.degree(vertex)
+        return if (!directed && selfLoops.get(vertex.id)) degree + 1 else degree
+    }
     override fun getInDegree(vertex: Vertex): Int = predecessors.degree(vertex)
     override fun getSuccessors(vertex: Vertex): VertexSet = successors.adjacencies(vertex)
     override fun getSuccessor(vertex: Vertex): Vertex = successors.adjacency(vertex)

@@ -34,10 +34,7 @@ internal abstract class AbstractUndirectedGraph(val graph: Graph) : Graph by gra
     override val directed: Boolean get() = false
     override val multiEdge: Boolean get() = true
 
-    // a self-loop is both an outgoing and incoming edge in the original graph, but should only be counted once
-    private fun degree(vertex: Vertex): Int =
-        graph.outDegree(vertex) + graph.inDegree(vertex) - graph.edges(vertex, vertex).size
-
+    private fun degree(vertex: Vertex): Int = graph.outDegree(vertex) + graph.inDegree(vertex)
     override fun outDegree(vertex: Vertex): Int = degree(vertex)
     override fun inDegree(vertex: Vertex): Int = degree(vertex)
     override fun successors(vertex: Vertex): VertexSet = NeighborVertexSet(vertex)

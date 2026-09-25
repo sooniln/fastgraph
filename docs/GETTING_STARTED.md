@@ -34,7 +34,9 @@ value class iteration.
 
 Graphs can be either directed or undirected (as specified at construction time). In addition, `Graph` supports
 self-loops (edges connecting the same vertex to itself) and multi-edges (multiple edges that connect the same pair of
-vertices in the same direction). Note that multi-edge support must be specified at construction time.
+vertices in the same direction). Note that multi-edge support must be specified at construction time. As is
+conventional, a self-loop in an undirected graph counts twice towards the degree of its vertex (so the sum of all
+degrees is twice the number of edges), even though it is only present once in `outgoingEdges()`.
 
 Some examples of the variety of operations you can perform to get topological information out of a graph:
 
